@@ -9,11 +9,12 @@
 /* Begin PBXBuildFile section */
 		0C80B921A6F3F58F76C31292 /* libPods-Atlas.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5DCACB8F33CDC322A6C60F78 /* libPods-Atlas.a */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
-		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
-		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
-		F7C50FE3280941C3910F68BA /* Rubik-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 7E08CC96BF92498EBD5B700B /* Rubik-Bold.ttf */; };
 		36053294666E42538D7446A1 /* Rubik-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 8FC8A108566747AFAB7CED41 /* Rubik-Medium.ttf */; };
 		3A91EBF74F36464299DF208A /* Rubik-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A21AA56561CF4D9D812C5185 /* Rubik-Regular.ttf */; };
+		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
+		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
+		DB0A2E24F7D9A3C39C615A1D /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
+		F7C50FE3280941C3910F68BA /* Rubik-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 7E08CC96BF92498EBD5B700B /* Rubik-Bold.ttf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -25,11 +26,11 @@
 		5709B34CF0A7D63546082F79 /* Pods-Atlas.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Atlas.release.xcconfig"; path = "Target Support Files/Pods-Atlas/Pods-Atlas.release.xcconfig"; sourceTree = "<group>"; };
 		5DCACB8F33CDC322A6C60F78 /* libPods-Atlas.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-Atlas.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = Atlas/AppDelegate.swift; sourceTree = "<group>"; };
+		7E08CC96BF92498EBD5B700B /* Rubik-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Rubik-Bold.ttf"; path = "../assets/fonts/Rubik-Bold.ttf"; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = Atlas/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		8FC8A108566747AFAB7CED41 /* Rubik-Medium.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Rubik-Medium.ttf"; path = "../assets/fonts/Rubik-Medium.ttf"; sourceTree = "<group>"; };
+		A21AA56561CF4D9D812C5185 /* Rubik-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Rubik-Regular.ttf"; path = "../assets/fonts/Rubik-Regular.ttf"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
-		7E08CC96BF92498EBD5B700B /* Rubik-Bold.ttf */ = {isa = PBXFileReference; name = "Rubik-Bold.ttf"; path = "../assets/fonts/Rubik-Bold.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
-		8FC8A108566747AFAB7CED41 /* Rubik-Medium.ttf */ = {isa = PBXFileReference; name = "Rubik-Medium.ttf"; path = "../assets/fonts/Rubik-Medium.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
-		A21AA56561CF4D9D812C5185 /* Rubik-Regular.ttf */ = {isa = PBXFileReference; name = "Rubik-Regular.ttf"; path = "../assets/fonts/Rubik-Regular.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -95,6 +96,17 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		8897CD2B9DDE45709BE2D2BF /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				7E08CC96BF92498EBD5B700B /* Rubik-Bold.ttf */,
+				8FC8A108566747AFAB7CED41 /* Rubik-Medium.ttf */,
+				A21AA56561CF4D9D812C5185 /* Rubik-Regular.ttf */,
+			);
+			name = Resources;
+			path = "";
+			sourceTree = "<group>";
+		};
 		BBD78D7AC51CEA395F1C20DB /* Pods */ = {
 			isa = PBXGroup;
 			children = (
@@ -103,17 +115,6 @@
 			);
 			path = Pods;
 			sourceTree = "<group>";
-		};
-		8897CD2B9DDE45709BE2D2BF /* Resources */ = {
-			isa = "PBXGroup";
-			children = (
-				7E08CC96BF92498EBD5B700B /* Rubik-Bold.ttf */,
-				8FC8A108566747AFAB7CED41 /* Rubik-Medium.ttf */,
-				A21AA56561CF4D9D812C5185 /* Rubik-Regular.ttf */,
-			);
-			name = Resources;
-			sourceTree = "<group>";
-			path = "";
 		};
 /* End PBXGroup section */
 
@@ -180,6 +181,7 @@
 				F7C50FE3280941C3910F68BA /* Rubik-Bold.ttf in Resources */,
 				36053294666E42538D7446A1 /* Rubik-Medium.ttf in Resources */,
 				3A91EBF74F36464299DF208A /* Rubik-Regular.ttf in Resources */,
+				DB0A2E24F7D9A3C39C615A1D /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -292,7 +294,7 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.bajaj.atlas";
+				PRODUCT_BUNDLE_IDENTIFIER = com.bajaj.atlas;
 				PRODUCT_NAME = Atlas;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -319,7 +321,7 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.bajaj.atlas";
+				PRODUCT_BUNDLE_IDENTIFIER = com.bajaj.atlas;
 				PRODUCT_NAME = Atlas;
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
@@ -395,7 +397,10 @@
 					"-DFOLLY_CFG_NO_COROUTINES=1",
 					"-DFOLLY_HAVE_CLOCK_GETTIME=1",
 				);
+				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DEBUG";
+				USE_HERMES = true;
 			};
 			name = Debug;
 		};
@@ -460,7 +465,9 @@
 					"-DFOLLY_CFG_NO_COROUTINES=1",
 					"-DFOLLY_HAVE_CLOCK_GETTIME=1",
 				);
+				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
+				USE_HERMES = true;
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;

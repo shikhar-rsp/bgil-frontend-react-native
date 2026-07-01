@@ -68,18 +68,16 @@ export const decryptAES = <T = unknown>(
  * @returns A unique UUID string to be used as a correlation ID for request tracking
  */
 export const generateCorrelationId = (): string => {
-  // React Native has no `crypto.randomUUID`. Build a RFC-4122 v4 UUID from
-  // CryptoJS's CSPRNG (`WordArray.random`) so no Web Crypto / extra native
-  // module is required.
-  const bytes = CryptoJS.lib.WordArray.random(16);
-  const hex = CryptoJS.enc.Hex.stringify(bytes);
-  const b = hex.match(/.{2}/g) as string[];
-  // Set version (4) and variant (10xx) bits per RFC 4122.
-  b[6] = ((parseInt(b[6], 16) & 0x0f) | 0x40).toString(16).padStart(2, '0');
-  b[8] = ((parseInt(b[8], 16) & 0x3f) | 0x80).toString(16).padStart(2, '0');
-  const correlationId = `${b.slice(0, 4).join('')}-${b.slice(4, 6).join('')}-${b
-    .slice(6, 8)
-    .join('')}-${b.slice(8, 10).join('')}-${b.slice(10, 16).join('')}`;
+  // React Native has no `crypto.randomUUID`, and CryptoJS 4.2's
+  // `WordArray.random` throws ("Native crypto module could not be used...")
+  // because there's no secure-random source on device. A correlation ID is a
+  // request-tracking value (not security-sensitive), so a Math.random-based
+  // RFC-4122 v4 UUID is sufficient and dependency-free.
+  const correlationId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
   console.log(correlationId);
   return correlationId;
 };
