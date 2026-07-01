@@ -31,6 +31,10 @@ Clean-architecture layers ported from the web app:
 
 Routes are deep-linkable under the `atlas://` scheme (see `App.tsx`).
 
+> **QC / testing:** see **[TESTING.md](TESTING.md)** for the mock login
+> credentials, simulator run steps, and how to distribute a build to QC testers'
+> phones (Android APK / iOS TestFlight).
+
 ---
 
 ## Prerequisites

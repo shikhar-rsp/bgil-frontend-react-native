@@ -4,15 +4,18 @@ import { Button, OtpInput, colors, spacing, typography } from '@atlas-ds/react-n
 import { AuthLayout } from '../../components/auth/AuthLayout';
 import { AuthHeader } from '../../components/auth/AuthHeader';
 import { useAuthUseCases } from '../../hooks/useAuthUseCases';
+import { ENV } from '../../../config/env';
+import { MOCK_OTP, dashboardRouteForRole } from '../../../infrastructure/mockAuth';
 import type { AuthScreenProps } from '../../../navigation';
 
 const OTP_SECONDS = 119; // 1:59
 
 export const VerifyOtp: React.FC<AuthScreenProps<'VerifyOtp'>> = ({ navigation, route }) => {
   const isRecovery = route.params?.recovery === true;
-  const persona = route.params?.persona ?? 'agent';
+  const role = route.params?.role ?? 'agent';
   const { verifyOtp } = useAuthUseCases();
   const [otpValue, setOtpValue] = useState('');
+  const [otpError, setOtpError] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState(OTP_SECONDS);
 
   useEffect(() => {
@@ -35,15 +38,19 @@ export const VerifyOtp: React.FC<AuthScreenProps<'VerifyOtp'>> = ({ navigation, 
     if (isRecovery) {
       navigation.navigate('ResetPassword');
     } else {
-      navigation.navigate(persona === 'rm' ? 'RMDashboard' : 'Dashboard');
+      navigation.navigate(dashboardRouteForRole(role));
     }
   };
 
   const handleSubmit = async () => {
-    // DEV-only: skip OTP verification against the UAT backend so the flow is
-    // walkable offline in debug builds. No effect on release builds.
-    if (__DEV__) {
-      goNext();
+    setOtpError(null);
+    // QC/demo mode: only the mock OTP verifies, then route to the role's dashboard.
+    if (ENV.MOCK_AUTH) {
+      if (otpValue === MOCK_OTP) {
+        goNext();
+      } else {
+        setOtpError(`Invalid OTP. Use ${MOCK_OTP} for the demo.`);
+      }
       return;
     }
     const result = await verifyOtp(otpValue, isRecovery);
@@ -57,15 +64,19 @@ export const VerifyOtp: React.FC<AuthScreenProps<'VerifyOtp'>> = ({ navigation, 
       <AuthHeader
         title="Verify OTP"
         subtitle="We've sent a 6-digit verification code to your registered mobile number ending with ****8765"
-        onBack={() => navigation.navigate('AgentLogin')}
+        onBack={() => navigation.navigate(role === 'rm' ? 'RmLogin' : 'AgentLogin')}
       />
 
       <View style={styles.form}>
         <OtpInput
           value={otpValue}
-          onChange={setOtpValue}
+          onChange={(v) => {
+            setOtpValue(v);
+            setOtpError(null);
+          }}
           label="Enter 6 digit OTP"
           length={6}
+          error={otpError ?? undefined}
           helper={timeLeft > 0 ? `Code expires in ${formatTime(timeLeft)} mins` : 'Code expired'}
           onResend={handleResend}
         />
@@ -82,7 +93,7 @@ export const VerifyOtp: React.FC<AuthScreenProps<'VerifyOtp'>> = ({ navigation, 
       <View style={styles.footer}>
         <Text style={styles.footerText}>Can't login? </Text>
         <Pressable
-          onPress={() => navigation.navigate('GetHelp', { persona: 'agent' })}
+          onPress={() => navigation.navigate('GetHelp', { persona: role === 'rm' ? 'rm' : 'agent' })}
           accessibilityRole="button"
         >
           <Text style={styles.footerLink}>Get Help</Text>

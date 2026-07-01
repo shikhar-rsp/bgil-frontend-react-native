@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -8,11 +8,15 @@ import { Button, Textfield, spacing } from '@atlas-ds/react-native';
 import { mobileSchema } from '../../validation/auth_schemas';
 import type { MobileLoginData } from '../../../domain/entities/auth_entities';
 import { useAuthUseCases } from '../../hooks/useAuthUseCases';
+import { FallbackMessage } from './FallbackMessage';
+import { ENV } from '../../../config/env';
+import { resolveMockRoleByMobile } from '../../../infrastructure/mockAuth';
 import type { RootStackParamList } from '../../../navigation';
 
 export const MobileLoginForm: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { loginWithMobile } = useAuthUseCases();
+  const [serverError, setServerError] = useState<string | null>(null);
   const { control, handleSubmit, formState } = useForm<MobileLoginData>({
     resolver: zodResolver(mobileSchema),
     mode: 'onSubmit',
@@ -24,10 +28,15 @@ export const MobileLoginForm: React.FC = () => {
   const isFormFilled = mobileValue?.length === 10;
 
   const onSubmit = async (data: MobileLoginData) => {
-    // DEV-only: skip the UAT backend so the flow is walkable offline in debug
-    // builds. No effect on release builds.
-    if (__DEV__) {
-      navigation.navigate('VerifyOtp');
+    setServerError(null);
+    // QC/demo mode: resolve the role from the local mock mobile numbers.
+    if (ENV.MOCK_AUTH) {
+      const role = resolveMockRoleByMobile(data.mobileNumber, ['agent', 'trainee']);
+      if (role) {
+        navigation.navigate('VerifyOtp', { role });
+      } else {
+        setServerError('This mobile number is not registered.');
+      }
       return;
     }
     const result = await loginWithMobile(data);
@@ -52,6 +61,8 @@ export const MobileLoginForm: React.FC = () => {
           />
         )}
       />
+
+      <FallbackMessage message={serverError} />
 
       <Button
         label="Proceed"

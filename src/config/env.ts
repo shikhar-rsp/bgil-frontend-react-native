@@ -16,4 +16,12 @@ export const ENV = {
   USERDETAILS_HMAC_KEY: 'n&i(Ms*#G(P*as!4@3',
   LOGIN_HMAC_KEY: 'h@i%KA@LG$L&18#%$)',
   APP_ENV: 'LIVE',
+
+  /**
+   * QC / demo mode. When true, login is resolved against the local mock
+   * credentials (see src/infrastructure/mockAuth.ts) instead of the UAT
+   * backend, so QC testers can reach each role's dashboard with no network.
+   * Set to `false` for production builds that must use the real backend.
+   */
+  MOCK_AUTH: true,
 } as const;

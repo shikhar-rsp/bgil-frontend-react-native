@@ -18,7 +18,7 @@ export type RootStackParamList = {
   DesignationSelect: undefined;
   AgentLogin: undefined;
   RmLogin: undefined;
-  VerifyOtp: { recovery?: boolean; persona?: 'agent' | 'rm' } | undefined;
+  VerifyOtp: { recovery?: boolean; role?: 'agent' | 'rm' | 'trainee' } | undefined;
   GetHelp: { persona?: 'agent' | 'rm' } | undefined;
   ForgotPassword: undefined;
   ResetPassword: undefined;

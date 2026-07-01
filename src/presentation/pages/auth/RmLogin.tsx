@@ -7,6 +7,9 @@ import { Eye, EyeSlash } from 'phosphor-react-native';
 import { Button, Textfield, colors, spacing, typography } from '@atlas-ds/react-native';
 import { AuthLayout } from '../../components/auth/AuthLayout';
 import { AuthHeader } from '../../components/auth/AuthHeader';
+import { FallbackMessage } from '../../components/auth/FallbackMessage';
+import { ENV } from '../../../config/env';
+import { resolveMockRole } from '../../../infrastructure/mockAuth';
 import type { AuthScreenProps } from '../../../navigation';
 
 const rmLoginSchema = z.object({
@@ -18,14 +21,25 @@ type RmLoginFormValues = z.infer<typeof rmLoginSchema>;
 
 export const RmLogin: React.FC<AuthScreenProps<'RmLogin'>> = ({ navigation }) => {
   const [showPassword, setShowPassword] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
   const { control, handleSubmit, formState } = useForm<RmLoginFormValues>({
     resolver: zodResolver(rmLoginSchema),
     mode: 'onSubmit',
   });
 
   const onSubmit = (data: RmLoginFormValues) => {
-    console.log('RM Login Submitted:', data);
-    navigation.navigate('VerifyOtp', { persona: 'rm' });
+    setServerError(null);
+    // QC/demo mode: only the mock RM credential advances to OTP.
+    if (ENV.MOCK_AUTH) {
+      const role = resolveMockRole(data.employeeCode, data.password, ['rm']);
+      if (role) {
+        navigation.navigate('VerifyOtp', { role });
+      } else {
+        setServerError('Invalid employee code or password.');
+      }
+      return;
+    }
+    navigation.navigate('VerifyOtp', { role: 'rm' });
   };
 
   return (
@@ -86,6 +100,8 @@ export const RmLogin: React.FC<AuthScreenProps<'RmLogin'>> = ({ navigation }) =>
           </View>
         </View>
       </View>
+
+      <FallbackMessage message={serverError} />
 
       <Button label="Proceed" onPress={handleSubmit(onSubmit)} fullWidth style={styles.submit} />
 

@@ -10,6 +10,8 @@ import { imdSchema } from '../../validation/auth_schemas';
 import type { ImdLoginData } from '../../../domain/entities/auth_entities';
 import { useAuthUseCases } from '../../hooks/useAuthUseCases';
 import { FallbackMessage } from './FallbackMessage';
+import { ENV } from '../../../config/env';
+import { resolveMockRole } from '../../../infrastructure/mockAuth';
 import type { RootStackParamList } from '../../../navigation';
 
 export const ImdLoginForm: React.FC = () => {
@@ -30,10 +32,15 @@ export const ImdLoginForm: React.FC = () => {
 
   const onSubmit = async (data: ImdLoginData) => {
     setServerError(null);
-    // DEV-only: the real login hits the UAT backend. In debug builds, skip it so
-    // the flow is walkable offline. No effect on release builds.
-    if (__DEV__) {
-      navigation.navigate('VerifyOtp');
+    // QC/demo mode: resolve the role from the local mock credentials instead of
+    // the UAT backend. The IMD-code screen accepts agent + trainee logins.
+    if (ENV.MOCK_AUTH) {
+      const role = resolveMockRole(data.imdCode, data.password, ['agent', 'trainee']);
+      if (role) {
+        navigation.navigate('VerifyOtp', { role });
+      } else {
+        setServerError('Invalid IMD code or password.');
+      }
       return;
     }
     const result = await loginWithImd(data);

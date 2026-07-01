@@ -6,6 +6,7 @@ import { AuthLayout } from '../../components/auth/AuthLayout';
 import { AuthHeader } from '../../components/auth/AuthHeader';
 import { useAuthUseCases } from '../../hooks/useAuthUseCases';
 import { getTokenValue } from '../../../utils/tokenStorage';
+import { ENV } from '../../../config/env';
 import type { AuthScreenProps } from '../../../navigation';
 
 export const DesignationSelect: React.FC<AuthScreenProps<'DesignationSelect'>> = ({
@@ -14,9 +15,9 @@ export const DesignationSelect: React.FC<AuthScreenProps<'DesignationSelect'>> =
   const { generateToken } = useAuthUseCases();
 
   useEffect(() => {
-    // DEV-only: skip the token bootstrap (and its blocking loader) so the login
-    // screen is immediately interactive without the UAT backend.
-    if (__DEV__) {
+    // QC/demo mode: skip the token bootstrap (and its blocking loader) so the
+    // login screen is immediately interactive without the UAT backend.
+    if (ENV.MOCK_AUTH) {
       return;
     }
     // Only mint a fresh token if one isn't already persisted.
