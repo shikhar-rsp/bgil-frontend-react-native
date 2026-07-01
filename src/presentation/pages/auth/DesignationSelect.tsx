@@ -14,6 +14,11 @@ export const DesignationSelect: React.FC<AuthScreenProps<'DesignationSelect'>> =
   const { generateToken } = useAuthUseCases();
 
   useEffect(() => {
+    // DEV-only: skip the token bootstrap (and its blocking loader) so the login
+    // screen is immediately interactive without the UAT backend.
+    if (__DEV__) {
+      return;
+    }
     // Only mint a fresh token if one isn't already persisted.
     const savedToken = getTokenValue('authToken');
     if (savedToken) {

@@ -11,6 +11,7 @@ import { YourToolkit } from '../../components/dashboard/sections/YourToolkit';
 import { AssistantInsights } from '../../components/dashboard/sections/AssistantInsights';
 import { ObboardingModal } from '../../components/dashboard/sections/ObboardingModal';
 import { BusinessScreen } from './BusinessScreen';
+import { clearTokenValues } from '../../../utils/tokenStorage';
 import type { AuthScreenProps } from '../../../navigation';
 
 /**
@@ -23,12 +24,17 @@ import type { AuthScreenProps } from '../../../navigation';
  * insight cards with sample figures (`isWalkthroughActive`), matching the web's
  * populated walkthrough state without the positioned coach-marks.
  */
-export const DashboardScreen: React.FC<AuthScreenProps<'Dashboard'>> = () => {
+export const DashboardScreen: React.FC<AuthScreenProps<'Dashboard'>> = ({ navigation }) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState('Home');
   const [search, setSearch] = useState('');
   const [showOnboarding, setShowOnboarding] = useState(true);
   const [tourActive, setTourActive] = useState(false);
+
+  const handleLogout = () => {
+    clearTokenValues();
+    navigation.reset({ index: 0, routes: [{ name: 'DesignationSelect' }] });
+  };
 
   const startWalkthrough = () => {
     setShowOnboarding(false);
@@ -48,6 +54,7 @@ export const DashboardScreen: React.FC<AuthScreenProps<'Dashboard'>> = () => {
         onMenuClick={() => setDrawerOpen(true)}
         search={search}
         onSearchChange={setSearch}
+        onLogout={handleLogout}
       />
 
       {selectedItem === 'Home' ? (

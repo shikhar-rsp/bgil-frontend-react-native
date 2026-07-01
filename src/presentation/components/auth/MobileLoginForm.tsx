@@ -24,6 +24,12 @@ export const MobileLoginForm: React.FC = () => {
   const isFormFilled = mobileValue?.length === 10;
 
   const onSubmit = async (data: MobileLoginData) => {
+    // DEV-only: skip the UAT backend so the flow is walkable offline in debug
+    // builds. No effect on release builds.
+    if (__DEV__) {
+      navigation.navigate('VerifyOtp');
+      return;
+    }
     const result = await loginWithMobile(data);
     if (result.success) {
       navigation.navigate('VerifyOtp');

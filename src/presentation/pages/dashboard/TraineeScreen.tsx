@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing } from '@atlas-ds/react-native';
+import { clearTokenValues } from '../../../utils/tokenStorage';
 import { DashboardHeader } from '../../components/dashboard/sections/DashboardHeader';
 import { DashboardSidebarNav } from '../../components/dashboard/sections/DashboardSidebarNav';
 import { QuickQuotes } from '../../components/dashboard/sections/QuickQuotes';
@@ -22,14 +23,26 @@ import type { AuthScreenProps } from '../../../navigation';
  * leaderboard, training schedule (+ book-a-training sheet), quick quotes,
  * toolkit, assistant, resources, and business insights.
  */
-export const TraineeScreen: React.FC<AuthScreenProps<'Trainee'>> = () => {
+export const TraineeScreen: React.FC<AuthScreenProps<'Trainee'>> = ({ navigation }) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [bookOpen, setBookOpen] = useState(false);
 
+  const handleLogout = () => {
+    clearTokenValues();
+    navigation.reset({ index: 0, routes: [{ name: 'DesignationSelect' }] });
+  };
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <DashboardHeader onMenuClick={() => setDrawerOpen(true)} search={search} onSearchChange={setSearch} />
+      <DashboardHeader
+        onMenuClick={() => setDrawerOpen(true)}
+        search={search}
+        onSearchChange={setSearch}
+        onLogout={handleLogout}
+        userName="Trainee Agent"
+        userSubtext="TR-2024"
+      />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <TraineeInsights />

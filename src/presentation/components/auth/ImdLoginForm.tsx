@@ -30,6 +30,12 @@ export const ImdLoginForm: React.FC = () => {
 
   const onSubmit = async (data: ImdLoginData) => {
     setServerError(null);
+    // DEV-only: the real login hits the UAT backend. In debug builds, skip it so
+    // the flow is walkable offline. No effect on release builds.
+    if (__DEV__) {
+      navigation.navigate('VerifyOtp');
+      return;
+    }
     const result = await loginWithImd(data);
     if (result.success) {
       navigation.navigate('VerifyOtp');

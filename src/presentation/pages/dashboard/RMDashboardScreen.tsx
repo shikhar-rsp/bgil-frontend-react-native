@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Text, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, typography } from '@atlas-ds/react-native';
+import { clearTokenValues } from '../../../utils/tokenStorage';
 import { DashboardHeader } from '../../components/dashboard/sections/DashboardHeader';
 import { DashboardSidebarNav } from '../../components/dashboard/sections/DashboardSidebarNav';
 import { WhatsNew } from '../../components/dashboard/sections/WhatsNew';
@@ -21,9 +22,14 @@ import type { AuthScreenProps } from '../../../navigation';
  * "Your Dashboard" title, and the RM section stack (goals, consolidated premium,
  * focus LOBs, agents data, what's new, toolkit, assistant, agent insights).
  */
-export const RMDashboardScreen: React.FC<AuthScreenProps<'RMDashboard'>> = () => {
+export const RMDashboardScreen: React.FC<AuthScreenProps<'RMDashboard'>> = ({ navigation }) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [search, setSearch] = useState('');
+
+  const handleLogout = () => {
+    clearTokenValues();
+    navigation.reset({ index: 0, routes: [{ name: 'DesignationSelect' }] });
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -31,6 +37,9 @@ export const RMDashboardScreen: React.FC<AuthScreenProps<'RMDashboard'>> = () =>
         onMenuClick={() => setDrawerOpen(true)}
         search={search}
         onSearchChange={setSearch}
+        onLogout={handleLogout}
+        userName="Relationship Manager"
+        userSubtext="RM9786185"
       />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>

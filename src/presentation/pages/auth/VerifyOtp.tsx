@@ -31,14 +31,24 @@ export const VerifyOtp: React.FC<AuthScreenProps<'VerifyOtp'>> = ({ navigation, 
 
   const handleResend = () => setTimeLeft(OTP_SECONDS);
 
+  const goNext = () => {
+    if (isRecovery) {
+      navigation.navigate('ResetPassword');
+    } else {
+      navigation.navigate(persona === 'rm' ? 'RMDashboard' : 'Dashboard');
+    }
+  };
+
   const handleSubmit = async () => {
+    // DEV-only: skip OTP verification against the UAT backend so the flow is
+    // walkable offline in debug builds. No effect on release builds.
+    if (__DEV__) {
+      goNext();
+      return;
+    }
     const result = await verifyOtp(otpValue, isRecovery);
     if (result.success) {
-      if (isRecovery) {
-        navigation.navigate('ResetPassword');
-      } else {
-        navigation.navigate(persona === 'rm' ? 'RMDashboard' : 'Dashboard');
-      }
+      goNext();
     }
   };
 
