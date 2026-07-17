@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, useWindowDimensions } from 'react-native';
 import { LineChart } from 'react-native-gifted-charts';
 import { Info, ArrowUpRight } from 'phosphor-react-native';
-import { Badge, SegmentedControl, colors, spacing, radius, typography, shadow } from '@atlas-ds/react-native';
+import { Badge, SegmentedControl, colors, spacing, radius, typography, shadow, fontFamilyForWeight } from '@atlas-ds/react-native';
 
 type Range = 'weekly' | 'monthly' | 'yearly';
 
@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     ...shadow.lg,
   },
-  heading: { fontFamily: typography.fontFamily, fontSize: 20, fontWeight: '500', color: colors.textHeading },
+  heading: { fontFamily: fontFamilyForWeight('500'), fontSize: 20, color: colors.textHeading },
   premiumBlock: { gap: spacing.xs },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   premiumLabel: { fontFamily: typography.fontFamily, fontSize: 15, color: colors.textBody },

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
-import { colors, spacing, radius, typography, shadow } from '@atlas-ds/react-native';
+import { colors, spacing, radius, typography, shadow, fontFamilyForWeight } from '@atlas-ds/react-native';
 import { dashboardImages } from '../images';
 
 const SLIDE_COUNT = 4;
@@ -45,7 +45,7 @@ const styles = StyleSheet.create({
     ...shadow.lg,
   },
   textBlock: { gap: spacing.sm },
-  heading: { fontFamily: typography.fontFamily, fontSize: 20, fontWeight: '500', color: colors.textHeading },
+  heading: { fontFamily: fontFamilyForWeight('500'), fontSize: 20, fontWeight: '500', color: colors.textHeading },
   subtitle: { fontFamily: typography.fontFamily, fontSize: 14, color: colors.textBody },
   bannerWrap: { height: 150, borderRadius: radius.lg, overflow: 'hidden', backgroundColor: colors.brandPressed },
   banner: { width: '100%', height: '100%' },
