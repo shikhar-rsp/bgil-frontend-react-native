@@ -85,10 +85,14 @@ export const typography = {
  *
  * Prefer this over a bare `fontWeight` whenever the weight is 500+:
  *   { fontFamily: fontFamilyForWeight('500'), fontSize: 20 }
+ *
+ * Only three Rubik faces are bundled (400/500/700), so weights round the way
+ * CSS font-matching would: 500 → Medium, and anything above 500 (e.g. semibold
+ * 600) rounds up to Bold since there is no face between Medium and Bold.
  */
 export const fontFamilyForWeight = (weight?: string | number): string => {
   const w = typeof weight === 'string' ? parseInt(weight, 10) || 400 : weight ?? 400;
-  if (w >= 700) return 'Rubik-Bold';
+  if (w > 500) return 'Rubik-Bold';
   if (w >= 500) return 'Rubik-Medium';
   return 'Rubik-Regular';
 };
