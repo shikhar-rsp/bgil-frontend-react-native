@@ -3,10 +3,11 @@ import { View, Text, StyleSheet } from 'react-native';
 import { CaretRight } from 'phosphor-react-native';
 import {
   Badge,
-  Card,
   Button,
   colors,
   spacing,
+  radius,
+  shadow,
   typography,
   fontFamilyForWeight,
   type AccentColor,
@@ -59,9 +60,9 @@ const TASKS: Task[] = [
   },
 ];
 
-/** "Today's Tasks" — a list of task cards with a status badge on each. */
+/** "Today's Tasks" — a shadowed card with a divider-separated list of tasks. */
 export const TodaysTasks: React.FC = () => (
-  <View style={styles.wrap}>
+  <View style={styles.card}>
     <View style={styles.header}>
       <Text style={styles.heading}>Today's Tasks</Text>
       <Button
@@ -72,11 +73,10 @@ export const TodaysTasks: React.FC = () => (
         onPress={() => undefined}
       />
     </View>
-
-    {TASKS.map((task) => (
-      <Card key={task.id}>
-        <View style={styles.taskContent}>
-          <View style={styles.taskTop}>
+    <View style={styles.body}>
+      {TASKS.map((task, i) => (
+        <View key={task.id} style={[styles.item, i > 0 && styles.itemDivider]}>
+          <View style={styles.itemTop}>
             <Text style={styles.taskTitle} numberOfLines={1}>
               {task.title}
             </Text>
@@ -84,21 +84,30 @@ export const TodaysTasks: React.FC = () => (
           </View>
           <Text style={styles.taskDesc}>{task.description}</Text>
         </View>
-      </Card>
-    ))}
+      ))}
+    </View>
+
   </View>
 );
 
 const styles = StyleSheet.create({
-  wrap: { gap: spacing.md },
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.xl,
+    padding: spacing.lg,
+    ...shadow.lg,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginBottom: spacing.xs,
   },
-  heading: { fontFamily: fontFamilyForWeight('600'), fontSize: 18, color: colors.textHeading },
-  taskContent: { flex: 1, gap: spacing.xs },
-  taskTop: {
+  heading: { fontFamily: fontFamilyForWeight('500'), fontSize: 18, color: colors.textHeading },
+  body: { paddingHorizontal: spacing.md, borderWidth: 1, borderColor: colors.borderSubtle, borderRadius: radius.lg },
+  item: { paddingVertical: spacing.md, gap: spacing.xs, },
+  itemDivider: { borderTopWidth: 1, borderTopColor: colors.borderSubtle },
+  itemTop: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -106,7 +115,7 @@ const styles = StyleSheet.create({
   },
   taskTitle: {
     flex: 1,
-    fontFamily: fontFamilyForWeight('600'),
+    fontFamily: fontFamilyForWeight('500'),
     fontSize: 14,
     color: colors.textHeading,
   },

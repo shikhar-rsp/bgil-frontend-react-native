@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, spacing } from '@atlas-ds/react-native';
-import { clearTokenValues } from '../../../utils/tokenStorage';
-import { DashboardHeader } from '../../components/dashboard/sections/DashboardHeader';
-import { DashboardSidebarNav } from '../../components/dashboard/sections/DashboardSidebarNav';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { Button, BottomNav, colors, spacing, typography, type BottomNavItem } from '@atlas-ds/react-native';
+import { DashboardTopBar, HEADER_GRADIENTS } from '../../components/dashboard/sections/DashboardTopBar';
 import { QuickQuotes } from '../../components/dashboard/sections/QuickQuotes';
 import { YourToolkit } from '../../components/dashboard/sections/YourToolkit';
-import { AssistantInsights } from '../../components/dashboard/sections/AssistantInsights';
+import { ProfileMenu } from '../../components/dashboard/sections/ProfileMenu';
+import { NotificationsPanel } from '../../components/dashboard/sections/NotificationsPanel';
+import { SearchPanel } from '../../components/dashboard/sections/SearchPanel';
 import {
   TraineeInsights,
   Leaderboard,
@@ -16,16 +15,35 @@ import {
   TraineeBusinessInsights,
 } from '../../components/dashboard/trainee/TraineeSections';
 import { BookTraining } from '../../components/dashboard/trainee/BookTraining';
+import { clearTokenValues } from '../../../utils/tokenStorage';
 import type { AuthScreenProps } from '../../../navigation';
 
+/** Bottom-nav tabs — split 2 + 2 around the centre AI button. */
+const NAV_ITEMS: BottomNavItem[] = [
+  { key: 'Home', label: 'Home', iconName: 'home' },
+  { key: 'Business', label: 'Business', iconName: 'bank' },
+  { key: 'Customer', label: 'Customer', iconName: 'user' },
+  { key: 'More', label: 'More', iconName: 'grid' },
+];
+
+/** Home sub-tabs — trainee swaps the agent's "Tasks" for "Training". */
+const HOME_TABS = [
+  { label: 'Tools', value: 'tools' },
+  { label: 'Insights', value: 'insights' },
+  { label: 'Training', value: 'training' },
+];
+
 /**
- * Trainee dashboard. Ports the web TraineeLayout: trainee insights gauge,
- * leaderboard, training schedule (+ book-a-training sheet), quick quotes,
- * toolkit, assistant, resources, and business insights.
+ * Trainee dashboard. Shares the agent header (silver gradient instead of
+ * platinum) and reuses existing sections — trainee insights + leaderboard,
+ * training schedule, quick quotes, toolkit, and resources.
  */
 export const TraineeScreen: React.FC<AuthScreenProps<'Trainee'>> = ({ navigation }) => {
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [search, setSearch] = useState('');
+  const [selectedItem, setSelectedItem] = useState('Home');
+  const [homeTab, setHomeTab] = useState('tools');
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
   const [bookOpen, setBookOpen] = useState(false);
 
   const handleLogout = () => {
@@ -34,40 +52,78 @@ export const TraineeScreen: React.FC<AuthScreenProps<'Trainee'>> = ({ navigation
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <DashboardHeader
-        onMenuClick={() => setDrawerOpen(true)}
-        search={search}
-        onSearchChange={setSearch}
+    <View style={styles.safe}>
+      <DashboardTopBar
+        gradientColors={HEADER_GRADIENTS.silver}
+        onProfilePress={() => setProfileOpen(true)}
+        onSearchPress={() => setSearchOpen(true)}
+        onNotificationsPress={() => setNotifOpen(true)}
+        tabs={selectedItem === 'Home' ? HOME_TABS : undefined}
+        activeTab={homeTab}
+        onTabChange={setHomeTab}
+      />
+
+      <View style={styles.body}>
+        {selectedItem === 'Home' ? (
+          <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+            {homeTab === 'tools' ? (
+              <>
+                <QuickQuotes onNavigateToQuote={() => setSelectedItem('Business')} />
+                <YourToolkit />
+                <ResourcesAndBrochures />
+              </>
+            ) : homeTab === 'insights' ? (
+              <>
+                <TraineeInsights />
+                <Leaderboard />
+              </>
+            ) : (
+              <TrainingSchedule onScheduleSession={() => setBookOpen(true)} />
+            )}
+          </ScrollView>
+        ) : selectedItem === 'Business' ? (
+          <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+            <TraineeBusinessInsights />
+          </ScrollView>
+        ) : (
+          <View style={styles.placeholder}>
+            <Text style={styles.placeholderTitle}>{selectedItem}</Text>
+            <Text style={styles.placeholderBody}>This section is part of a later porting phase.</Text>
+            <Button label="Back to Home" variant="secondaryGray" onPress={() => setSelectedItem('Home')} />
+          </View>
+        )}
+      </View>
+
+      <BottomNav
+        items={NAV_ITEMS}
+        activeKey={selectedItem}
+        onChange={setSelectedItem}
+        center={{ onPress: () => setSelectedItem('MyAI'), accessibilityLabel: 'MyAI assistant' }}
+      />
+
+      <ProfileMenu
+        visible={profileOpen}
+        onClose={() => setProfileOpen(false)}
         onLogout={handleLogout}
         userName="Trainee Agent"
-        userSubtext="TR-2024"
+        userId="TR-2024"
+        userInitials="OR"
       />
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <TraineeInsights />
-        <Leaderboard />
-        <TrainingSchedule onScheduleSession={() => setBookOpen(true)} />
-        <QuickQuotes />
-        <YourToolkit />
-        <AssistantInsights />
-        <ResourcesAndBrochures />
-        <TraineeBusinessInsights />
-      </ScrollView>
+      <NotificationsPanel visible={notifOpen} onClose={() => setNotifOpen(false)} />
 
-      <DashboardSidebarNav
-        isOpen={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        selectedItem="Home"
-        onSelectItem={() => setDrawerOpen(false)}
-      />
+      <SearchPanel visible={searchOpen} onClose={() => setSearchOpen(false)} />
 
       <BookTraining isOpen={bookOpen} onClose={() => setBookOpen(false)} />
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.surfaceSubtle },
+  body: { flex: 1 },
   content: { padding: spacing.lg, gap: spacing.lg, paddingBottom: spacing.xxl },
+  placeholder: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, padding: spacing.xl },
+  placeholderTitle: { fontFamily: typography.fontFamily, fontSize: 24, fontWeight: '600', color: colors.textHeading },
+  placeholderBody: { fontFamily: typography.fontFamily, fontSize: 14, color: colors.textBody, textAlign: 'center' },
 });

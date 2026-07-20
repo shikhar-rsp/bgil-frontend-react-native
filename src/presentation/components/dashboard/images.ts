@@ -9,6 +9,7 @@ export const dashboardImages: Record<string, ImageSourcePropType> = {
   logo: require('../../../../assets/images/logo.png'),
   whatsNewBanner: require('../../../../assets/images/whats-new-carousal.png'),
   whatsNewIllustration: require('../../../../assets/images/whats-new-illustration.png'),
+  whatsNewPromo: require('../../../../assets/images/Promo.png'),
   agent: require('../../../../assets/images/agent.png'),
   calendar: require('../../../../assets/images/calendar.png'),
   aiLogo: require('../../../../assets/images/ai-logo.png'),
