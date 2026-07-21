@@ -9,12 +9,14 @@ import { BrowseCategories } from '../../components/dashboard/business/BrowseCate
 import { HealthGuardWizard } from '../../components/dashboard/business/HealthGuardWizard';
 import { ConvertProposalWizard } from '../../components/dashboard/business/ConvertProposalWizard';
 import { IssuedPolicy } from '../../components/dashboard/business/IssuedPolicy';
+import { TwoWheelerInsurance } from '../../components/dashboard/business/motor/TwoWheelerInsurance';
 import type { Policy } from '../../components/dashboard/business/businessData';
 
 type BizView =
   | { kind: 'landing' }
   | { kind: 'browse' }
   | { kind: 'healthguard'; product: string }
+  | { kind: 'motor'; product: string }
   | { kind: 'convert'; customer: string }
   | { kind: 'policy'; policy: Policy };
 
@@ -22,9 +24,15 @@ const TITLES: Record<BizView['kind'], string> = {
   landing: 'My Business',
   browse: 'Create Quote',
   healthguard: 'New Quote',
+  motor: 'Motor Insurance',
   convert: 'Convert to Proposal',
   policy: 'Policy Details',
 };
+
+/** Motor products route to the Two-Wheeler / Motor flow; others to Health Guard. */
+const MOTOR_PRODUCTS = ['Private Car', 'Two Wheeler', 'Commercial Vehicle', 'Pay as you consume'];
+const productView = (label: string): BizView =>
+  MOTOR_PRODUCTS.includes(label) ? { kind: 'motor', product: label } : { kind: 'healthguard', product: label };
 
 /** Business tab — landing (insights + lists + drafts) and the quote/proposal wizards. */
 export const BusinessScreen: React.FC = () => {
@@ -82,10 +90,15 @@ export const BusinessScreen: React.FC = () => {
           </ScrollView>
         </>
       ) : view.kind === 'browse' ? (
-        <BrowseCategories onSelectProduct={(label) => setView({ kind: 'healthguard', product: label })} />
+        <BrowseCategories onSelectProduct={(label) => setView(productView(label))} />
       ) : view.kind === 'healthguard' ? (
         <HealthGuardWizard
           product={view.product}
+          onClose={goLanding}
+          onConvertToProposal={(customer) => setView({ kind: 'convert', customer })}
+        />
+      ) : view.kind === 'motor' ? (
+        <TwoWheelerInsurance
           onClose={goLanding}
           onConvertToProposal={(customer) => setView({ kind: 'convert', customer })}
         />

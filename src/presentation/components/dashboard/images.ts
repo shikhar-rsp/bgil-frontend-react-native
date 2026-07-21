@@ -30,4 +30,11 @@ export const dashboardImages: Record<string, ImageSourcePropType> = {
   silver: require('../../../../assets/images/silver.png'),
   bronze: require('../../../../assets/images/bronze.png'),
   hat: require('../../../../assets/images/hat.png'),
+  // Motor / vehicle lookup icons
+  aiIcon2: require('../../../../assets/images/ai-icon-2.png'),
+  carPng: require('../../../../assets/images/car_png.png'),
+  cyclePng: require('../../../../assets/images/cycle_png.png'),
+  commercialPng: require('../../../../assets/images/commercial_png.png'),
+  schoolBus: require('../../../../assets/images/school_bus.png'),
+  bulletPng: require('../../../../assets/images/bullet_png.png'),
 };
