@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, Image, Pressable, StyleSheet } from 'react-native';
-import { Plus, Sliders } from 'phosphor-react-native';
+import { FadersHorizontal } from 'phosphor-react-native';
 import { Button, colors, spacing, radius, typography, shadow, fontFamilyForWeight } from '@atlas-ds/react-native';
 import { dashboardImages } from '../images';
 import { CustomizeModal, type CustomizeOption } from './CustomizeModal';
@@ -9,6 +9,7 @@ const QUICK_QUOTE_DATA: Record<string, { label: string; icon: keyof typeof dashb
   health: { label: 'Health Insurance', icon: 'health' },
   fire: { label: 'Fire Insurance', icon: 'fire' },
   motor: { label: 'Motor Insurance', icon: 'motor' },
+  property: { label: 'Property Insurance', icon: 'property' },
   twmotorinsurance: { label: '2W Motor Insurance', icon: 'motor' },
   fourwheelerinsurance: { label: '4W Insurance', icon: 'motor' },
 };
@@ -23,7 +24,7 @@ interface QuickQuotesProps {
 
 export const QuickQuotes: React.FC<QuickQuotesProps> = ({ onNavigateToQuote }) => {
   const [isCustomizeOpen, setIsCustomizeOpen] = useState(false);
-  const [activeQuotes, setActiveQuotes] = useState<string[]>(['health', 'fire', 'motor']);
+  const [activeQuotes, setActiveQuotes] = useState<string[]>(['health', 'fire', 'motor', 'property']);
 
   const visibleQuotes = activeQuotes.filter((val) => val && QUICK_QUOTE_DATA[val]);
 
@@ -41,7 +42,7 @@ export const QuickQuotes: React.FC<QuickQuotesProps> = ({ onNavigateToQuote }) =
           label="Customise"
           variant="secondaryGray"
           size="sm"
-          leadingIcon={<Sliders size={14} color={colors.textBody} />}
+          leadingIcon={<FadersHorizontal size={16} color={colors.textBody} />}
           onPress={() => setIsCustomizeOpen(true)}
           style={styles.actionBtn}
         />
@@ -66,20 +67,6 @@ export const QuickQuotes: React.FC<QuickQuotesProps> = ({ onNavigateToQuote }) =
           );
         })}
 
-        {visibleQuotes.length < 4 ? (
-          <Pressable
-            style={styles.tile}
-            accessibilityRole="button"
-            onPress={() => setIsCustomizeOpen(true)}
-          >
-            <View style={styles.addIcon}>
-              <Plus size={28} color={colors.textBody} />
-            </View>
-            <Text style={styles.manageLabel} numberOfLines={1}>
-              Manage LOB
-            </Text>
-          </Pressable>
-        ) : null}
       </View>
 
       <CustomizeModal
@@ -122,8 +109,6 @@ const styles = StyleSheet.create({
     borderColor: colors.borderSubtle,
     borderRadius: radius.lg,
   },
-  tileIcon: { width: 40, height: 40 },
-  tileLabel: { fontFamily: typography.fontFamily, fontSize: 14, fontWeight: '500', color: colors.textHeading },
-  addIcon: { backgroundColor: colors.surfaceSubtle, padding: spacing.sm, borderRadius: radius.lg },
-  manageLabel: { fontFamily: typography.fontFamily, fontSize: 14, color: colors.textBody },
+  tileIcon: { width: 60, height: 60 },
+  tileLabel: { fontFamily: fontFamilyForWeight('500'), fontSize: 14, fontWeight: '500', color: colors.textHeading },
 });

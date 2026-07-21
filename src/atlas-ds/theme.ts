@@ -98,13 +98,19 @@ export const fontFamilyForWeight = (weight?: string | number): string => {
 };
 
 export const shadow = {
-  /** Container shadow from Figma's lg elevation. */
+  /**
+   * Card shadow — Figma "Shadow/Small", which stacks two layers:
+   *   0 1 2 0 #0A0D12 @ 6%   +   0 1 4 0 #0A0D12 @ 10%
+   *
+   * React Native draws a single shadow per view, so this takes the dominant
+   * layer's offset/blur and folds both opacities together.
+   */
   lg: {
     shadowColor: '#0A0D12',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 6, // Android
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 2, // Android
   },
 } as const;
 

@@ -1,19 +1,36 @@
 import React, { useState } from 'react';
-import { View, Text, Image, Pressable, Modal, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Plus, Sliders, X } from 'phosphor-react-native';
-import { Button, colors, spacing, radius, typography, shadow, fontFamilyForWeight } from '@atlas-ds/react-native';
-import { dashboardImages } from '../images';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
+import {
+  Plus,
+  FadersHorizontal,
+  Files,
+  Medal,
+  Calculator,
+  Question,
+  GraduationCap,
+  Receipt,
+  CalendarCheck,
+} from 'phosphor-react-native';
+import { BottomSheet, Button, colors, spacing, radius, typography, shadow, fontFamilyForWeight } from '@atlas-ds/react-native';
 import { CustomizeModal, type CustomizeOption } from './CustomizeModal';
 
-const TOOL_DATA: Record<string, { label: string; icon: keyof typeof dashboardImages }> = {
-  'Pay-in-Slips': { label: 'Pay-in-Slips', icon: 'payslip' },
-  'Renewal Calendar': { label: 'Renewal Calendar', icon: 'renewalCalendar' },
-  Brochures: { label: 'Brochures', icon: 'brochures' },
-  Calculators: { label: 'Calculators', icon: 'calculator' },
-  Learning: { label: 'Learning', icon: 'learning' },
-  Campaigns: { label: 'Campaigns', icon: 'campaigns' },
-  'Query Tracker': { label: 'Query Tracker', icon: 'queryTracker' },
+/** Tile accent backgrounds. */
+const TILE_BLUE = '#2563EB';
+const TILE_ORANGE = '#EA580C';
+const TILE_ICON_SIZE = 24;
+
+type ToolInfo = { label: string; icon: React.ReactNode; bg: string };
+
+const iconFor = (Icon: React.ElementType) => <Icon size={TILE_ICON_SIZE} color="#FFFFFF" weight="regular" />;
+
+const TOOL_DATA: Record<string, ToolInfo> = {
+  'Pay-in-Slips': { label: 'Pay-in-Slips', icon: iconFor(Receipt), bg: TILE_ORANGE },
+  'Renewal Calendar': { label: 'Renewal Calendar', icon: iconFor(CalendarCheck), bg: TILE_ORANGE },
+  Brochures: { label: 'Brochures', icon: iconFor(Files), bg: TILE_BLUE },
+  Calculators: { label: 'Calculators', icon: iconFor(Calculator), bg: TILE_ORANGE },
+  Learning: { label: 'Learning', icon: iconFor(GraduationCap), bg: TILE_BLUE },
+  Campaigns: { label: 'Campaigns', icon: iconFor(Medal), bg: TILE_BLUE },
+  'Query Tracker': { label: 'Query Tracker', icon: iconFor(Question), bg: TILE_ORANGE },
 };
 
 const TOOLKIT_OPTIONS: CustomizeOption[] = Object.entries(TOOL_DATA).map(([value, info]) => ({
@@ -27,17 +44,26 @@ const TOOLKIT_OPTIONS: CustomizeOption[] = Object.entries(TOOL_DATA).map(([value
  * so tapping a tool opens a "coming soon" bottom sheet (mirroring the web's own
  * fallback drawer for unimplemented tools).
  */
-export const YourToolkit: React.FC = () => {
-  const insets = useSafeAreaInsets();
+/** Default shortcuts shown on the agent / trainee dashboards. */
+const DEFAULT_TOOLS = ['Brochures', 'Calculators', 'Learning', 'Campaigns', 'Query Tracker'];
+
+interface YourToolkitProps {
+  /** Shows the "Customise" button above the grid. */
+  showCustomise?: boolean;
+  /** Shows the trailing "Manage Tool" (+) tile in the grid. */
+  showManageTile?: boolean;
+  /** Override the shortcuts on show (e.g. the RM set, which drops Learning). */
+  tools?: string[];
+}
+
+export const YourToolkit: React.FC<YourToolkitProps> = ({
+  showCustomise = true,
+  showManageTile = true,
+  tools = DEFAULT_TOOLS,
+}) => {
   const [isCustomizeOpen, setIsCustomizeOpen] = useState(false);
   const [activeTool, setActiveTool] = useState<string | null>(null);
-  const [activeTools, setActiveTools] = useState<string[]>([
-    'Brochures',
-    'Calculators',
-    'Learning',
-    'Campaigns',
-    'Query Tracker',
-  ]);
+  const [activeTools, setActiveTools] = useState<string[]>(tools);
 
   const visibleTools = activeTools.filter((val) => val && TOOL_DATA[val]);
 
@@ -49,14 +75,16 @@ export const YourToolkit: React.FC = () => {
       </View>
 
       <View style={styles.actions}>
-        <Button
-          label="Customise"
-          variant="secondaryGray"
-          size="sm"
-          leadingIcon={<Sliders size={14} color={colors.textBody} />}
-          onPress={() => setIsCustomizeOpen(true)}
-          style={styles.actionBtn}
-        />
+        {showCustomise ? (
+          <Button
+            label="Customise"
+            variant="secondaryGray"
+            size="sm"
+            leadingIcon={<FadersHorizontal size={16} color={colors.textBody} />}
+            onPress={() => setIsCustomizeOpen(true)}
+            style={styles.actionBtn}
+          />
+        ) : null}
         <Button label="View All Tools" variant="secondary" size="sm" style={styles.actionBtn} />
       </View>
 
@@ -70,7 +98,7 @@ export const YourToolkit: React.FC = () => {
               accessibilityRole="button"
               onPress={() => setActiveTool(item.label)}
             >
-              <Image source={dashboardImages[item.icon]} style={styles.tileIcon} resizeMode="contain" />
+              <View style={[styles.tileIcon, { backgroundColor: item.bg }]}>{item.icon}</View>
               <Text style={styles.tileLabel} numberOfLines={1}>
                 {item.label}
               </Text>
@@ -78,7 +106,7 @@ export const YourToolkit: React.FC = () => {
           );
         })}
 
-        {visibleTools.length < 6 ? (
+        {showManageTile && visibleTools.length < 6 ? (
           <Pressable style={styles.tile} accessibilityRole="button" onPress={() => setIsCustomizeOpen(true)}>
             <View style={styles.addIcon}>
               <Plus size={26} color={colors.textBody} />
@@ -101,24 +129,12 @@ export const YourToolkit: React.FC = () => {
         maxSelections={6}
       />
 
-      <Modal
+      <BottomSheet
         visible={activeTool !== null}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setActiveTool(null)}
-      >
-        <Pressable style={styles.sheetScrim} onPress={() => setActiveTool(null)}>
-          <Pressable style={[styles.sheet, { paddingBottom: insets.bottom + spacing.xl }]}>
-            <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>{activeTool}</Text>
-              <Pressable onPress={() => setActiveTool(null)} hitSlop={8} accessibilityLabel="Close">
-                <X size={20} color={colors.textMuted} />
-              </Pressable>
-            </View>
-            <Text style={styles.sheetBody}>Content for {activeTool} is coming soon.</Text>
-          </Pressable>
-        </Pressable>
-      </Modal>
+        onClose={() => setActiveTool(null)}
+        title={activeTool ?? ''}
+        subtitle={`Content for ${activeTool} is coming soon.`}
+      />
     </View>
   );
 };
@@ -138,7 +154,8 @@ const styles = StyleSheet.create({
   actionBtn: { flex: 1 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   tile: {
-    width: '30%',
+    // Two per row — the pair grows to fill the leftover gap.
+    width: '47%',
     flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -148,19 +165,14 @@ const styles = StyleSheet.create({
     borderColor: colors.borderSubtle,
     borderRadius: radius.lg,
   },
-  tileIcon: { width: 36, height: 36 },
+  // Coloured rounded square with an 8px inset around the glyph.
+  tileIcon: {
+    padding: spacing.sm,
+    borderRadius: radius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   tileLabel: { fontFamily: typography.fontFamily, fontSize: 12, color: colors.textHeading, textAlign: 'center' },
   addIcon: { backgroundColor: colors.surfaceSubtle, padding: spacing.sm, borderRadius: radius.lg },
   manageLabel: { fontFamily: typography.fontFamily, fontSize: 12, color: colors.textBody, textAlign: 'center' },
-  sheetScrim: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  sheet: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: radius.xl,
-    borderTopRightRadius: radius.xl,
-    padding: spacing.xl,
-    gap: spacing.lg,
-  },
-  sheetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  sheetTitle: { fontFamily: typography.fontFamily, fontSize: 18, fontWeight: '600', color: colors.textHeading },
-  sheetBody: { fontFamily: typography.fontFamily, fontSize: 14, color: colors.textBody },
 });

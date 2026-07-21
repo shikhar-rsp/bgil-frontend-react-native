@@ -14,6 +14,9 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
  *   '/auth/reset-success'   -> PasswordSuccess
  *   '/dashboard'            -> Dashboard
  */
+/** An agent an RM can "view as" from the profile page. */
+export type AgentViewTarget = { name: string; code: string };
+
 export type RootStackParamList = {
   DesignationSelect: undefined;
   AgentLogin: undefined;
@@ -24,8 +27,16 @@ export type RootStackParamList = {
   ResetPassword: undefined;
   PasswordSuccess: undefined;
   Dashboard: undefined;
-  RMDashboard: undefined;
+  /** `viewAgent` puts the RM dashboard into read-only "agent view" mode. */
+  RMDashboard: { viewAgent?: AgentViewTarget } | undefined;
   Trainee: undefined;
+  /** Shared profile page — the RM variant adds the Agent View picker. */
+  Profile: {
+    persona: 'agent' | 'rm' | 'trainee';
+    userName: string;
+    userId: string;
+    userInitials: string;
+  };
 };
 
 export type AuthScreenProps<T extends keyof RootStackParamList> =

@@ -102,7 +102,7 @@ const styles = StyleSheet.create({
   // Web: track #F1F5F9, radius 8, padding 0, gap 0.
   track: {
     flexDirection: 'row',
-    backgroundColor: colors.surfaceMuted, // #F1F5F9
+    backgroundColor: colors.surfaceSubtle, // #F8FAFC — inactive track
     borderRadius: radius.lg, // 8
     alignSelf: 'flex-start',
   },

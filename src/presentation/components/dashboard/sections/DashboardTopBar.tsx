@@ -66,7 +66,10 @@ export const DashboardTopBar: React.FC<DashboardTopBarProps> = ({
 
       <View style={styles.topRow}>
         <Pressable onPress={onProfilePress} accessibilityRole="button" accessibilityLabel="Profile" hitSlop={6}>
-          <Avatar size="md" type="text" initials={avatarInitials} />
+          {/* Opaque backing so the gradient doesn't tint the avatar. */}
+          <View style={styles.avatarBacking}>
+            <Avatar size="md" type="text" initials={avatarInitials} />
+          </View>
         </Pressable>
 
         <Pressable
@@ -110,6 +113,7 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  avatarBacking: { backgroundColor: colors.surfaceSubtle, borderRadius: 20, borderColor: colors.borderSubtle, },
   searchWrap: { flex: 1 },
   bellWrap: { position: 'relative' },
   bellButton: { backgroundColor: colors.surface },

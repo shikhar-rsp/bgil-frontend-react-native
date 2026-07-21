@@ -8,12 +8,10 @@ import { YourToolkit } from '../../components/dashboard/sections/YourToolkit';
 import { AssistantInsights } from '../../components/dashboard/sections/AssistantInsights';
 import { TodaysTasks } from '../../components/dashboard/sections/TodaysTasks';
 import { WhatsNew } from '../../components/dashboard/sections/WhatsNew';
-import { ProfileMenu } from '../../components/dashboard/sections/ProfileMenu';
 import { NotificationsPanel } from '../../components/dashboard/sections/NotificationsPanel';
 import { SearchPanel } from '../../components/dashboard/sections/SearchPanel';
 import { ObboardingModal } from '../../components/dashboard/sections/ObboardingModal';
 import { BusinessScreen } from './BusinessScreen';
-import { clearTokenValues } from '../../../utils/tokenStorage';
 import type { AuthScreenProps } from '../../../navigation';
 
 /** Bottom-nav tabs — split 2 + 2 around the centre AI button. */
@@ -42,13 +40,15 @@ export const DashboardScreen: React.FC<AuthScreenProps<'Dashboard'>> = ({ naviga
   const [searchOpen, setSearchOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(true);
   const [tourActive, setTourActive] = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
 
-  const handleLogout = () => {
-    clearTokenValues();
-    navigation.reset({ index: 0, routes: [{ name: 'DesignationSelect' }] });
-  };
+  const openProfile = () =>
+    navigation.navigate('Profile', {
+      persona: 'agent',
+      userName: 'Rajesh Chaurasia',
+      userId: 'BA78631498',
+      userInitials: 'RC',
+    });
 
   const startWalkthrough = () => {
     setShowOnboarding(false);
@@ -66,7 +66,7 @@ export const DashboardScreen: React.FC<AuthScreenProps<'Dashboard'>> = ({ naviga
     <View style={styles.safe}>
       <DashboardTopBar
         gradientColors={HEADER_GRADIENTS.platinum}
-        onProfilePress={() => setProfileOpen(true)}
+        onProfilePress={openProfile}
         onSearchPress={() => setSearchOpen(true)}
         onNotificationsPress={() => setNotifOpen(true)}
         tabs={selectedItem === 'Home' ? HOME_TABS : undefined}
@@ -80,16 +80,22 @@ export const DashboardScreen: React.FC<AuthScreenProps<'Dashboard'>> = ({ naviga
             {homeTab === 'tools' ? (
               <>
                 <QuickQuotes onNavigateToQuote={() => setSelectedItem('Business')} />
+                <WhatsNew />
                 <YourToolkit />
-                <AssistantInsights isWalkthroughActive={tourActive} />
+                {/* <AssistantInsights isWalkthroughActive={tourActive} /> */}
               </>
             ) : homeTab === 'insights' ? (
+              <>
               <YourInsights isWalkthroughActive={tourActive} />
+              <WhatsNew />
+              </>
+              
             ) : (
               <>
-                <TodaysTasks />
-                <WhatsNew />
+              <TodaysTasks />
+              <WhatsNew />
               </>
+              
             )}
           </ScrollView>
         ) : selectedItem === 'Business' ? (
@@ -110,13 +116,6 @@ export const DashboardScreen: React.FC<AuthScreenProps<'Dashboard'>> = ({ naviga
         activeKey={selectedItem}
         onChange={handleSelectItem}
         center={{ onPress: () => handleSelectItem('MyAI'), accessibilityLabel: 'MyAI assistant' }}
-      />
-
-      <ProfileMenu
-        visible={profileOpen}
-        onClose={() => setProfileOpen(false)}
-        onLogout={handleLogout}
-        onProductTour={startWalkthrough}
       />
 
       <NotificationsPanel visible={notifOpen} onClose={() => setNotifOpen(false)} />
