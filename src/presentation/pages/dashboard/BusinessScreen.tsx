@@ -6,7 +6,7 @@ import { BusinessInsights } from '../../components/dashboard/business/BusinessIn
 import { SharedQuotes } from '../../components/dashboard/business/SharedQuotes';
 import { DraftsPage } from '../../components/dashboard/business/DraftsPage';
 import { BrowseCategories } from '../../components/dashboard/business/BrowseCategories';
-import { HealthGuardWizard } from '../../components/dashboard/business/HealthGuardWizard';
+import { HealthGuard } from '../../components/dashboard/business/health/HealthGuard';
 import { ConvertProposalWizard } from '../../components/dashboard/business/ConvertProposalWizard';
 import { IssuedPolicy } from '../../components/dashboard/business/IssuedPolicy';
 import { TwoWheelerInsurance } from '../../components/dashboard/business/motor/TwoWheelerInsurance';
@@ -92,8 +92,8 @@ export const BusinessScreen: React.FC = () => {
       ) : view.kind === 'browse' ? (
         <BrowseCategories onSelectProduct={(label) => setView(productView(label))} />
       ) : view.kind === 'healthguard' ? (
-        <HealthGuardWizard
-          product={view.product}
+        <HealthGuard
+          productName={view.product}
           onClose={goLanding}
           onConvertToProposal={(customer) => setView({ kind: 'convert', customer })}
         />
