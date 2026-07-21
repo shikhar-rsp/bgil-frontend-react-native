@@ -43,11 +43,19 @@
 		<true/>
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string></string>
+	<string/>
 	<key>RCTNewArchEnabled</key>
 	<true/>
 	<key>UIAppFonts</key>
 	<array>
+		<string>FamiljenGrotesk-Bold.ttf</string>
+		<string>FamiljenGrotesk-BoldItalic.ttf</string>
+		<string>FamiljenGrotesk-Italic.ttf</string>
+		<string>FamiljenGrotesk-Medium.ttf</string>
+		<string>FamiljenGrotesk-MediumItalic.ttf</string>
+		<string>FamiljenGrotesk-Regular.ttf</string>
+		<string>FamiljenGrotesk-SemiBold.ttf</string>
+		<string>FamiljenGrotesk-SemiBoldItalic.ttf</string>
 		<string>Rubik-Bold.ttf</string>
 		<string>Rubik-Medium.ttf</string>
 		<string>Rubik-Regular.ttf</string>

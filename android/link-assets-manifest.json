@@ -2,6 +2,38 @@
   "migIndex": 1,
   "data": [
     {
+      "path": "assets/fonts/FamiljenGrotesk-Bold.ttf",
+      "sha1": "414af45d5bc59b817d229c68fa3860ca07470a77"
+    },
+    {
+      "path": "assets/fonts/FamiljenGrotesk-BoldItalic.ttf",
+      "sha1": "16c8b4d9a39f33d83e47ca992cbfa05209736a65"
+    },
+    {
+      "path": "assets/fonts/FamiljenGrotesk-Italic.ttf",
+      "sha1": "f1e7a15a8249d7e793c59acd3fa65874e8ffd8bb"
+    },
+    {
+      "path": "assets/fonts/FamiljenGrotesk-Medium.ttf",
+      "sha1": "e12dc63a8cf0241eee5b0c5bf09c5c7b5186a09a"
+    },
+    {
+      "path": "assets/fonts/FamiljenGrotesk-MediumItalic.ttf",
+      "sha1": "3533bcfbd65e0a025c205ca059667202a9a841f4"
+    },
+    {
+      "path": "assets/fonts/FamiljenGrotesk-Regular.ttf",
+      "sha1": "0b8d34fc56201ddf2e4734abaa60ca7e5ccb8d61"
+    },
+    {
+      "path": "assets/fonts/FamiljenGrotesk-SemiBold.ttf",
+      "sha1": "26cdf1fd64f89fc41ff94e84b59fe4f343481ee1"
+    },
+    {
+      "path": "assets/fonts/FamiljenGrotesk-SemiBoldItalic.ttf",
+      "sha1": "2e4bd2ae8a783fe22099925b37c86d66010bb946"
+    },
+    {
       "path": "assets/fonts/Rubik-Bold.ttf",
       "sha1": "d04bacd3927e346c4455c0a2d427de53b7f5b282"
     },

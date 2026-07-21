@@ -1,49 +1,55 @@
 import React, { useState } from 'react';
 import { View, Text, Image, Pressable, StyleSheet } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import LinearGradient from 'react-native-linear-gradient';
 import { Eye, DownloadSimple, FileText, ArrowUpRight, CalendarBlank, Clock, ArrowRight } from 'phosphor-react-native';
-import { Button, Badge, SegmentedControl, colors, spacing, radius, typography, shadow } from '@atlas-ds/react-native';
+import {
+  Button,
+  Badge,
+  BadgeDot,
+  ProgressCircle,
+  SegmentedControl,
+  Table,
+  colors,
+  spacing,
+  radius,
+  typography,
+  shadow,
+  fontFamilyForWeight,
+  type BadgeDotColor,
+} from '@atlas-ds/react-native';
 import { dashboardImages } from '../images';
 
 type Range = 'weekly' | 'monthly' | 'yearly';
+
+/** Familjen Grotesk semibold for headline figures. */
+const NUMERIC_FONT = 'FamiljenGrotesk-SemiBold';
 
 const Card: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <View style={styles.card}>{children}</View>
 );
 
-/** Endpoint on the 130-radius gauge arc at `angleDeg` (180°=left, 0°=right). */
-const gaugePoint = (angleDeg: number) => {
-  const a = (angleDeg * Math.PI) / 180;
-  return { x: 150 + 130 * Math.cos(a), y: 150 - 130 * Math.sin(a) };
-};
-
-/** Semi-circular gauge with a green progress arc for premium generated. */
-const Gauge: React.FC<{ value: number; progress: number }> = ({ value, progress }) => {
-  const clamped = Math.max(0, Math.min(1, progress));
-  const end = gaugePoint(180 * (1 - clamped));
-  const progressPath = `M20 150 A130 130 0 0 1 ${end.x.toFixed(1)} ${end.y.toFixed(1)}`;
-  return (
-    <View style={styles.gauge}>
-      <Svg viewBox="0 0 300 160" width="100%" height="100%">
-        <Path d="M20 150 A130 130 0 0 1 280 150" stroke={colors.borderSubtle} strokeWidth={14} fill="none" strokeLinecap="round" />
-        {clamped > 0 ? (
-          <Path d={progressPath} stroke="#65A30D" strokeWidth={14} fill="none" strokeLinecap="round" />
-        ) : null}
-      </Svg>
-      <View style={styles.gaugeCenter}>
-        <Text style={styles.gaugeLabel}>Premium generated</Text>
-        <Text style={styles.gaugeValue}>{`₹${value.toLocaleString('en-IN')}`}</Text>
-      </View>
+/** Premium-generated ring, with the figure overlaid in the centre. */
+const Gauge: React.FC<{ value: number; progress: number }> = ({ value, progress }) => (
+  <View style={styles.gauge}>
+    <ProgressCircle
+      value={Math.round(Math.max(0, Math.min(1, progress)) * 100)}
+      size={180}
+      strokeWidth={14}
+      showLabel={false}
+    />
+    <View style={styles.gaugeCenter}>
+      <Text style={styles.gaugeLabel}>Premium generated</Text>
+      <Text style={styles.gaugeValue}>{`₹${value.toLocaleString('en-IN')}`}</Text>
     </View>
-  );
-};
+  </View>
+);
 
 type TraineeStat = {
   label: string;
   value: string;
-  /** Colour of the leading status dot (goal stats only). */
-  dot?: string;
-  /** Green "N more to go!" pill (goal stats only). */
+  /** Leading status dot colour (goal stats only). */
+  dot?: BadgeDotColor;
+  /** Green "N more to go!" badge (goal stats only). */
   pill?: string;
   /** Footer sub-text (metric stats). */
   sub?: string;
@@ -52,8 +58,8 @@ type TraineeStat = {
 };
 
 const TRAINEE_STATS: TraineeStat[] = [
-  { label: 'Meetings done', value: '10', dot: '#EA580C', pill: '5 more to go!' },
-  { label: 'Policies Sold', value: '7', dot: '#2563EB', pill: '3 more to go!' },
+  { label: 'Meetings done', value: '10', dot: 'warning', pill: '5 more to go!' },
+  { label: 'Policies Sold', value: '7', dot: 'blue', pill: '3 more to go!' },
   { label: 'Total Quotes Share', value: '0', sub: 'Due this week: 0', arrow: true },
   { label: 'Lapsed Policies', value: '0', arrow: true },
   { label: 'Total Renewals', value: '0', sub: 'Pending: 0', arrow: true },
@@ -62,16 +68,15 @@ const TRAINEE_STATS: TraineeStat[] = [
 
 const StatCard: React.FC<{ stat: TraineeStat }> = ({ stat }) => (
   <View style={styles.statCard}>
-    <View style={styles.statLabelRow}>
-      {stat.dot ? <View style={[styles.statDot, { backgroundColor: stat.dot }]} /> : null}
+    {stat.dot ? (
+      <BadgeDot label={stat.label} color={stat.dot} size="md" />
+    ) : (
       <Text style={styles.statLabel}>{stat.label}</Text>
-    </View>
+    )}
     {stat.pill ? (
       <View style={styles.statValueRow}>
         <Text style={styles.statValue}>{stat.value}</Text>
-        <View style={styles.statPill}>
-          <Text style={styles.statPillText}>{stat.pill}</Text>
-        </View>
+        <Badge label={stat.pill} variant="light" size="sm" color="lime" />
       </View>
     ) : (
       <>
@@ -125,8 +130,28 @@ const WINNERS = [
 const ENTRIES = [
   { rank: 4, name: 'Rajesh Chaurasia', score: 94 },
   { rank: 5, name: 'VXXXX KXXXX', score: 91 },
-  { rank: 6, name: 'SXXXX KXXXX', score: 88 },
-  { rank: 7, name: 'RXXXX MXXXX', score: 85 },
+  { rank: 6, name: 'VXXXX KXXXX', score: 89 },
+  { rank: 7, name: 'VXXXX KXXXX', score: 85 },
+  { rank: 8, name: 'VXXXX KXXXX', score: 80 },
+];
+
+/**
+ * Podium card gradients. Design tokens → hex:
+ *   gold   — disabled · accent.yellow.subtlest · accent.orange.subtler.hovered · accent.yellow.subtler
+ *   silver — disabled · accent.blue.subtlest · accent.gray.subtler · accent.blue.subtlest
+ *   bronze — disabled · neutral.subtle.pressed · neutral.subtle · neutral.pressed
+ */
+const PODIUM_GRADIENTS = {
+  gold: { angle: 104, colors: ['#FFFFFF', '#FFFBEB', '#FED7AA', '#FEF3C7'], locations: [0, 0.2816, 0.6073, 1] },
+  silver: { angle: 104, colors: ['#FFFFFF', '#EFF6FF', '#E0E7FF', '#EFF6FF'], locations: [0, 0.2816, 0.6073, 1] },
+  bronze: { angle: 103, colors: ['#FFFFFF', '#E2E8F0', '#F8FAFC', '#F1F5F9'], locations: [0, 0.3468, 0.6493, 1] },
+} as const;
+
+/** Leaderboard table columns — widths keep the three fitting the card. */
+const LEADERBOARD_COLUMNS = [
+  { key: 'rank', header: 'Rank', width: 60, primaryKey: 'rank' as const },
+  { key: 'name', header: 'Name', width: 150, primaryKey: 'name' as const },
+  { key: 'score', header: 'Score', width: 70, align: 'right' as const, primaryKey: 'score' as const },
 ];
 
 export const Leaderboard: React.FC = () => (
@@ -136,28 +161,26 @@ export const Leaderboard: React.FC = () => (
       <Button label="View All" variant="link" size="sm" onPress={() => undefined} />
     </View>
     <View style={styles.podium}>
-      {WINNERS.map((w) => (
-        <View key={w.rank} style={styles.podiumCard}>
-          <Image source={dashboardImages[w.medal]} style={styles.medal} resizeMode="contain" />
-          <Text style={styles.podiumName}>{w.name}</Text>
-          <Text style={styles.podiumScore}>Score: {w.score}</Text>
-        </View>
-      ))}
+      {WINNERS.map((w) => {
+        const g = PODIUM_GRADIENTS[w.medal];
+        return (
+          <LinearGradient
+            key={w.rank}
+            useAngle
+            angle={g.angle}
+            colors={g.colors as unknown as string[]}
+            locations={g.locations as unknown as number[]}
+            style={[styles.podiumCard, w.rank === 1 && styles.podiumCardWinner]}
+          >
+            <Image source={dashboardImages[w.medal]} style={styles.medal} resizeMode="contain" />
+            <Text style={styles.podiumName}>{w.name}</Text>
+            <Text style={styles.podiumScore}>Score: {w.score}</Text>
+          </LinearGradient>
+        );
+      })}
     </View>
-    <View style={styles.entryTable}>
-      <View style={styles.entryHeader}>
-        <Text style={[styles.entryHeaderText, styles.colRank]}>Rank</Text>
-        <Text style={[styles.entryHeaderText, styles.colName]}>Name</Text>
-        <Text style={[styles.entryHeaderText, styles.colScore]}>Score</Text>
-      </View>
-      {ENTRIES.map((e) => (
-        <View key={e.rank} style={styles.entryRow}>
-          <Text style={[styles.entryCell, styles.colRank]}>{e.rank}</Text>
-          <Text style={[styles.entryCell, styles.colName]}>{e.name}</Text>
-          <Text style={[styles.entryCell, styles.colScore]}>{e.score}</Text>
-        </View>
-      ))}
-    </View>
+
+    <Table columns={LEADERBOARD_COLUMNS} data={ENTRIES} rowKey="rank" />
   </Card>
 );
 
@@ -191,12 +214,14 @@ const MetaItem: React.FC<{ icon: React.ReactNode; text: string }> = ({ icon, tex
 const SessionCard: React.FC<{ session: TrainingSession }> = ({ session }) => (
   <View style={[styles.sessionCard, session.attendToday && styles.sessionHighlight]}>
     {session.attendToday ? (
-      <View style={styles.attendPill}>
-        <Text style={styles.attendPillText}>Attend Today!</Text>
+      <View style={styles.badgeRow}>
+        <Badge label="Attend Today!" variant="solid" size="sm" color="amber" />
       </View>
     ) : null}
 
-    <Text style={styles.sessionTitle}>{session.title}</Text>
+    <Text style={[styles.sessionTitle, session.attendToday && styles.sessionTitleLarge]}>
+      {session.title}
+    </Text>
 
     <View style={styles.metaRow}>
       {session.attendToday ? <ModeBadge mode={session.mode} /> : null}
@@ -322,45 +347,50 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
     ...shadow.lg,
   },
-  heading: { fontFamily: typography.fontFamily, fontSize: 20, fontWeight: '500', color: colors.textHeading },
+  heading: { fontFamily: fontFamilyForWeight('500'), fontSize: 20, color: colors.textHeading },
   subtitle: { fontFamily: typography.fontFamily, fontSize: 14, color: colors.textBody, marginTop: spacing.xxs },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  gauge: { width: '100%', aspectRatio: 2, alignSelf: 'center', maxWidth: 320 },
-  gaugeCenter: { position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: spacing.sm },
-  gaugeLabel: { fontFamily: typography.fontFamily, fontSize: 14, color: colors.textBody },
-  gaugeValue: { fontFamily: typography.fontFamily, fontSize: 28, fontWeight: '600', color: colors.textHeading },
+  // Ring + centred figure overlay.
+  gauge: { alignSelf: 'center', alignItems: 'center', justifyContent: 'center' },
+  gaugeCenter: { position: 'absolute', alignItems: 'center' },
+  gaugeLabel: { fontFamily: typography.fontFamily, fontSize: 13, color: colors.textBody },
+  gaugeValue: { fontFamily: NUMERIC_FONT, fontSize: 32, color: colors.textHeading },
   gaugeScale: { flexDirection: 'row', justifyContent: 'space-between', maxWidth: 320, alignSelf: 'center', width: '100%' },
   scaleText: { fontFamily: typography.fontFamily, fontSize: 13, color: colors.textMuted },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   statCard: { width: '47%', flexGrow: 1, borderWidth: 1, borderColor: colors.borderSubtle, borderRadius: radius.lg, padding: spacing.md, gap: spacing.xs, minHeight: 96 },
-  statLabelRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
-  statDot: { width: 8, height: 8, borderRadius: 4 },
   statLabel: { fontFamily: typography.fontFamily, fontSize: 13, color: colors.textBody },
-  statValue: { fontFamily: typography.fontFamily, fontSize: 26, fontWeight: '600', color: colors.textHeading },
+  statValue: { fontFamily: NUMERIC_FONT, fontSize: 28, color: colors.textHeading },
   statValueRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' },
-  statPill: { backgroundColor: '#F0FDF4', borderRadius: radius.full, paddingHorizontal: spacing.sm, paddingVertical: 2, alignSelf: 'center' },
-  statPillText: { fontFamily: typography.fontFamily, fontSize: 11, color: '#16A34A' },
   statFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' },
   statSub: { fontFamily: typography.fontFamily, fontSize: 12, color: colors.textBody },
-  podium: { flexDirection: 'row', gap: spacing.sm },
-  podiumCard: { flex: 1, alignItems: 'center', gap: spacing.xs, borderWidth: 1, borderColor: colors.borderSubtle, borderRadius: radius.lg, padding: spacing.md, backgroundColor: colors.surfaceSubtle },
+  // Bottom-aligned so the taller winner card rises above the other two.
+  // Space-04 gaps; centre-aligned so the taller winner card overhangs both ends.
+  podium: { flexDirection: 'row', gap: spacing.xs, alignItems: 'center' },
+  // Fixed heights so the two side cards always match, with gold standing taller.
+  podiumCard: {
+    flex: 1,
+    height: 128,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+  },
+  podiumCardWinner: { height: 132 },
   medal: { width: 36, height: 36 },
   podiumName: { fontFamily: typography.fontFamily, fontSize: 13, fontWeight: '500', color: colors.textHeading },
   podiumScore: { fontFamily: typography.fontFamily, fontSize: 12, color: colors.textBody },
-  entryTable: { borderWidth: 1, borderColor: colors.borderSubtle, borderRadius: radius.lg, overflow: 'hidden' },
-  entryHeader: { flexDirection: 'row', backgroundColor: colors.surfaceMuted, paddingVertical: spacing.sm, paddingHorizontal: spacing.md },
-  entryHeaderText: { fontFamily: typography.fontFamily, fontSize: 11, color: colors.textMuted, textTransform: 'uppercase' },
-  entryRow: { flexDirection: 'row', paddingVertical: spacing.md, paddingHorizontal: spacing.md, borderTopWidth: 1, borderTopColor: colors.surfaceMuted },
-  entryCell: { fontFamily: typography.fontFamily, fontSize: 14, color: colors.textHeading },
-  colRank: { width: 50 },
-  colName: { flex: 1 },
-  colScore: { width: 50, textAlign: 'right' },
   scheduleHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing.sm },
   sessionCard: { borderWidth: 1, borderColor: colors.borderSubtle, borderRadius: radius.lg, padding: spacing.md, gap: spacing.sm },
   sessionHighlight: { borderColor: '#FDBA74', borderWidth: 1.5 },
-  attendPill: { alignSelf: 'flex-start', backgroundColor: '#F59E0B', borderRadius: radius.full, paddingHorizontal: spacing.md, paddingVertical: 3 },
-  attendPillText: { fontFamily: typography.fontFamily, fontSize: 12, fontWeight: '600', color: '#FFFFFF' },
-  sessionTitle: { fontFamily: typography.fontFamily, fontSize: 16, fontWeight: '600', color: colors.textHeading },
+  // Row wrapper so the badge hugs its content instead of stretching.
+  badgeRow: { flexDirection: 'row' },
+  sessionTitle: { fontFamily: fontFamilyForWeight('500'), fontSize: 16, color: colors.textHeading },
+  // The "Attend Today!" card leads with a larger title.
+  sessionTitleLarge: { fontSize: 20 },
   metaRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: spacing.md },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   metaText: { fontFamily: typography.fontFamily, fontSize: 13, color: colors.textBody },

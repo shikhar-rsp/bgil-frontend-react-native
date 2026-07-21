@@ -4,8 +4,6 @@ import { Button, BottomNav, colors, spacing, typography, type BottomNavItem } fr
 import { DashboardTopBar, HEADER_GRADIENTS } from '../../components/dashboard/sections/DashboardTopBar';
 import { QuickQuotes } from '../../components/dashboard/sections/QuickQuotes';
 import { YourToolkit } from '../../components/dashboard/sections/YourToolkit';
-import { ProfileMenu } from '../../components/dashboard/sections/ProfileMenu';
-import { NotificationsPanel } from '../../components/dashboard/sections/NotificationsPanel';
 import { SearchPanel } from '../../components/dashboard/sections/SearchPanel';
 import {
   TraineeInsights,
@@ -15,7 +13,6 @@ import {
   TraineeBusinessInsights,
 } from '../../components/dashboard/trainee/TraineeSections';
 import { BookTraining } from '../../components/dashboard/trainee/BookTraining';
-import { clearTokenValues } from '../../../utils/tokenStorage';
 import type { AuthScreenProps } from '../../../navigation';
 
 /** Bottom-nav tabs — split 2 + 2 around the centre AI button. */
@@ -42,22 +39,23 @@ export const TraineeScreen: React.FC<AuthScreenProps<'Trainee'>> = ({ navigation
   const [selectedItem, setSelectedItem] = useState('Home');
   const [homeTab, setHomeTab] = useState('tools');
   const [searchOpen, setSearchOpen] = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false);
-  const [notifOpen, setNotifOpen] = useState(false);
   const [bookOpen, setBookOpen] = useState(false);
 
-  const handleLogout = () => {
-    clearTokenValues();
-    navigation.reset({ index: 0, routes: [{ name: 'DesignationSelect' }] });
-  };
+  const openProfile = () =>
+    navigation.navigate('Profile', {
+      persona: 'trainee',
+      userName: 'Trainee Agent',
+      userId: 'TR-2024',
+      userInitials: 'OR',
+    });
 
   return (
     <View style={styles.safe}>
       <DashboardTopBar
         gradientColors={HEADER_GRADIENTS.silver}
-        onProfilePress={() => setProfileOpen(true)}
+        onProfilePress={openProfile}
         onSearchPress={() => setSearchOpen(true)}
-        onNotificationsPress={() => setNotifOpen(true)}
+        onNotificationsPress={() => navigation.navigate('Notifications')}
         tabs={selectedItem === 'Home' ? HOME_TABS : undefined}
         activeTab={homeTab}
         onTabChange={setHomeTab}
@@ -101,16 +99,6 @@ export const TraineeScreen: React.FC<AuthScreenProps<'Trainee'>> = ({ navigation
         center={{ onPress: () => setSelectedItem('MyAI'), accessibilityLabel: 'MyAI assistant' }}
       />
 
-      <ProfileMenu
-        visible={profileOpen}
-        onClose={() => setProfileOpen(false)}
-        onLogout={handleLogout}
-        userName="Trainee Agent"
-        userId="TR-2024"
-        userInitials="OR"
-      />
-
-      <NotificationsPanel visible={notifOpen} onClose={() => setNotifOpen(false)} />
 
       <SearchPanel visible={searchOpen} onClose={() => setSearchOpen(false)} />
 

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, Pressable, Modal, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, Pressable, Modal, Keyboard, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CaretLeft, MagnifyingGlass, X, ArrowsClockwise } from 'phosphor-react-native';
 import {
@@ -23,6 +23,8 @@ type SearchResult = {
   category: ResultCategory;
   title: string;
   badge: { label: string; color: AccentColor };
+  /** Status badges (e.g. "Renewal pending") sit on their own line under the title. */
+  badgeBelow?: boolean;
   lines: ResultLine[];
 };
 
@@ -74,6 +76,7 @@ const RESULTS: SearchResult[] = [
     category: 'policies',
     title: 'BAGIC/HLT/2024/001234',
     badge: { label: 'Renewal pending', color: 'amber' },
+    badgeBelow: true,
     lines: [
       { label: 'Customer', value: 'Priti Sinha' },
       { label: 'Created on', value: '06-01-26, 12:30:00' },
@@ -122,8 +125,17 @@ const ResultCard: React.FC<{ result: SearchResult; query: string }> = ({ result,
         <Text style={styles.cardTitle} numberOfLines={1}>
           <Highlighted text={result.title} query={query} />
         </Text>
-        <Badge label={result.badge.label} variant="light" size="sm" color={result.badge.color} />
+        {!result.badgeBelow ? (
+          <Badge label={result.badge.label} variant="light" size="sm" color={result.badge.color} />
+        ) : null}
       </View>
+
+      {result.badgeBelow ? (
+        <View style={styles.badgeRow}>
+          <Badge label={result.badge.label} variant="light" size="sm" color={result.badge.color} />
+        </View>
+      ) : null}
+
       {result.lines.map((line, i) => (
         <Text key={i} style={styles.line}>
           {line.label ? (
@@ -131,7 +143,12 @@ const ResultCard: React.FC<{ result: SearchResult; query: string }> = ({ result,
               <Highlighted text={`${line.label}: `} query={query} />
             </Text>
           ) : null}
-          <Text style={[styles.lineValue, line.valueColor ? { color: line.valueColor } : null]}>
+          <Text
+            style={[
+              styles.lineValue,
+              line.valueColor ? [styles.lineStage, { color: line.valueColor }] : null,
+            ]}
+          >
             <Highlighted text={line.value} query={query} />
           </Text>
         </Text>
@@ -149,9 +166,30 @@ interface SearchPanelProps {
 export const SearchPanel: React.FC<SearchPanelProps> = ({ visible, onClose }) => {
   const [query, setQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all');
+  const [keyboardUp, setKeyboardUp] = useState(false);
 
-  const hasQuery = query.trim().length > 0;
-  const results = activeTab === 'all' ? RESULTS : RESULTS.filter((r) => r.category === activeTab);
+  // Matches are only highlighted while the user is actively typing.
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardDidShow', () => setKeyboardUp(true));
+    const hide = Keyboard.addListener('keyboardDidHide', () => setKeyboardUp(false));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+
+  const term = query.trim().toLowerCase();
+  const hasQuery = term.length > 0;
+
+  // Results are filtered by both the active tab and the search term.
+  const results = RESULTS.filter((r) => {
+    if (activeTab !== 'all' && r.category !== activeTab) return false;
+    if (!term) return true;
+    const haystack = [r.title, r.badge.label, ...r.lines.map((l) => `${l.label ?? ''} ${l.value}`)]
+      .join(' ')
+      .toLowerCase();
+    return haystack.includes(term);
+  });
 
   const handleClose = () => {
     setQuery('');
@@ -189,9 +227,13 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({ visible, onClose }) =>
                   <Text style={styles.clearText}>Clear History</Text>
                 </Pressable>
               </View>
-              {results.map((result) => (
-                <ResultCard key={result.id} result={result} query={query} />
-              ))}
+              {results.length === 0 ? (
+                null
+              ) : (
+                results.map((result) => (
+                  <ResultCard key={result.id} result={result} query={keyboardUp ? query : ''} />
+                ))
+              )}
             </View>
           ) : null}
         </SearchPopup>
@@ -220,20 +262,29 @@ const styles = StyleSheet.create({
     color: colors.brand,
   },
   cardContent: { flex: 1, gap: spacing.xs },
+  // Type badge sits immediately after the title, not pushed to the far edge.
   cardTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     gap: spacing.sm,
   },
   cardTitle: {
-    flex: 1,
+    flexShrink: 1,
     fontFamily: fontFamilyForWeight('400'),
     fontSize: 14,
     color: colors.textHeading,
   },
+  badgeRow: { flexDirection: 'row' },
   highlight: { backgroundColor: '#FBBF24', color: colors.textHeading },
   line: { fontFamily: typography.fontFamily, fontSize: 13, lineHeight: 19, color: colors.textBody },
   lineLabel: { color: colors.textBody },
+  // Stage values render medium (500) in their status colour.
+  lineStage: { fontFamily: fontFamilyForWeight('500') },
+  emptyText: {
+    fontFamily: typography.fontFamily,
+    fontSize: 14,
+    color: colors.textBody,
+    paddingVertical: spacing.lg,
+  },
   lineValue: { color: colors.textHeading },
 });
