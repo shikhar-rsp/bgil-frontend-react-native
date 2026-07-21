@@ -32,6 +32,7 @@ import { DashboardScreen } from './src/presentation/pages/dashboard/DashboardScr
 import { RMDashboardScreen } from './src/presentation/pages/dashboard/RMDashboardScreen';
 import { TraineeScreen } from './src/presentation/pages/dashboard/TraineeScreen';
 import { ProfileScreen } from './src/presentation/pages/dashboard/ProfileScreen';
+import { NotificationsScreen } from './src/presentation/pages/dashboard/NotificationsScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 export const navigationRef = createNavigationContainerRef<RootStackParamList>();
@@ -52,6 +53,7 @@ const linking: LinkingOptions<RootStackParamList> = {
       RMDashboard: 'rmdashboard',
       Trainee: 'trainee',
       Profile: 'profile',
+      Notifications: 'notifications',
     },
   },
 };
@@ -101,6 +103,7 @@ export default function App() {
               <Stack.Screen name="RMDashboard" component={RMDashboardScreen} />
               <Stack.Screen name="Trainee" component={TraineeScreen} />
               <Stack.Screen name="Profile" component={ProfileScreen} />
+              <Stack.Screen name="Notifications" component={NotificationsScreen} />
             </Stack.Navigator>
           </NavigationContainer>
           <Loader />

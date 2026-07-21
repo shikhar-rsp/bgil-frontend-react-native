@@ -1,13 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  View,
-  Text,
-  Modal,
-  ScrollView,
-  Animated,
-  StyleSheet,
-  useWindowDimensions,
-} from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CaretLeft } from 'phosphor-react-native';
 import {
@@ -18,6 +10,7 @@ import {
   fontFamilyForWeight,
   type NotificationTab,
 } from '@atlas-ds/react-native';
+import type { AuthScreenProps } from '../../../navigation';
 
 type NotificationCategory = 'general' | 'updates';
 
@@ -90,30 +83,10 @@ const ITEMS: NotificationEntry[] = [
   },
 ];
 
-interface NotificationsPanelProps {
-  visible: boolean;
-  onClose: () => void;
-}
-
-/** Full-screen notifications panel that slides in from the right. */
-export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ visible, onClose }) => {
-  const { width } = useWindowDimensions();
-  const translateX = useRef(new Animated.Value(width)).current;
-  const [mounted, setMounted] = useState(visible);
+/** Full-screen notifications route, opened from the dashboard bell. */
+export const NotificationsScreen: React.FC<AuthScreenProps<'Notifications'>> = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState('all');
   const [readAll, setReadAll] = useState(false);
-
-  useEffect(() => {
-    if (visible) {
-      setMounted(true);
-      Animated.timing(translateX, { toValue: 0, duration: 250, useNativeDriver: true }).start();
-    } else if (mounted) {
-      Animated.timing(translateX, { toValue: width, duration: 200, useNativeDriver: true }).start(
-        ({ finished }) => finished && setMounted(false),
-      );
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible, width]);
 
   const tabs: NotificationTab[] = useMemo(
     () => [
@@ -126,43 +99,38 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ visible,
 
   const filtered = activeTab === 'all' ? ITEMS : ITEMS.filter((i) => i.category === activeTab);
 
-  if (!mounted) return null;
-
   return (
-    <Modal visible transparent animationType="none" onRequestClose={onClose}>
-        <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-          <NotificationsBase
-            tabs={tabs}
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            onBack={onClose}
-            backIcon={<CaretLeft size={22} color={colors.textHeading} />}
-            onMarkAsRead={() => setReadAll(true)}
-          >
-            <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
-              {filtered.map((item) => (
-                <View key={item.id} style={styles.item}>
-                  <View style={styles.itemText}>
-                    <Text style={styles.itemTitle}>{item.title}</Text>
-                    <Text style={styles.itemDesc}>{item.description}</Text>
-                  </View>
-                  {(item.time || (item.unread && !readAll)) && (
-                    <View style={styles.itemMeta}>
-                      {item.unread && !readAll ? <View style={styles.unreadDot} /> : null}
-                      {item.time ? <Text style={styles.itemTime}>{item.time}</Text> : null}
-                    </View>
-                  )}
+    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+      <NotificationsBase
+        tabs={tabs}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onBack={() => navigation.goBack()}
+        backIcon={<CaretLeft size={22} color={colors.textHeading} />}
+        onMarkAsRead={() => setReadAll(true)}
+      >
+        <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
+          {filtered.map((item) => (
+            <View key={item.id} style={styles.item}>
+              <View style={styles.itemText}>
+                <Text style={styles.itemTitle}>{item.title}</Text>
+                <Text style={styles.itemDesc}>{item.description}</Text>
+              </View>
+              {(item.time || (item.unread && !readAll)) && (
+                <View style={styles.itemMeta}>
+                  {item.unread && !readAll ? <View style={styles.unreadDot} /> : null}
+                  {item.time ? <Text style={styles.itemTime}>{item.time}</Text> : null}
                 </View>
-              ))}
-            </ScrollView>
-          </NotificationsBase>
-        </SafeAreaView>
-    </Modal>
+              )}
+            </View>
+          ))}
+        </ScrollView>
+      </NotificationsBase>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  panel: { flex: 1, backgroundColor: colors.surface },
   safe: { flex: 1, backgroundColor: colors.surface },
   list: { paddingBottom: spacing.xl },
   item: {
@@ -174,11 +142,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.borderSubtle,
   },
   itemText: { flex: 1, gap: spacing.xs },
-  itemTitle: {
-    fontFamily: fontFamilyForWeight('500'),
-    fontSize: 15,
-    color: colors.textHeading,
-  },
+  itemTitle: { fontFamily: fontFamilyForWeight('500'), fontSize: 15, color: colors.textHeading },
   itemDesc: {
     fontFamily: typography.fontFamily,
     fontSize: 13,
@@ -187,9 +151,5 @@ const styles = StyleSheet.create({
   },
   itemMeta: { alignItems: 'flex-end', gap: spacing.sm },
   unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.brand },
-  itemTime: {
-    fontFamily: typography.fontFamily,
-    fontSize: 12,
-    color: colors.textMuted,
-  },
+  itemTime: { fontFamily: typography.fontFamily, fontSize: 12, color: colors.textMuted },
 });

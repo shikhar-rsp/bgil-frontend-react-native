@@ -17,7 +17,6 @@ import { QuickQuotes } from '../../components/dashboard/sections/QuickQuotes';
 import { YourInsights } from '../../components/dashboard/sections/YourInsights';
 import { AssistantInsights } from '../../components/dashboard/sections/AssistantInsights';
 import { TodaysTasks } from '../../components/dashboard/sections/TodaysTasks';
-import { NotificationsPanel } from '../../components/dashboard/sections/NotificationsPanel';
 import { SearchPanel } from '../../components/dashboard/sections/SearchPanel';
 import {
   GoalsSheet,
@@ -68,7 +67,6 @@ export const RMDashboardScreen: React.FC<AuthScreenProps<'RMDashboard'>> = ({ na
   const [agentNav, setAgentNav] = useState('Home');
   const [agentTab, setAgentTab] = useState('tools');
   const [searchOpen, setSearchOpen] = useState(false);
-  const [notifOpen, setNotifOpen] = useState(false);
 
   const openProfile = () =>
     navigation.navigate('Profile', {
@@ -89,7 +87,7 @@ export const RMDashboardScreen: React.FC<AuthScreenProps<'RMDashboard'>> = ({ na
           avatarInitials="MJ"
           onProfilePress={openProfile}
           onSearchPress={() => setSearchOpen(true)}
-          onNotificationsPress={() => setNotifOpen(true)}
+          onNotificationsPress={() => navigation.navigate('Notifications')}
           tabs={agentNav === 'Home' ? AGENT_TABS : undefined}
           activeTab={agentTab}
           onTabChange={setAgentTab}
@@ -152,7 +150,6 @@ export const RMDashboardScreen: React.FC<AuthScreenProps<'RMDashboard'>> = ({ na
           center={{ onPress: () => setAgentNav('MyAI'), accessibilityLabel: 'MyAI assistant' }}
         />
 
-        <NotificationsPanel visible={notifOpen} onClose={() => setNotifOpen(false)} />
         <SearchPanel visible={searchOpen} onClose={() => setSearchOpen(false)} />
       </View>
     );
@@ -166,7 +163,7 @@ export const RMDashboardScreen: React.FC<AuthScreenProps<'RMDashboard'>> = ({ na
         avatarInitials="MJ"
         onProfilePress={openProfile}
         onSearchPress={() => setSearchOpen(true)}
-        onNotificationsPress={() => setNotifOpen(true)}
+        onNotificationsPress={() => navigation.navigate('Notifications')}
         tabs={RM_TABS}
         activeTab={rmTab}
         onTabChange={setRmTab}
@@ -188,7 +185,6 @@ export const RMDashboardScreen: React.FC<AuthScreenProps<'RMDashboard'>> = ({ na
         )}
       </ScrollView>
 
-      <NotificationsPanel visible={notifOpen} onClose={() => setNotifOpen(false)} />
       <SearchPanel visible={searchOpen} onClose={() => setSearchOpen(false)} />
     </View>
   );

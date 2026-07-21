@@ -4,7 +4,6 @@ import { Button, BottomNav, colors, spacing, typography, type BottomNavItem } fr
 import { DashboardTopBar, HEADER_GRADIENTS } from '../../components/dashboard/sections/DashboardTopBar';
 import { QuickQuotes } from '../../components/dashboard/sections/QuickQuotes';
 import { YourToolkit } from '../../components/dashboard/sections/YourToolkit';
-import { NotificationsPanel } from '../../components/dashboard/sections/NotificationsPanel';
 import { SearchPanel } from '../../components/dashboard/sections/SearchPanel';
 import {
   TraineeInsights,
@@ -40,7 +39,6 @@ export const TraineeScreen: React.FC<AuthScreenProps<'Trainee'>> = ({ navigation
   const [selectedItem, setSelectedItem] = useState('Home');
   const [homeTab, setHomeTab] = useState('tools');
   const [searchOpen, setSearchOpen] = useState(false);
-  const [notifOpen, setNotifOpen] = useState(false);
   const [bookOpen, setBookOpen] = useState(false);
 
   const openProfile = () =>
@@ -57,7 +55,7 @@ export const TraineeScreen: React.FC<AuthScreenProps<'Trainee'>> = ({ navigation
         gradientColors={HEADER_GRADIENTS.silver}
         onProfilePress={openProfile}
         onSearchPress={() => setSearchOpen(true)}
-        onNotificationsPress={() => setNotifOpen(true)}
+        onNotificationsPress={() => navigation.navigate('Notifications')}
         tabs={selectedItem === 'Home' ? HOME_TABS : undefined}
         activeTab={homeTab}
         onTabChange={setHomeTab}
@@ -101,7 +99,6 @@ export const TraineeScreen: React.FC<AuthScreenProps<'Trainee'>> = ({ navigation
         center={{ onPress: () => setSelectedItem('MyAI'), accessibilityLabel: 'MyAI assistant' }}
       />
 
-      <NotificationsPanel visible={notifOpen} onClose={() => setNotifOpen(false)} />
 
       <SearchPanel visible={searchOpen} onClose={() => setSearchOpen(false)} />
 

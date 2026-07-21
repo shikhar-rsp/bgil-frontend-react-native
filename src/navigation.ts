@@ -30,6 +30,8 @@ export type RootStackParamList = {
   /** `viewAgent` puts the RM dashboard into read-only "agent view" mode. */
   RMDashboard: { viewAgent?: AgentViewTarget } | undefined;
   Trainee: undefined;
+  /** Shared notifications page, opened from the dashboard bell. */
+  Notifications: undefined;
   /** Shared profile page — the RM variant adds the Agent View picker. */
   Profile: {
     persona: 'agent' | 'rm' | 'trainee';

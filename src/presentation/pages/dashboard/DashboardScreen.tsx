@@ -8,7 +8,6 @@ import { YourToolkit } from '../../components/dashboard/sections/YourToolkit';
 import { AssistantInsights } from '../../components/dashboard/sections/AssistantInsights';
 import { TodaysTasks } from '../../components/dashboard/sections/TodaysTasks';
 import { WhatsNew } from '../../components/dashboard/sections/WhatsNew';
-import { NotificationsPanel } from '../../components/dashboard/sections/NotificationsPanel';
 import { SearchPanel } from '../../components/dashboard/sections/SearchPanel';
 import { ObboardingModal } from '../../components/dashboard/sections/ObboardingModal';
 import { BusinessScreen } from './BusinessScreen';
@@ -40,7 +39,6 @@ export const DashboardScreen: React.FC<AuthScreenProps<'Dashboard'>> = ({ naviga
   const [searchOpen, setSearchOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(true);
   const [tourActive, setTourActive] = useState(false);
-  const [notifOpen, setNotifOpen] = useState(false);
 
   const openProfile = () =>
     navigation.navigate('Profile', {
@@ -68,7 +66,7 @@ export const DashboardScreen: React.FC<AuthScreenProps<'Dashboard'>> = ({ naviga
         gradientColors={HEADER_GRADIENTS.platinum}
         onProfilePress={openProfile}
         onSearchPress={() => setSearchOpen(true)}
-        onNotificationsPress={() => setNotifOpen(true)}
+        onNotificationsPress={() => navigation.navigate('Notifications')}
         tabs={selectedItem === 'Home' ? HOME_TABS : undefined}
         activeTab={homeTab}
         onTabChange={setHomeTab}
@@ -118,7 +116,6 @@ export const DashboardScreen: React.FC<AuthScreenProps<'Dashboard'>> = ({ naviga
         center={{ onPress: () => handleSelectItem('MyAI'), accessibilityLabel: 'MyAI assistant' }}
       />
 
-      <NotificationsPanel visible={notifOpen} onClose={() => setNotifOpen(false)} />
 
       <SearchPanel visible={searchOpen} onClose={() => setSearchOpen(false)} />
 
