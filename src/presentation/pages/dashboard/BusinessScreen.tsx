@@ -7,7 +7,7 @@ import { SharedQuotes } from '../../components/dashboard/business/SharedQuotes';
 import { DraftsPage } from '../../components/dashboard/business/DraftsPage';
 import { BrowseCategories } from '../../components/dashboard/business/BrowseCategories';
 import { HealthGuard } from '../../components/dashboard/business/health/HealthGuard';
-import { ConvertProposalWizard } from '../../components/dashboard/business/ConvertProposalWizard';
+import { ConvertProposal } from '../../components/dashboard/business/proposal/ConvertProposal';
 import { IssuedPolicy } from '../../components/dashboard/business/IssuedPolicy';
 import { TwoWheelerInsurance } from '../../components/dashboard/business/motor/TwoWheelerInsurance';
 import type { Policy } from '../../components/dashboard/business/businessData';
@@ -103,7 +103,7 @@ export const BusinessScreen: React.FC = () => {
           onConvertToProposal={(customer) => setView({ kind: 'convert', customer })}
         />
       ) : view.kind === 'convert' ? (
-        <ConvertProposalWizard customerName={view.customer} onClose={goLanding} />
+        <ConvertProposal customerName={view.customer} onClose={goLanding} />
       ) : (
         <IssuedPolicy policy={view.policy} onClose={goLanding} />
       )}
