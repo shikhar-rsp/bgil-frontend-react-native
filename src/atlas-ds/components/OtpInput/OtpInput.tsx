@@ -31,6 +31,8 @@ export interface OtpInputProps {
   onResend?: () => void;
   /** Label for the footer link. Default "Resend OTP". */
   resendLabel?: string;
+  /** Horizontal alignment of the label + boxes + footer. Default 'left' (web parity). */
+  align?: 'left' | 'center';
   disabled?: boolean;
   style?: object;
 }
@@ -48,9 +50,11 @@ export const OtpInput: React.FC<OtpInputProps> = ({
   error,
   onResend,
   resendLabel = 'Resend OTP',
+  align = 'left',
   disabled = false,
   style,
 }) => {
+  const isCentered = align === 'center';
   const refs = useRef<Array<OtpDigitRef | null>>([]);
   const [focused, setFocused] = useState(-1);
   const slots = value.padEnd(length, ' ').slice(0, length).split('');
@@ -75,8 +79,8 @@ export const OtpInput: React.FC<OtpInputProps> = ({
 
   return (
     <View style={[styles.wrap, style]}>
-      {label ? <Text style={styles.label}>{label}</Text> : null}
-      <View style={[styles.fieldBody, { maxWidth: fieldMaxWidth }]}>
+      {label ? <Text style={[styles.label, isCentered && styles.labelCenter]}>{label}</Text> : null}
+      <View style={[styles.fieldBody, { maxWidth: fieldMaxWidth }, isCentered && styles.fieldBodyCenter]}>
       <View style={styles.row}>
       {Array.from({ length }).map((_, i) => {
         const ch = charAt(i);
@@ -169,8 +173,10 @@ export const OtpInput: React.FC<OtpInputProps> = ({
 const styles = StyleSheet.create({
   wrap: { gap: 8, alignSelf: 'stretch' },
   label: { fontFamily: typography.fontFamily, fontSize: 14, lineHeight: 20, fontWeight: '400', color: colors.textBody },
+  labelCenter: { textAlign: 'center' },
   // Width caps at digit count × box size so footer aligns with the last box.
   fieldBody: { alignSelf: 'flex-start', width: '100%', gap: 8 },
+  fieldBodyCenter: { alignSelf: 'center' },
   // Web .otp-group: left-aligned row, no wrap; boxes flex up to 40×40.
   row: {
     flexDirection: 'row',

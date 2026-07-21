@@ -75,6 +75,28 @@ export const typography = {
   heading: { fontSize: 14, lineHeight: 20, fontWeight: '500' as const },
 } as const;
 
+/**
+ * Map a numeric/string fontWeight to the matching bundled Rubik face.
+ *
+ * Android can't synthesise intermediate weights (e.g. Medium/500) from the base
+ * `Rubik` family — `fontFamily: 'Rubik'` + `fontWeight: '500'` silently falls
+ * back to Regular. Referencing the weight's own font file by name loads the
+ * correct face on Android and is also the right PostScript name on iOS.
+ *
+ * Prefer this over a bare `fontWeight` whenever the weight is 500+:
+ *   { fontFamily: fontFamilyForWeight('500'), fontSize: 20 }
+ *
+ * Only three Rubik faces are bundled (400/500/700), so weights round the way
+ * CSS font-matching would: 500 → Medium, and anything above 500 (e.g. semibold
+ * 600) rounds up to Bold since there is no face between Medium and Bold.
+ */
+export const fontFamilyForWeight = (weight?: string | number): string => {
+  const w = typeof weight === 'string' ? parseInt(weight, 10) || 400 : weight ?? 400;
+  if (w > 500) return 'Rubik-Bold';
+  if (w >= 500) return 'Rubik-Medium';
+  return 'Rubik-Regular';
+};
+
 export const shadow = {
   /** Container shadow from Figma's lg elevation. */
   lg: {

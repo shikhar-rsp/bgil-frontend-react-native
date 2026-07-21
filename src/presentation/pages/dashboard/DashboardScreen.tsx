@@ -1,35 +1,49 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, colors, spacing, typography } from '@atlas-ds/react-native';
-import { DashboardHeader } from '../../components/dashboard/sections/DashboardHeader';
-import { DashboardSidebarNav } from '../../components/dashboard/sections/DashboardSidebarNav';
+import { Button, BottomNav, colors, spacing, typography, type BottomNavItem } from '@atlas-ds/react-native';
+import { DashboardTopBar, HEADER_GRADIENTS } from '../../components/dashboard/sections/DashboardTopBar';
 import { YourInsights } from '../../components/dashboard/sections/YourInsights';
-import { WhatsNew } from '../../components/dashboard/sections/WhatsNew';
 import { QuickQuotes } from '../../components/dashboard/sections/QuickQuotes';
 import { YourToolkit } from '../../components/dashboard/sections/YourToolkit';
 import { AssistantInsights } from '../../components/dashboard/sections/AssistantInsights';
+import { TodaysTasks } from '../../components/dashboard/sections/TodaysTasks';
+import { WhatsNew } from '../../components/dashboard/sections/WhatsNew';
+import { ProfileMenu } from '../../components/dashboard/sections/ProfileMenu';
+import { NotificationsPanel } from '../../components/dashboard/sections/NotificationsPanel';
+import { SearchPanel } from '../../components/dashboard/sections/SearchPanel';
 import { ObboardingModal } from '../../components/dashboard/sections/ObboardingModal';
 import { BusinessScreen } from './BusinessScreen';
 import { clearTokenValues } from '../../../utils/tokenStorage';
 import type { AuthScreenProps } from '../../../navigation';
 
+/** Bottom-nav tabs — split 2 + 2 around the centre AI button. */
+const NAV_ITEMS: BottomNavItem[] = [
+  { key: 'Home', label: 'Home', iconName: 'home' },
+  { key: 'Business', label: 'Business', iconName: 'bank' },
+  { key: 'Customer', label: 'Customer', iconName: 'user' },
+  { key: 'More', label: 'More', iconName: 'grid' },
+];
+
+/** Home sub-tabs, driven by the segmented control. */
+const HOME_TABS = [
+  { label: 'Tools', value: 'tools' },
+  { label: 'Insights', value: 'insights' },
+  { label: 'Tasks', value: 'tasks' },
+];
+
 /**
- * Agent dashboard — Home view. Ports the web DashboardLayout's "Home" surface
- * (header, nav drawer, insights/whats-new/quick-quotes/toolkit/assistant) plus
- * the onboarding modal. The "Business" tab (quote-creation wizards) is a separate
- * follow-on vertical; selecting it shows a placeholder for now.
- *
- * The walkthrough/coach-mark tour is represented as a demo toggle that fills the
- * insight cards with sample figures (`isWalkthroughActive`), matching the web's
- * populated walkthrough state without the positioned coach-marks.
+ * Agent dashboard. The top section is an avatar + search + notifications row
+ * with a Tools / Insights / Tasks segmented control; the bottom nav switches
+ * the primary surface (Home / Business / …). This layout is agent-only.
  */
 export const DashboardScreen: React.FC<AuthScreenProps<'Dashboard'>> = ({ navigation }) => {
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState('Home');
-  const [search, setSearch] = useState('');
+  const [homeTab, setHomeTab] = useState('tools');
+  const [searchOpen, setSearchOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(true);
   const [tourActive, setTourActive] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
 
   const handleLogout = () => {
     clearTokenValues();
@@ -49,52 +63,78 @@ export const DashboardScreen: React.FC<AuthScreenProps<'Dashboard'>> = ({ naviga
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <DashboardHeader
-        onMenuClick={() => setDrawerOpen(true)}
-        search={search}
-        onSearchChange={setSearch}
+    <View style={styles.safe}>
+      <DashboardTopBar
+        gradientColors={HEADER_GRADIENTS.platinum}
+        onProfilePress={() => setProfileOpen(true)}
+        onSearchPress={() => setSearchOpen(true)}
+        onNotificationsPress={() => setNotifOpen(true)}
+        tabs={selectedItem === 'Home' ? HOME_TABS : undefined}
+        activeTab={homeTab}
+        onTabChange={setHomeTab}
+      />
+
+      <View style={styles.body}>
+        {selectedItem === 'Home' ? (
+          <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+            {homeTab === 'tools' ? (
+              <>
+                <QuickQuotes onNavigateToQuote={() => setSelectedItem('Business')} />
+                <YourToolkit />
+                <AssistantInsights isWalkthroughActive={tourActive} />
+              </>
+            ) : homeTab === 'insights' ? (
+              <YourInsights isWalkthroughActive={tourActive} />
+            ) : (
+              <>
+                <TodaysTasks />
+                <WhatsNew />
+              </>
+            )}
+          </ScrollView>
+        ) : selectedItem === 'Business' ? (
+          <BusinessScreen />
+        ) : (
+          <View style={styles.placeholder}>
+            <Text style={styles.placeholderTitle}>{selectedItem}</Text>
+            <Text style={styles.placeholderBody}>
+              This section is part of a later porting phase.
+            </Text>
+            <Button label="Back to Home" variant="secondaryGray" onPress={() => handleSelectItem('Home')} />
+          </View>
+        )}
+      </View>
+
+      <BottomNav
+        items={NAV_ITEMS}
+        activeKey={selectedItem}
+        onChange={handleSelectItem}
+        center={{ onPress: () => handleSelectItem('MyAI'), accessibilityLabel: 'MyAI assistant' }}
+      />
+
+      <ProfileMenu
+        visible={profileOpen}
+        onClose={() => setProfileOpen(false)}
         onLogout={handleLogout}
+        onProductTour={startWalkthrough}
       />
 
-      {selectedItem === 'Home' ? (
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <YourInsights isWalkthroughActive={tourActive} />
-          <WhatsNew />
-          <QuickQuotes onNavigateToQuote={() => setSelectedItem('Business')} />
-          <YourToolkit />
-          <AssistantInsights isWalkthroughActive={tourActive} />
-        </ScrollView>
-      ) : selectedItem === 'Business' ? (
-        <BusinessScreen />
-      ) : (
-        <View style={styles.placeholder}>
-          <Text style={styles.placeholderTitle}>{selectedItem}</Text>
-          <Text style={styles.placeholderBody}>
-            This section is part of a later porting phase.
-          </Text>
-          <Button label="Back to Home" variant="secondaryGray" onPress={() => handleSelectItem('Home')} />
-        </View>
-      )}
+      <NotificationsPanel visible={notifOpen} onClose={() => setNotifOpen(false)} />
 
-      <DashboardSidebarNav
-        isOpen={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        selectedItem={selectedItem}
-        onSelectItem={handleSelectItem}
-      />
+      <SearchPanel visible={searchOpen} onClose={() => setSearchOpen(false)} />
 
       <ObboardingModal
         isOpen={showOnboarding}
         onClose={() => setShowOnboarding(false)}
         onStartWalkthrough={startWalkthrough}
       />
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.surfaceSubtle },
+  body: { flex: 1 },
   content: { padding: spacing.lg, gap: spacing.lg, paddingBottom: spacing.xxl },
   placeholder: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, padding: spacing.xl },
   placeholderTitle: { fontFamily: typography.fontFamily, fontSize: 24, fontWeight: '600', color: colors.textHeading },

@@ -75,6 +75,7 @@ export const VerifyOtp: React.FC<AuthScreenProps<'VerifyOtp'>> = ({ navigation, 
             setOtpError(null);
           }}
           label="Enter 6 digit OTP"
+          align="center"
           length={6}
           error={otpError ?? undefined}
           helper={timeLeft > 0 ? `Code expires in ${formatTime(timeLeft)} mins` : 'Code expired'}

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -9,12 +9,22 @@ import {
   Pressable,
   KeyboardAvoidingView,
   Platform,
+  useWindowDimensions,
+  type NativeSyntheticEvent,
+  type NativeScrollEvent,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing, radius, typography } from '@atlas-ds/react-native';
 
 const SUPPORT_EMAIL = 'bajajhelp@gmail.com';
 const SUPPORT_PHONE = '9666845326';
+
+/** Promo slides for the auth banner carousel — the original banner, repeated. */
+const BANNER_IMAGE = require('../../../../assets/images/whats-new-carousal.png');
+const BANNER_SLIDES = [BANNER_IMAGE, BANNER_IMAGE, BANNER_IMAGE];
+
+/** Auto-advance interval, matching the dashboard "What's new" carousel. */
+const AUTO_ADVANCE_MS = 3500;
 
 type AuthLayoutProps = {
   children: React.ReactNode;
@@ -33,6 +43,30 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
   showBanner = true,
 }) => {
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  // Slide width = viewport minus the layout's horizontal gutters.
+  const slideWidth = width - spacing.lg * 2;
+  const carouselRef = useRef<ScrollView>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  // Auto-advance the banner, wrapping back to the first slide.
+  useEffect(() => {
+    if (!showBanner || BANNER_SLIDES.length <= 1) return;
+    const timer = setInterval(() => {
+      setActiveIndex((prev) => {
+        const next = (prev + 1) % BANNER_SLIDES.length;
+        carouselRef.current?.scrollTo({ x: next * slideWidth, animated: true });
+        return next;
+      });
+    }, AUTO_ADVANCE_MS);
+    return () => clearInterval(timer);
+  }, [showBanner, slideWidth]);
+
+  // Keep the dots in sync when the user swipes manually.
+  const onBannerScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const idx = Math.round(e.nativeEvent.contentOffset.x / slideWidth);
+    if (idx !== activeIndex) setActiveIndex(idx);
+  };
 
   return (
     <KeyboardAvoidingView
@@ -56,12 +90,30 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
         />
 
         {showBanner ? (
-          <View style={styles.bannerCard}>
-            <Image
-              source={require('../../../../assets/images/whats-new-carousal.png')}
-              style={styles.banner}
-              resizeMode="cover"
-            />
+          <View style={styles.carousel}>
+            <View style={[styles.carouselTrack, { width: slideWidth }]}>
+              <ScrollView
+                ref={carouselRef}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                onMomentumScrollEnd={onBannerScrollEnd}
+              >
+                {BANNER_SLIDES.map((src, i) => (
+                  <Image
+                    key={i}
+                    source={src}
+                    style={[styles.banner, { width: slideWidth }]}
+                    resizeMode="cover"
+                  />
+                ))}
+              </ScrollView>
+            </View>
+            <View style={styles.dots}>
+              {BANNER_SLIDES.map((_, i) => (
+                <View key={i} style={[styles.dot, i === activeIndex && styles.dotActive]} />
+              ))}
+            </View>
           </View>
         ) : null}
 
@@ -93,14 +145,22 @@ const styles = StyleSheet.create({
     height: 56,
     marginBottom: spacing.lg,
   },
-  bannerCard: {
+  carousel: {
+    marginBottom: spacing.lg,
+    gap: spacing.md,
+  },
+  carouselTrack: {
     height: 180,
     borderRadius: radius.xl,
     overflow: 'hidden',
     backgroundColor: colors.brandPressed,
-    marginBottom: spacing.lg,
+    alignSelf: 'center',
   },
-  banner: { width: '100%', height: '100%' },
+  banner: { height: 180 },
+  // Pagination dots — mirrors the dashboard "What's new" carousel.
+  dots: { flexDirection: 'row', justifyContent: 'center', gap: spacing.xs },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.borderSubtle },
+  dotActive: { width: 18, backgroundColor: colors.brand },
   screen: { flex: 1, justifyContent: 'center' },
   footer: {
     flexDirection: 'row',

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { CaretLeft } from 'phosphor-react-native';
-import { colors, spacing, typography } from '@atlas-ds/react-native';
+import { colors, spacing, typography, fontFamilyForWeight } from '@atlas-ds/react-native';
 
 type AuthHeaderProps = {
   title: string;
@@ -44,9 +44,8 @@ const styles = StyleSheet.create({
     color: colors.textBody,
   },
   title: {
-    fontFamily: typography.fontFamily,
+    fontFamily: fontFamilyForWeight('600'),
     fontSize: 28,
-    fontWeight: '600',
     color: colors.textHeading,
     textAlign: 'center',
   },

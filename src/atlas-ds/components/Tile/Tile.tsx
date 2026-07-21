@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { colors, radius, spacing, typography } from '../../theme';
+import { colors, radius, spacing, typography, fontFamilyForWeight } from '../../theme';
 
 export interface TileProps {
   /** Title text. */
@@ -70,6 +70,6 @@ const styles = StyleSheet.create({
   selected: { borderColor: colors.brand, backgroundColor: colors.brandSubtle, borderWidth: 2 },
   disabled: { opacity: 0.5 },
   icon: { width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },
-  label: { fontFamily: typography.fontFamily, fontSize: 14, lineHeight: 20, fontWeight: '500', color: colors.textHeading, textAlign: 'center' },
+  label: { fontFamily: fontFamilyForWeight('500'), fontSize: 14, lineHeight: 20, fontWeight: '500', color: colors.textHeading, textAlign: 'center' },
   description: { fontFamily: typography.fontFamily, fontSize: 12, lineHeight: 16, color: colors.textBody, textAlign: 'center' },
 });

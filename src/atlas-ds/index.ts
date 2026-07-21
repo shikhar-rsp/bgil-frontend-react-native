@@ -167,5 +167,5 @@ export type { ScrollbarProps } from './components/Scrollbar';
 export { ProductTour } from './components/ProductTour';
 export type { ProductTourProps, ProductTourTail } from './components/ProductTour';
 
-export { theme, colors, radius, spacing, typography, shadow, accent, noFocusOutline, inputFocusVisibleRing } from './theme';
+export { theme, colors, radius, spacing, typography, shadow, accent, noFocusOutline, inputFocusVisibleRing, fontFamilyForWeight } from './theme';
 export type { Theme, AccentColor } from './theme';

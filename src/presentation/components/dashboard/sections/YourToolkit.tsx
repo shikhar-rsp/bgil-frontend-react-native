@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, Image, Pressable, Modal, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Plus, Sliders, X } from 'phosphor-react-native';
-import { Button, colors, spacing, radius, typography, shadow } from '@atlas-ds/react-native';
+import { Button, colors, spacing, radius, typography, shadow, fontFamilyForWeight } from '@atlas-ds/react-native';
 import { dashboardImages } from '../images';
 import { CustomizeModal, type CustomizeOption } from './CustomizeModal';
 
@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
     ...shadow.lg,
   },
   headerText: { gap: spacing.xs },
-  heading: { fontFamily: typography.fontFamily, fontSize: 20, fontWeight: '500', color: colors.textHeading },
+  heading: { fontFamily: fontFamilyForWeight('500'), fontSize: 20, fontWeight: '500', color: colors.textHeading },
   subtitle: { fontFamily: typography.fontFamily, fontSize: 14, color: colors.textBody },
   actions: { flexDirection: 'row', gap: spacing.sm },
   actionBtn: { flex: 1 },
