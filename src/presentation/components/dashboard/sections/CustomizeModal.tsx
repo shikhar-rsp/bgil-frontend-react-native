@@ -1,7 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Modal, Pressable, ScrollView, StyleSheet } from 'react-native';
-import { CheckSquare, Square, X } from 'phosphor-react-native';
-import { Button, colors, spacing, radius, typography } from '@atlas-ds/react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import {
+  BottomSheet,
+  Button,
+  Checkbox,
+  ToastGlobal,
+  colors,
+  spacing,
+  radius,
+  fontFamilyForWeight,
+} from '@atlas-ds/react-native';
 
 export type CustomizeOption = { label: string; value: string };
 
@@ -14,13 +22,21 @@ interface CustomizeModalProps {
   description?: string;
   options?: CustomizeOption[];
   maxSelections?: number;
+  /** Error banner copy when the cap is exceeded. Defaults to the LOB wording. */
+  limitMessage?: string;
 }
 
 /**
- * Multi-select customiser used by Quick Quotes and Your Toolkit. The web used a
- * grid of single-select Dropdown "slots" with DOM-class hacks; on native this is
- * a plain checklist that enforces `maxSelections` — same outcome (a set of up to
- * N values), without any DOM coupling.
+ * Multi-select customiser used by Quick Quotes and Your Toolkit.
+ *
+ * The cap is *soft*: rows keep toggling past `maxSelections` so the user sees
+ * what they picked, but an error toast appears and Confirm is disabled until
+ * they drop back to the limit. (Silently swallowing the tap read as a broken
+ * checkbox.)
+ *
+ * The actions live in the content slot rather than the sheet's `primaryAction`
+ * footer because Confirm needs a disabled state, which `BottomSheetAction`
+ * doesn't carry.
  */
 export const CustomizeModal: React.FC<CustomizeModalProps> = ({
   isOpen,
@@ -31,126 +47,111 @@ export const CustomizeModal: React.FC<CustomizeModalProps> = ({
   description = 'Select the items to show on your dashboard',
   options = [],
   maxSelections = 6,
+  limitMessage,
 }) => {
   const [selected, setSelected] = useState<string[]>([]);
+  const [toastDismissed, setToastDismissed] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setSelected(initialSelections.slice(0, maxSelections));
+      setToastDismissed(false);
     }
   }, [isOpen, initialSelections, maxSelections]);
 
+  const overLimit = selected.length > maxSelections;
+
   const toggle = (value: string) => {
-    setSelected((prev) => {
-      if (prev.includes(value)) {
-        return prev.filter((v) => v !== value);
-      }
-      if (prev.length >= maxSelections) {
-        return prev; // at cap — ignore
-      }
-      return [...prev, value];
-    });
+    setToastDismissed(false);
+    setSelected((prev) =>
+      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value],
+    );
   };
 
   return (
-    <Modal visible={isOpen} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
-      <View style={styles.scrim}>
-        <View style={styles.card}>
-          <View style={styles.header}>
-            <View style={styles.headerText}>
-              <Text style={styles.title}>{title}</Text>
-              <Text style={styles.description}>{description}</Text>
-            </View>
-            <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Close" hitSlop={8}>
-              <X size={20} color={colors.textMuted} />
-            </Pressable>
-          </View>
+    <BottomSheet
+      visible={isOpen}
+      onClose={onClose}
+      title={title}
+      subtitle={description}
+      contentMinHeight={0}
+    >
+      {overLimit && !toastDismissed ? (
+        <ToastGlobal
+          variant="error"
+          title={limitMessage ?? `Maximum ${maxSelections} LOBs can be selected`}
+          onClose={() => setToastDismissed(true)}
+          style={styles.toast}
+        />
+      ) : null}
 
-          <Text style={styles.counter}>
-            {selected.length}/{maxSelections} selected
-          </Text>
-
-          <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
-            {options.map((opt) => {
-              const checked = selected.includes(opt.value);
-              const atCap = !checked && selected.length >= maxSelections;
-              return (
-                <Pressable
-                  key={opt.value}
-                  onPress={() => toggle(opt.value)}
-                  disabled={atCap}
-                  accessibilityRole="checkbox"
-                  accessibilityState={{ checked, disabled: atCap }}
-                  style={[styles.row, atCap && styles.rowDisabled]}
-                >
-                  {checked ? (
-                    <CheckSquare size={22} weight="fill" color={colors.brand} />
-                  ) : (
-                    <Square size={22} color={atCap ? colors.textDisabled : colors.textMuted} />
-                  )}
-                  <Text style={[styles.rowLabel, atCap && styles.rowLabelDisabled]}>{opt.label}</Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-
-          <View style={styles.footer}>
-            <Button
-              label="Reset"
-              variant="secondaryGray"
-              onPress={() => setSelected([])}
-              style={styles.footerBtn}
-            />
-            <Button
-              label="Update"
-              onPress={() => {
-                onUpdate(selected);
-                onClose();
-              }}
-              disabled={selected.length === 0}
-              style={styles.footerBtn}
-            />
-          </View>
-        </View>
+      <View style={styles.counterPill}>
+        <Text style={styles.counterText}>
+          {selected.length}/{options.length}
+        </Text>
       </View>
-    </Modal>
+
+      <View style={styles.list}>
+        {options.map((opt) => {
+          const checked = selected.includes(opt.value);
+          return (
+            <View key={opt.value} style={[styles.row, checked && styles.rowSelected]}>
+              <Checkbox
+                size="md"
+                checked={checked}
+                label={opt.label}
+                onChange={() => toggle(opt.value)}
+              />
+            </View>
+          );
+        })}
+      </View>
+
+      <View style={styles.footer}>
+        <Button
+          label="Confirm"
+          variant="primary"
+          disabled={overLimit || selected.length === 0}
+          onPress={() => {
+            onUpdate(selected);
+            onClose();
+          }}
+          style={styles.footerBtn}
+        />
+        <Button label="Cancel" variant="secondary" onPress={onClose} style={styles.footerBtn} />
+      </View>
+    </BottomSheet>
   );
 };
 
 const styles = StyleSheet.create({
-  scrim: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing.lg,
+  toast: { marginBottom: spacing.md },
+  counterPill: {
+    alignSelf: 'center',
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    marginBottom: spacing.md,
   },
-  card: {
-    width: '100%',
-    maxWidth: 480,
-    maxHeight: '80%',
-    backgroundColor: colors.surface,
-    borderRadius: radius.xl,
-    padding: spacing.xl,
+  counterText: {
+    fontFamily: fontFamilyForWeight('500'),
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '500',
+    color: colors.textBody,
   },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  headerText: { flex: 1, paddingRight: spacing.md },
-  title: { fontFamily: typography.fontFamily, fontSize: 18, fontWeight: '600', color: colors.textHeading },
-  description: { fontFamily: typography.fontFamily, fontSize: 13, color: colors.textBody, marginTop: spacing.xs },
-  counter: { fontFamily: typography.fontFamily, fontSize: 12, color: colors.textMuted, marginTop: spacing.md },
-  list: { marginTop: spacing.sm },
-  listContent: { gap: spacing.xs },
+  list: { gap: spacing.sm },
+  // Selected rows carry the same tint the Dropdown gives its chosen option.
   row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.sm,
-    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.sm,
+    backgroundColor: colors.surface,
   },
-  rowDisabled: { opacity: 0.5 },
-  rowLabel: { fontFamily: typography.fontFamily, fontSize: 15, color: colors.textHeading },
-  rowLabelDisabled: { color: colors.textMuted },
-  footer: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.lg },
-  footerBtn: { flex: 1 },
+  rowSelected: { backgroundColor: colors.brandSubtle },
+  footer: { flexDirection: 'row', gap: spacing.lg, marginTop: spacing.lg },
+  // `stretch` overrides Button's own `alignSelf: 'flex-start'` so both halves
+  // are equal width and height.
+  footerBtn: { flex: 1, alignSelf: 'stretch' },
 });

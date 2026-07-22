@@ -127,6 +127,7 @@ export const YourToolkit: React.FC<YourToolkitProps> = ({
         description="Select the tools to show on your dashboard"
         options={TOOLKIT_OPTIONS}
         maxSelections={6}
+        limitMessage="Maximum 6 tools can be selected"
       />
 
       <BottomSheet
