@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Pressable, StatusBar, StyleSheet } from 'react-native';
+import { View, Pressable, StatusBar, Platform, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import { Bell } from 'phosphor-react-native';
@@ -62,7 +62,13 @@ export const DashboardTopBar: React.FC<DashboardTopBarProps> = ({
       locations={GRADIENT_LOCATIONS}
       style={[styles.header, { paddingTop: insets.top + spacing.md }]}
     >
-      <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
+      {/* `translucent` / `backgroundColor` are Android-only. On iOS the gradient
+          reaches the status bar because this view starts at y=0 and pads its
+          content by the safe-area inset instead. */}
+      <StatusBar
+        barStyle="dark-content"
+        {...(Platform.OS === 'android' ? { translucent: true, backgroundColor: 'transparent' } : null)}
+      />
 
       <View style={styles.topRow}>
         <Pressable onPress={onProfilePress} accessibilityRole="button" accessibilityLabel="Profile" hitSlop={6}>
