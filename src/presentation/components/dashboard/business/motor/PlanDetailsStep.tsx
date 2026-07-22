@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { Dropdown, Radio, DatePicker, colors, spacing, radius, typography, shadow } from '@atlas-ds/react-native';
+import { Dropdown, Radio, DatePicker, colors, spacing, radius, typography, shadow, fontFamilyForWeight } from '@atlas-ds/react-native';
 import { PLAN_TYPE_OPTIONS } from './motorData';
 
 type VehicleType = 'registered' | 'new' | null;
@@ -118,7 +118,7 @@ export const PlanDetailsStep: React.FC<PlanDetailsStepProps> = ({
 
 const styles = StyleSheet.create({
   card: { backgroundColor: colors.surface, borderRadius: radius.xl, padding: spacing.lg, gap: spacing.md, ...shadow.lg },
-  heading: { fontFamily: typography.fontFamily, fontSize: 20, fontWeight: '500', color: colors.textHeading },
+  heading: { fontFamily: fontFamilyForWeight('500'), fontSize: 20, fontWeight: '500', color: colors.textHeading },
   label: { fontFamily: typography.fontFamily, fontSize: 14, color: colors.textBody, marginBottom: spacing.xs },
   insuredRow: { flexDirection: 'row', gap: spacing.sm },
   insured: {

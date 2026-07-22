@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, Modal, StyleSheet } from 'react-native';
 import { Warning } from 'phosphor-react-native';
-import { Button, colors, spacing, radius, typography } from '@atlas-ds/react-native';
+import { Button, colors, spacing, radius, typography, fontFamilyForWeight, shadow } from '@atlas-ds/react-native';
 import { MotorHeader } from './MotorHeader';
 import { VehicleTypeModal } from './VehicleTypeModal';
 import { VehicleIdentificationStep } from './VehicleIdentificationStep';
@@ -101,6 +101,34 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
   };
 
   const showAddOns = vehicleType === 'new' ? true : isVehicleFound(registrationNumber);
+
+  // Premium details unlock once the vehicle is known — identified by its
+  // registration (registered) or filled in manually (new) — and a plan type
+  // has been chosen. Proposer details aren't required for this.
+  const showPremiumDetails = useMemo(() => {
+    if (vehicleType === null || selectedPlanType === '') {
+      return false;
+    }
+    if (vehicleType === 'new') {
+      return (
+        vehicleModel.trim() !== '' &&
+        vehicleMake.trim() !== '' &&
+        vehicleSubType.trim() !== '' &&
+        vehicleManufacturingYear.trim() !== '' &&
+        vehicleIdv.trim() !== ''
+      );
+    }
+    return isVehicleFound(registrationNumber);
+  }, [
+    vehicleType,
+    selectedPlanType,
+    registrationNumber,
+    vehicleModel,
+    vehicleMake,
+    vehicleSubType,
+    vehicleManufacturingYear,
+    vehicleIdv,
+  ]);
 
   const isStep1Valid = useMemo(() => {
     if (vehicleType === null) {
@@ -232,6 +260,7 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
 
             <MotorSideContainer
               isFormValid={isStep1Valid}
+              showPremiumDetails={showPremiumDetails}
               policyTenure={policyTenure}
               setPolicyTenure={setPolicyTenure}
               policyStartDate={policyStartDate}
@@ -311,12 +340,12 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
 };
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colors.surfaceSubtle },
+  flex: { flex: 1, backgroundColor: colors.surfaceSubtle,  },
   content: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl },
-  idvCard: { backgroundColor: colors.surface, borderRadius: radius.xl, padding: spacing.lg, gap: spacing.md },
+  idvCard: { backgroundColor: colors.surface, borderRadius: radius.xl, padding: spacing.lg, gap: spacing.md, ...shadow.lg },
   idvHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  idvTitle: { fontFamily: typography.fontFamily, fontSize: 18, fontWeight: '500', color: colors.textHeading },
-  idvValue: { fontFamily: typography.fontFamily, fontSize: 18, fontWeight: '600', color: colors.textHeading },
+  idvTitle: { fontFamily: fontFamilyForWeight('500'), fontSize: 18, fontWeight: '500', color: colors.textHeading },
+  idvValue: { fontFamily: fontFamilyForWeight('500'), fontSize: 18, fontWeight: '600', color: colors.textHeading },
   footerWrap: { padding: spacing.lg, paddingTop: 0 },
   modalScrim: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
   modalCard: { width: '100%', maxWidth: 420, backgroundColor: colors.surface, borderRadius: radius.xl, padding: spacing.xl, gap: spacing.md, alignItems: 'center' },

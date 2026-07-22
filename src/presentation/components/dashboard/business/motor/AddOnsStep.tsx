@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Check, Warning, X } from 'phosphor-react-native';
-import { Badge, Button, colors, spacing, radius, typography, shadow } from '@atlas-ds/react-native';
+import { Badge, Button, colors, spacing, radius, typography, shadow, fontFamilyForWeight } from '@atlas-ds/react-native';
 import { MAIN_PACKAGES, TOPUP_PACKAGES } from './motorData';
 
 interface AddOnsStepProps {
@@ -118,14 +118,14 @@ export const AddOnsStep: React.FC<AddOnsStepProps> = ({
 const styles = StyleSheet.create({
   card: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.borderSubtle, borderRadius: radius.xl, padding: spacing.lg, gap: spacing.lg, ...shadow.lg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  heading: { fontFamily: typography.fontFamily, fontSize: 20, fontWeight: '500', color: colors.textHeading },
+  heading: { fontFamily: fontFamilyForWeight('500'), fontSize: 20, fontWeight: '500', color: colors.textHeading },
   warnToast: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: '#FFFBEB', borderRadius: radius.lg, padding: spacing.md },
   warnText: { flex: 1, fontFamily: typography.fontFamily, fontSize: 13, color: colors.textBody },
   warnBold: { fontWeight: '500', color: colors.textHeading },
   packages: { gap: spacing.md },
   packageCard: { borderWidth: 1, borderColor: '#C7D2FE', borderRadius: radius.lg, padding: spacing.md, gap: spacing.md },
   packageHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: '#EFF6FF', borderRadius: radius.sm, padding: spacing.md },
-  packageTitle: { fontFamily: typography.fontFamily, fontSize: 16, fontWeight: '500', color: colors.textHeading },
+  packageTitle: { fontFamily: fontFamilyForWeight('500'), fontSize: 16, fontWeight: '500', color: colors.textHeading },
   packageList: { gap: spacing.sm },
   addonRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: spacing.md, borderWidth: 1, borderColor: colors.borderSubtle, borderRadius: radius.lg },
   addonRowSel: { borderColor: '#3B82F6', backgroundColor: '#EFF6FF' },

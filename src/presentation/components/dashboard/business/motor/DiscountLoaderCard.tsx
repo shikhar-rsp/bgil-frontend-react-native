@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Slider, colors, spacing, radius, typography } from '@atlas-ds/react-native';
+import { Slider, colors, spacing, radius, typography, fontFamilyForWeight, shadow } from '@atlas-ds/react-native';
 
 interface DiscountLoaderCardProps {
   value: [number, number];
@@ -32,8 +32,8 @@ export const DiscountLoaderCard: React.FC<DiscountLoaderCardProps> = ({ value, s
 };
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.borderSubtle, borderRadius: radius.xl, padding: spacing.lg, gap: spacing.lg },
+  card: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.borderSubtle, borderRadius: radius.xl, padding: spacing.lg, gap: spacing.lg, ...shadow.lg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  heading: { fontFamily: typography.fontFamily, fontSize: 20, fontWeight: '500', color: colors.textHeading },
+  heading: { fontFamily: fontFamilyForWeight('500'), fontSize: 20, fontWeight: '500', color: colors.textHeading },
   pct: { fontFamily: typography.fontFamily, fontSize: 20, fontWeight: '500' },
 });

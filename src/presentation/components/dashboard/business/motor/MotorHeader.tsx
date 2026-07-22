@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Car, DownloadSimple } from 'phosphor-react-native';
-import { Button, colors, spacing, radius, typography, shadow } from '@atlas-ds/react-native';
+import { Button, colors, spacing, radius, typography, shadow, fontFamilyForWeight } from '@atlas-ds/react-native';
 
 interface MotorHeaderProps {
   onDownloadBrochure?: () => void;
@@ -43,6 +43,6 @@ const styles = StyleSheet.create({
   },
   left: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
   iconBox: { width: 40, height: 40, borderRadius: radius.lg, backgroundColor: '#FFF7ED', alignItems: 'center', justifyContent: 'center' },
-  title: { fontFamily: typography.fontFamily, fontSize: 18, fontWeight: '500', color: colors.textHeading, flexShrink: 1 },
-  actions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  title: { fontFamily: fontFamilyForWeight('500'), fontSize: 18, fontWeight: '500', color: colors.textHeading, flexShrink: 1 },
+  actions: { width: '100%',flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
 });

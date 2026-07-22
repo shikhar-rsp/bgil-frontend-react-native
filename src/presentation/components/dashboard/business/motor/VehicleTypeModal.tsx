@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, Modal, Pressable, StyleSheet } from 'react-native';
 import { FilePlus, FileText } from 'phosphor-react-native';
-import { Button, Radio, colors, spacing, radius, typography } from '@atlas-ds/react-native';
+import { Button, Radio, colors, spacing, radius, typography, fontFamilyForWeight } from '@atlas-ds/react-native';
 
 type VehicleType = 'registered' | 'new';
 
@@ -73,17 +73,18 @@ export const VehicleTypeModal: React.FC<VehicleTypeModalProps> = ({ isOpen, onCl
 const styles = StyleSheet.create({
   scrim: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
   card: { width: '100%', maxWidth: 480, backgroundColor: colors.surface, borderRadius: radius.xl, padding: spacing.xl, gap: spacing.md },
-  title: { fontFamily: typography.fontFamily, fontSize: 18, fontWeight: '600', color: colors.textHeading },
+  title: { fontFamily: fontFamilyForWeight('500'), fontSize: 18, fontWeight: '600', color: colors.textHeading },
   description: { fontFamily: typography.fontFamily, fontSize: 14, color: colors.textBody },
-  options: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.sm },
-  option: { flex: 1, borderWidth: 1, borderRadius: radius.lg, padding: spacing.md, gap: spacing.lg },
+  // Stacked one per row.
+  options: { gap: spacing.md, marginTop: spacing.sm },
+  option: { borderWidth: 1, borderRadius: radius.lg, padding: spacing.md, gap: spacing.xs },
   optionReg: { borderColor: '#BFDBFE', backgroundColor: colors.surface },
   optionRegSel: { borderColor: '#3B82F6', backgroundColor: '#EFF6FF' },
   optionNew: { borderColor: '#FED7AA', backgroundColor: colors.surface },
   optionNewSel: { borderColor: '#FDBA74', backgroundColor: '#FFF7ED' },
   optionTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  optIcon: { width: 40, height: 40, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' },
-  optTitle: { fontFamily: typography.fontFamily, fontSize: 15, color: colors.textHeading },
+  optIcon: { width: 40, height: 40, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center', marginBottom:spacing.md },
+  optTitle: { fontFamily: fontFamilyForWeight('500'), fontSize: 15, color: colors.textHeading },
   optSub: { fontFamily: typography.fontFamily, fontSize: 13, color: colors.textBody },
   footer: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.md },
   footerBtn: { flex: 1 },

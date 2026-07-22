@@ -6,6 +6,12 @@ import { tenureOptionsFor } from './motorData';
 
 interface MotorSideContainerProps {
   isFormValid: boolean;
+  /**
+   * Whether the premium breakdown can be shown: the vehicle is identified
+   * (registered) or its details are filled in (new), *and* a plan type is
+   * selected. Narrower than `isFormValid`, which also needs proposer details.
+   */
+  showPremiumDetails: boolean;
   policyTenure: string;
   setPolicyTenure: (val: string) => void;
   policyStartDate: Date | null;
@@ -23,6 +29,7 @@ const Row: React.FC<{ label: string; value: string; valueColor?: string }> = ({ 
 
 export const MotorSideContainer: React.FC<MotorSideContainerProps> = ({
   isFormValid,
+  showPremiumDetails,
   policyTenure,
   setPolicyTenure,
   policyStartDate,
@@ -87,7 +94,7 @@ export const MotorSideContainer: React.FC<MotorSideContainerProps> = ({
         <View style={styles.premiumHeader}>
           <Text style={styles.heading}>Premium Details</Text>
         </View>
-        {isFormValid ? (
+        {showPremiumDetails ? (
           <View style={styles.premiumBody}>
             <View style={styles.sumInsured}>
               <Text style={styles.sumLabel}>Sum Insured</Text>

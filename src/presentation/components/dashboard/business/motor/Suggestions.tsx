@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, Image, Pressable, StyleSheet } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import { HandHeart, ShieldPlus, CrownSimple, type IconProps } from 'phosphor-react-native';
-import { Badge, colors, spacing, radius, typography, shadow } from '@atlas-ds/react-native';
+import { Badge, colors, spacing, radius, typography, shadow, fontFamilyForWeight } from '@atlas-ds/react-native';
 import { dashboardImages } from '../../images';
 
 type Suggestion = {
@@ -39,9 +40,14 @@ export const Suggestions: React.FC = () => {
             <Pressable
               key={s.id}
               onPress={() => setSelected(s.id)}
-              style={[styles.suggestion, { borderColor: isSel ? s.borderSel : s.border }, isSel && { backgroundColor: s.tint }]}
+              style={[styles.suggestion, { borderColor: isSel ? s.borderSel : s.border }]}
               accessibilityRole="button"
             >
+              {/* Selected: white → tint gradient. Unselected stays flat white. */}
+              {isSel ? (
+                <LinearGradient colors={['#FFFFFF', s.tint]} style={StyleSheet.absoluteFill} />
+              ) : null}
+
               <View style={[styles.sIcon, { backgroundColor: s.iconBg }]}>
                 <s.Icon size={20} color="#FFFFFF" weight="fill" />
               </View>
@@ -62,9 +68,17 @@ const styles = StyleSheet.create({
   card: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.borderSubtle, borderRadius: radius.xl, padding: spacing.lg, gap: spacing.lg, ...shadow.lg },
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   aiIcon: { width: 36, height: 36, borderRadius: 18 },
-  heading: { flex: 1, fontFamily: typography.fontFamily, fontSize: 20, fontWeight: '500', color: colors.textHeading },
+  heading: { flex: 1, fontFamily: fontFamilyForWeight('500'), fontSize: 20, fontWeight: '500', color: colors.textHeading },
   cards: { gap: spacing.md },
-  suggestion: { borderWidth: 1, borderRadius: radius.lg, padding: spacing.md, gap: spacing.md, backgroundColor: colors.surface },
+  // overflow:hidden keeps the selected gradient inside the rounded border.
+  suggestion: {
+    borderWidth: 1,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    gap: spacing.md,
+    backgroundColor: colors.surface,
+    overflow: 'hidden',
+  },
   sIcon: { width: 40, height: 40, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   sTitle: { fontFamily: typography.fontFamily, fontSize: 16, color: colors.textHeading },

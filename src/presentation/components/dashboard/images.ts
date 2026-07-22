@@ -19,6 +19,7 @@ export const dashboardImages: Record<string, ImageSourcePropType> = {
   fire: require('../../../../assets/images/fire-insurance.png'),
   motor: require('../../../../assets/images/motor-insurance.png'),
   property: require('../../../../assets/images/property.png'),
+  vehicleBack: require('../../../../assets/images/vehcile-back.png'),
   // Toolkit icons
   brochures: require('../../../../assets/images/brochures.png'),
   calculator: require('../../../../assets/images/calculator.png'),
