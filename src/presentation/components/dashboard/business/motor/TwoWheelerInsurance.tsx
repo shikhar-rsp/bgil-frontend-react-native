@@ -13,7 +13,7 @@ import { Suggestions } from './Suggestions';
 import { ProposerDetails } from './ProposerDetails';
 import { MotorSideContainer } from './MotorSideContainer';
 import { PreviewStep } from './PreviewStep';
-import { MotorFooter } from './MotorFooter';
+import { QuoteFooter } from '../QuoteFooter';
 import { ShareQuoteModal } from './ShareQuoteModal';
 import { Slider } from '@atlas-ds/react-native';
 import { isVehicleFound, validateRegistration, TENURE_YEAR_MAP } from './motorData';
@@ -280,8 +280,10 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
       </ScrollView>
 
       <View style={styles.footerWrap}>
-        <MotorFooter
+        <QuoteFooter
           currentStep={currentStep}
+          previewStep={6}
+          previewQuoteStep={5}
           isProceedDisabled={!canProceed}
           onReset={resetForm}
           onBack={() => (currentStep === 1 ? onClose() : setCurrentStep(currentStep - 1))}

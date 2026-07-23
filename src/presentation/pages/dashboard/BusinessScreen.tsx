@@ -46,8 +46,8 @@ export const BusinessScreen: React.FC<BusinessScreenProps> = ({ initialView = 'l
 
   return (
     <View style={styles.flex}>
-      {/* Wizard sub-views keep a back header; landing and browse have none. */}
-      {view.kind !== 'landing' && view.kind !== 'browse' ? (
+      {/* Landing, browse and the quote/proposal wizards have no top header. */}
+      {view.kind === 'policy' ? (
         <View style={styles.header}>
           <Pressable onPress={goLanding} hitSlop={8} accessibilityRole="button" accessibilityLabel="Back" style={styles.back}>
             <CaretLeft size={18} color={colors.textBody} weight="bold" />

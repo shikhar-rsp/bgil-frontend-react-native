@@ -2,13 +2,12 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Button, colors, spacing, radius, shadow } from '@atlas-ds/react-native';
 
-/** Total steps in the motor flow; the last one is the read-only preview. */
-const PREVIEW_STEP = 6;
-/** The step whose primary action opens the preview. */
-const PREVIEW_QUOTE_STEP = 5;
-
-interface MotorFooterProps {
+interface QuoteFooterProps {
   currentStep: number;
+  /** The read-only preview step (last). */
+  previewStep: number;
+  /** The step whose primary action opens the preview. */
+  previewQuoteStep: number;
   isProceedDisabled?: boolean;
   onReset?: () => void;
   onBack?: () => void;
@@ -17,8 +16,16 @@ interface MotorFooterProps {
   onConvertToProposal?: () => void;
 }
 
-export const MotorFooter: React.FC<MotorFooterProps> = ({
+/**
+ * Shared quote/proposal wizard footer. Steps before the preview show
+ * Reset / Back / (Submit | Preview Quote); the preview step shows Share Quote on
+ * its own row, then Back + Convert to Proposal. Used by the motor and Health
+ * Guard flows.
+ */
+export const QuoteFooter: React.FC<QuoteFooterProps> = ({
   currentStep,
+  previewStep,
+  previewQuoteStep,
   isProceedDisabled,
   onReset,
   onBack,
@@ -26,8 +33,7 @@ export const MotorFooter: React.FC<MotorFooterProps> = ({
   onShareQuote,
   onConvertToProposal,
 }) => {
-  if (currentStep === PREVIEW_STEP) {
-    // Preview: Share Quote on its own row, then Back + Convert to Proposal.
+  if (currentStep === previewStep) {
     return (
       <View style={styles.previewBar}>
         <Button label="Share Quote" onPress={onShareQuote} fullWidth />
@@ -47,7 +53,7 @@ export const MotorFooter: React.FC<MotorFooterProps> = ({
       <View style={styles.right}>
         <Button label="Back" variant="secondary" size="sm" onPress={onBack} />
         <Button
-          label={currentStep === PREVIEW_QUOTE_STEP ? 'Preview Quote' : 'Submit'}
+          label={currentStep === previewQuoteStep ? 'Preview Quote' : 'Submit'}
           size="sm"
           disabled={isProceedDisabled}
           onPress={onProceed}

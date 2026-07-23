@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, Modal, StyleSheet } from 'react-native';
 import { PaperPlaneTilt } from 'phosphor-react-native';
-import { Textfield, Button, OtpInput, Toast, ToastGlobal, Card, Radio, Upload, type UploadFile, colors, spacing, radius, typography, shadow } from '@atlas-ds/react-native';
+import { Textfield, Button, OtpInput, Toast, ToastGlobal, Card, Radio, Upload, type UploadFile, colors, spacing, radius, typography, shadow, fontFamilyForWeight } from '@atlas-ds/react-native';
 import { RequiredField, RequiredLabel } from '../RequiredField';
 import { MOCK_OTP } from './proposalData';
 
@@ -291,7 +291,7 @@ export const KycDetailsStep: React.FC<KycDetailsStepProps> = ({ data, update }) 
 const styles = StyleSheet.create({
   wrap: { gap: spacing.md },
   card: { backgroundColor: colors.surface, borderRadius: radius.xl, padding: spacing.lg, gap: spacing.md, ...shadow.lg },
-  heading: { fontFamily: typography.fontFamily, fontSize: 20, fontWeight: '500', color: colors.textHeading },
+  heading: { fontFamily: fontFamilyForWeight('500'), fontSize: 20, fontWeight: '500', color: colors.textHeading },
   sub: { fontFamily: typography.fontFamily, fontSize: 14, color: colors.textBody },
   kycMethod: { gap: spacing.sm },
   kycOption: { alignSelf: 'stretch' },

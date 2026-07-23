@@ -1,8 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, ScrollView, Modal, Pressable, StyleSheet } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
-import { CheckCircle, Confetti, ArrowsLeftRight, X } from 'phosphor-react-native';
-import { Button, ProgressStepper, Radio, colors, spacing, radius, typography, fontFamilyForWeight } from '@atlas-ds/react-native';
+import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
+import { CheckCircle, Confetti, ArrowsLeftRight, Link } from 'phosphor-react-native';
+import { Button, BottomSheet, Toast, colors, spacing, radius, typography, fontFamilyForWeight } from '@atlas-ds/react-native';
 import { PolicyHeader } from './PolicyHeader';
 import { PreviewQuoteStep } from './PreviewQuoteStep';
 import { ProposerDetailsStep, type ProposerData } from './ProposerDetailsStep';
@@ -20,17 +19,6 @@ interface ConvertProposalProps {
   onClose: () => void;
 }
 
-const STEP_META: Record<string, { label: string }> = {
-  preview: { label: 'Preview' },
-  proposer: { label: 'Proposer' },
-  members: { label: 'Members' },
-  addons: { label: 'Add-ons' },
-  nominee: { label: 'Nominee' },
-  previous: { label: 'Prev. Policy' },
-  kyc: { label: 'KYC' },
-  payment: { label: 'Payment' },
-};
-
 const emptyProposer: ProposerData = { proposerName: '', proposerDOB: null, annualIncome: '', contactNo: '', emailId: '', address: '', pincode: '', city: '', area: '', state: '', gender: '', nationality: '', maritalStatus: '', occupation: '' };
 const emptyPrevPolicy: PreviousPolicyData = { policyNumber: '', insurer: '', sumInsured: '', startDate: null, endDate: null, cumulativeBonus: '' };
 const emptyKyc: KycData = { pan: '', ckyc: '', aadhaar: '', phone: '', email: '', verified: false, kycMethod: '', kycDone: false, confirmMethod: '' };
@@ -41,6 +29,7 @@ export const ConvertProposal: React.FC<ConvertProposalProps> = ({ customerName, 
   const [showTypeModal, setShowTypeModal] = useState(true);
   const [stepIndex, setStepIndex] = useState(0);
   const [issued, setIssued] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const [proposer, setProposer] = useState<ProposerData>({ ...emptyProposer, proposerName: customerName });
   const [members, setMembers] = useState<ProposalMember[]>([newMember('m-1')]);
@@ -60,7 +49,6 @@ export const ConvertProposal: React.FC<ConvertProposalProps> = ({ customerName, 
         : ['preview', 'proposer', 'members', 'addons', 'nominee', 'kyc', 'payment'],
     [businessType],
   );
-  const steps = stepKeys.map((k) => STEP_META[k]);
   const key = stepKeys[stepIndex];
 
   const updateProposer = <K extends keyof ProposerData>(f: K, v: ProposerData[K]) => setProposer((p) => ({ ...p, [f]: v }));
@@ -124,23 +112,25 @@ export const ConvertProposal: React.FC<ConvertProposalProps> = ({ customerName, 
     }
   };
 
-  if (issued) {
-    return (
-      <View style={styles.success}>
-        <CheckCircle size={64} color={colors.success} weight="fill" />
-        <Text style={styles.successTitle}>Policy issued!</Text>
-        <Text style={styles.successBody}>Proposal for {proposer.proposerName || customerName} has been submitted.</Text>
-        <Button label="Back to Business" variant="secondaryGray" onPress={onClose} style={styles.successBtn} />
-      </View>
-    );
-  }
+  // "Issue another policy" — reset the flow to a fresh proposal.
+  const handleIssueAnother = () => {
+    setIssued(false);
+    setLinkCopied(false);
+    setStepIndex(0);
+    setBusinessType(null);
+    setShowTypeModal(true);
+    setProposer({ ...emptyProposer, proposerName: customerName });
+    setMembers([newMember('m-1')]);
+    setNominees({});
+    setWantsAddOns('yes');
+    setSelectedAddOns([]);
+    setPrevPolicy(emptyPrevPolicy);
+    setKyc(emptyKyc);
+    setPayment(emptyPayment);
+  };
 
   return (
     <View style={styles.flex}>
-      <View style={styles.stepperWrap}>
-        <ProgressStepper steps={steps} current={stepIndex} onStepPress={(i) => i < stepIndex && setStepIndex(i)} />
-      </View>
-
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <PolicyHeader policyNumber="PR-28686" customerName={proposer.proposerName || customerName} />
 
@@ -186,83 +176,89 @@ export const ConvertProposal: React.FC<ConvertProposalProps> = ({ customerName, 
             <Button label="Reset form" variant="secondaryGray" size="sm" onPress={resetStep} />
             <View style={styles.right}>
               <Button label="Back" variant="secondary" size="sm" onPress={() => setStepIndex((s) => Math.max(0, s - 1))} />
-              <Button label={isLast ? 'Issue Policy' : 'Proceed'} size="sm"  disabled={!canProceed} onPress={goNext} />
+              <Button label={isLast ? 'Issue Policy' : 'Proceed'} size="sm"  onPress={goNext} />
             </View>
           </>
         )}
       </View>
 
       {/* Business type selection */}
-      <Modal visible={showTypeModal}  transparent animationType="fade" onRequestClose={() => { setShowTypeModal(false); if (!businessType) onClose(); }}>
-        <View style={styles.scrim}>
-          <View style={styles.typeCard}>
-            <View style={styles.typeHeader}>
-              <View style={styles.typeHeaderText}>
-                <Text style={styles.typeTitle}>Select Business Type</Text>
-                <Text style={styles.typeSubtitle}>Choose a business type to proceed with policy issuance</Text>
+      <BottomSheet
+        visible={showTypeModal}
+        onClose={() => { setShowTypeModal(false); if (!businessType) onClose(); }}
+        title="Select Business Type"
+        subtitle="Choose a business type to proceed with policy issuance"
+        contentMinHeight={0}
+      >
+        <View style={styles.typeOptions}>
+          {[
+            { value: 'new' as const, label: 'New Business', sub: 'Customer does not have any policy with any insurer.', Icon: Confetti, bg: '#059669', border: '#A7F3D0' },
+            { value: 'portability' as const, label: 'Portability', sub: 'Customer has an existing policy with another insurer.', Icon: ArrowsLeftRight, bg: '#2563EB', border: '#BFDBFE' },
+          ].map((opt) => (
+            <Pressable
+              key={opt.value}
+              style={[styles.typeOption, { borderColor: opt.border }]}
+              onPress={() => { setBusinessType(opt.value); setShowTypeModal(false); }}
+              accessibilityRole="button"
+              accessibilityLabel={opt.label}
+            >
+              <View style={[styles.typeIcon, { backgroundColor: opt.bg }]}>
+                <opt.Icon size={24} color="#FFFFFF" />
               </View>
-              <Pressable onPress={() => { setShowTypeModal(false); onClose(); }} hitSlop={8} accessibilityRole="button" accessibilityLabel="Close">
-                <X size={20} color={colors.textMuted} />
-              </Pressable>
-            </View>
-            <View style={styles.typeOptions}>
-              {[
-                { value: 'new' as const, label: 'New Business', sub: 'Customer does not have any policy with any insurer.', Icon: Confetti, bg: '#059669', border: '#A7F3D0', borderSel: '#34D399', tint: '#ECFDF5' },
-                { value: 'portability' as const, label: 'Portability', sub: 'Customer has an existing policy with another insurer.', Icon: ArrowsLeftRight, bg: '#2563EB', border: '#BFDBFE', borderSel: '#60A5FA', tint: '#EFF6FF' },
-              ].map((opt) => {
-                const isSel = businessType === opt.value;
-                return (
-                  <Pressable key={opt.value} style={[styles.typeOption, { borderColor: isSel ? opt.borderSel : opt.border }]} onPress={() => setBusinessType(opt.value)} accessibilityRole="radio" accessibilityState={{ selected: isSel }}>
-                    {/* RN has no radial gradient — approximate `at 50% 0%` with a
-                        top→bottom white→tint LinearGradient. */}
-                    {isSel ? <LinearGradient colors={['#FFFFFF', opt.tint]} style={StyleSheet.absoluteFill} /> : null}
-                    <View style={styles.typeOptTop}>
-                      <View style={[styles.typeIcon, { backgroundColor: opt.bg }]}>
-                        <opt.Icon size={24} color="#FFFFFF" />
-                      </View>
-                      <Radio selected={isSel} onPress={() => setBusinessType(opt.value)} />
-                    </View>
-                    <Text style={styles.typeOptLabel}>{opt.label}</Text>
-                    <Text style={styles.typeOptSub}>{opt.sub}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-            <View style={styles.typeActions}>
-              <Button label="Cancel" variant="secondary" onPress={() => { setShowTypeModal(false); onClose(); }} style={styles.typeActionBtn} />
-              <Button label="Proceed" disabled={!businessType} onPress={() => setShowTypeModal(false)} style={styles.typeActionBtn} />
-            </View>
+              <View style={styles.typeOptText}>
+                <Text style={styles.typeOptLabel}>{opt.label}</Text>
+                <Text style={styles.typeOptSub}>{opt.sub}</Text>
+              </View>
+            </Pressable>
+          ))}
+        </View>
+      </BottomSheet>
+
+      {/* Policy issued — payment link confirmation */}
+      <BottomSheet
+        visible={issued}
+        onClose={() => setIssued(false)}
+        icon={<CheckCircle size={20} color="#65A30D" weight="fill" />}
+        featuredIconColor="lime"
+        title="Payment Link Sent!"
+        contentMinHeight={0}
+      >
+        <View style={styles.issuedContent}>
+          {linkCopied ? <Toast variant="neutral" title="Link copied" onClose={() => setLinkCopied(false)} /> : null}
+          <Text style={styles.issuedText}>
+            Payment link for your proposal ID 18637815 has been sent successfully!
+          </Text>
+          <View style={styles.issuedActions}>
+            <Button
+              label="Copy Payment Link"
+              variant="secondaryGray"
+              leadingIcon={<Link size={16} color={colors.textBody} />}
+              onPress={() => setLinkCopied(true)}
+              style={styles.issuedBtn}
+            />
+            <Button label="Issue another policy" onPress={handleIssueAnother} style={styles.issuedBtn} />
           </View>
         </View>
-      </Modal>
+      </BottomSheet>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.surfaceSubtle },
-  stepperWrap: { padding: spacing.lg, backgroundColor: colors.surface },
   content: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl },
   footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, padding: spacing.lg, backgroundColor: colors.surface },
   right: { flexDirection: 'row', gap: spacing.sm },
-  scrim: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
-  typeCard: { width: '100%', maxWidth: 480, backgroundColor: colors.surface, borderRadius: radius.xl, padding: spacing.xl, gap: spacing.lg },
-  typeHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md },
-  typeHeaderText: { flex: 1, gap: spacing.xs },
-  typeTitle: { fontFamily: fontFamilyForWeight('500'), fontSize: 18, fontWeight: '600', color: colors.textHeading },
-  typeSubtitle: { fontFamily: typography.fontFamily, fontSize: 14, color: colors.textBody },
-  typeOptions: { flexDirection: 'column', gap: spacing.md },
-  typeActions: { flexDirection: 'row', gap: spacing.md },
-  // `stretch` overrides Button's own `alignSelf: 'flex-start'` so both halves match.
-  typeActionBtn: { flex: 1, alignSelf: 'stretch' },
-  // overflow:hidden keeps the selected gradient inside the rounded border.
-  typeOption: { borderWidth: 1, borderColor: colors.borderSubtle, borderRadius: radius.lg, padding: spacing.md, gap: spacing.md, backgroundColor: colors.surface, overflow: 'hidden' },
-  typeOptTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  typeOptions: { gap: spacing.md },
+  // Tap-to-proceed row: icon left, text right (mirrors the motor vehicle-type sheet).
+  typeOption: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderWidth: 1, borderColor: colors.borderSubtle, borderRadius: radius.lg, padding: spacing.md, backgroundColor: colors.surface },
   typeIcon: { width: 40, height: 40, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' },
+  typeOptText: { flex: 1, gap: spacing.xs },
   typeOptLabel: { fontFamily: fontFamilyForWeight('500'), fontSize: 15, fontWeight: '500', color: colors.textHeading },
   typeOptSub: { fontFamily: typography.fontFamily, fontSize: 13, color: colors.textBody },
-  success: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, padding: spacing.xl, backgroundColor: colors.surfaceSubtle },
-  successTitle: { fontFamily: typography.fontFamily, fontSize: 24, fontWeight: '600', color: colors.textHeading },
-  successBody: { fontFamily: typography.fontFamily, fontSize: 15, color: colors.textBody, textAlign: 'center' },
-  successBtn: { width: '100%', maxWidth: 320, marginTop: spacing.lg },
+  // Payment-link-sent sheet — a divider above the centred message, then actions.
+  issuedContent: { gap: spacing.lg, borderTopWidth: 1, borderTopColor: colors.borderSubtle, paddingTop: spacing.lg },
+  issuedText: { fontFamily: typography.fontFamily, fontSize: 14, lineHeight: 20, color: colors.textBody, textAlign: 'center' },
+  issuedActions: { flexDirection: 'row', gap: spacing.md },
+  issuedBtn: { flex: 1, alignSelf: 'stretch' },
 });

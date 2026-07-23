@@ -1,17 +1,22 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, ScrollView, Modal, StyleSheet } from 'react-native';
-import { Button, ProgressStepper, colors, spacing, radius, typography, shadow } from '@atlas-ds/react-native';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { Button, colors, spacing, radius, typography } from '@atlas-ds/react-native';
+import { QuoteFooter } from '../QuoteFooter';
+import { ShareQuoteModal } from '../motor/ShareQuoteModal';
 import { HealthGuardHeader } from './HealthGuardHeader';
 import { PlanDetailsStep } from './PlanDetailsStep';
 import { ProposerDetailsStep } from './ProposerDetailsStep';
 import { AddOnsStep } from './AddOnsStep';
 import { PreviewStep } from './PreviewStep';
+import { PolicyTenurePremium } from './PolicyTenurePremium';
 import { buildMembers, type MemberDatum } from './healthData';
 
 const STEPS = [
   { label: 'Plan' },
+  { label: 'Members' },
   { label: 'Proposer' },
   { label: 'Add-ons' },
+  { label: 'Premium' },
   { label: 'Preview' },
 ];
 
@@ -98,29 +103,31 @@ export const HealthGuard: React.FC<HealthGuardProps> = ({ productName, onClose, 
     });
   };
 
-  const isStep1Valid =
-    planType !== '' &&
+  // Step 1: plan type + dates. Step 2: members + sub plan. Step 3: proposer.
+  const planStepValid = planType !== '' && startDate !== null && endDate !== null;
+  const membersStepValid =
     subPlan !== '' &&
     (planType === 'floater'
       ? sumInsured !== ''
       : members.length > 0 && members.every((m) => memberData[m.id]?.dob && memberData[m.id]?.sumInsured));
-  const isStep2Valid = proposerName !== '' && proposerDOB !== null && annualIncome !== '' && pincode.length === 6;
+  const proposerStepValid = proposerName !== '' && proposerDOB !== null && annualIncome !== '' && pincode.length === 6;
 
-  const canProceed = currentStep === 1 ? isStep1Valid : currentStep === 2 ? isStep2Valid : true;
+  const canProceed =
+    currentStep === 1 ? planStepValid :
+    currentStep === 2 ? membersStepValid :
+    currentStep === 3 ? proposerStepValid :
+    true;
 
   const goNext = () => setCurrentStep((s) => Math.min(s + 1, STEPS.length));
 
   return (
     <View style={styles.flex}>
-      <View style={styles.stepperWrap}>
-        <ProgressStepper steps={STEPS} current={currentStep - 1} onStepPress={(i) => i < currentStep && setCurrentStep(i + 1)} />
-      </View>
-
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {currentStep !== 4 ? <HealthGuardHeader productName={productName} /> : null}
+        {currentStep !== 6 ? <HealthGuardHeader productName={productName} /> : null}
 
-        {currentStep === 1 ? (
+        {currentStep === 1 || currentStep === 2 ? (
           <PlanDetailsStep
+            section={currentStep === 1 ? 'plan' : 'members'}
             selectedPlan={selectedPlan}
             setSelectedPlan={setSelectedPlan}
             planType={planType}
@@ -145,7 +152,7 @@ export const HealthGuard: React.FC<HealthGuardProps> = ({ productName, onClose, 
             keepSumInsuredSame={keepSumInsuredSame}
             toggleKeepSumInsuredSame={toggleKeepSumInsuredSame}
           />
-        ) : currentStep === 2 ? (
+        ) : currentStep === 3 ? (
           <ProposerDetailsStep
             proposerIsMember={proposerIsMember}
             setProposerIsMember={setProposerIsMember}
@@ -162,7 +169,7 @@ export const HealthGuard: React.FC<HealthGuardProps> = ({ productName, onClose, 
             state={state}
             setState={setState}
           />
-        ) : currentStep === 3 ? (
+        ) : currentStep === 4 ? (
           <AddOnsStep
             planType={planType}
             members={members}
@@ -174,6 +181,8 @@ export const HealthGuard: React.FC<HealthGuardProps> = ({ productName, onClose, 
             floaterAddOns={floaterAddOns}
             setFloaterAddOns={setFloaterAddOns}
           />
+        ) : currentStep === 5 ? (
+          <PolicyTenurePremium />
         ) : (
           <PreviewStep
             productName={productName}
@@ -188,44 +197,32 @@ export const HealthGuard: React.FC<HealthGuardProps> = ({ productName, onClose, 
       </ScrollView>
 
       <View style={styles.footer}>
-        <Button
-          label={currentStep === 4 ? 'Back' : 'Reset form'}
-          variant="secondaryGray"
-          size="sm"
-          onPress={() => (currentStep === 4 ? setCurrentStep(3) : setCurrentStep(1))}
+        <QuoteFooter
+          currentStep={currentStep}
+          previewStep={6}
+          previewQuoteStep={5}
+          isProceedDisabled={!canProceed}
+          onReset={() => setCurrentStep(1)}
+          onBack={() => (currentStep > 1 ? setCurrentStep(currentStep - 1) : onClose())}
+          onProceed={goNext}
+          onShareQuote={() => setShowShare(true)}
+          onConvertToProposal={() => onConvertToProposal(proposerName || 'Customer')}
         />
-        {currentStep < 4 ? (
-          <View style={styles.right}>
-            <Button label="Back" variant="secondary" size="sm" onPress={() => (currentStep > 1 ? setCurrentStep(currentStep - 1) : onClose())} />
-            <Button label="Proceed" size="sm" disabled={!canProceed} onPress={goNext} />
-          </View>
-        ) : (
-          <View style={styles.right}>
-            <Button label="Convert to proposal" variant="secondary" size="sm" onPress={() => onConvertToProposal(proposerName || 'Customer')} />
-            <Button label="Share Quote" size="sm" onPress={() => setShowShare(true)} />
-          </View>
-        )}
       </View>
 
-      <Modal visible={showShare} transparent animationType="fade" onRequestClose={() => setShowShare(false)}>
-        <View style={styles.modalScrim}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Share Quote</Text>
-            <Text style={styles.modalBody}>Quote for {proposerName || 'the customer'} is ready to share.</Text>
-            <Button label="Done" onPress={() => setShowShare(false)} fullWidth />
-          </View>
-        </View>
-      </Modal>
+      <ShareQuoteModal
+        isOpen={showShare}
+        onClose={() => setShowShare(false)}
+        quoteData={{ id: 'QT - 28686-8728387', customerName: proposerName || 'Customer', policyType: `${productName} Policy` }}
+      />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.surfaceSubtle },
-  stepperWrap: { padding: spacing.lg, backgroundColor: colors.surface },
   content: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl },
-  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, padding: spacing.lg, backgroundColor: colors.surface, ...shadow.lg },
-  right: { flexDirection: 'row', gap: spacing.sm },
+  footer: { padding: spacing.lg, paddingTop: 0 },
   modalScrim: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
   modalCard: { width: '100%', maxWidth: 420, backgroundColor: colors.surface, borderRadius: radius.xl, padding: spacing.xl, gap: spacing.md, alignItems: 'center' },
   modalTitle: { fontFamily: typography.fontFamily, fontSize: 18, fontWeight: '600', color: colors.textHeading },

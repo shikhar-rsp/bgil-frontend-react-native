@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { Textfield, Radio, colors, spacing, radius, typography, shadow } from '@atlas-ds/react-native';
+import { Textfield, Radio, colors, spacing, radius, typography, shadow, fontFamilyForWeight } from '@atlas-ds/react-native';
 import { RequiredField } from '../RequiredField';
 import { PAYMENT_MODES, type PaymentMode } from './proposalData';
 
@@ -83,7 +83,7 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({ data, update }) => (
 const styles = StyleSheet.create({
   wrap: { gap: spacing.md },
   card: { backgroundColor: colors.surface, borderRadius: radius.xl, padding: spacing.lg, gap: spacing.md, ...shadow.lg },
-  heading: { fontFamily: typography.fontFamily, fontSize: 20, fontWeight: '500', color: colors.textHeading },
+  heading: { fontFamily: fontFamilyForWeight('500'), fontSize: 20, fontWeight: '500', color: colors.textHeading },
   label: { fontFamily: typography.fontFamily, fontSize: 14, color: colors.textBody },
   asterisk: { color: colors.dangerText },
   modes: { gap: spacing.sm },

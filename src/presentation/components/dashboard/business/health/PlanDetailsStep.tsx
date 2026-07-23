@@ -21,7 +21,6 @@ import {
   fontFamilyForWeight,
 } from '@atlas-ds/react-native';
 import { Suggestions } from '../motor/Suggestions';
-import { PolicyTenurePremium } from './PolicyTenurePremium';
 import { RequiredField } from './RequiredField';
 import {
   PLAN_OPTIONS,
@@ -37,6 +36,8 @@ import {
 } from './healthData';
 
 interface PlanDetailsStepProps {
+  /** `plan` = plan type + dates; `members` = member details + sub plan. */
+  section: 'plan' | 'members';
   selectedPlan: string;
   setSelectedPlan: (val: string) => void;
   planType: string;
@@ -87,6 +88,7 @@ const SubPlanIcon: React.FC<{ id: string }> = ({ id }) => {
 };
 
 export const PlanDetailsStep: React.FC<PlanDetailsStepProps> = ({
+  section,
   selectedPlan,
   setSelectedPlan,
   planType,
@@ -112,6 +114,7 @@ export const PlanDetailsStep: React.FC<PlanDetailsStepProps> = ({
   toggleKeepSumInsuredSame,
 }) => (
   <View style={styles.wrap}>
+    {section === 'plan' ? (
     <View style={styles.card}>
       <Text style={styles.heading}>Plan Details</Text>
       <Dropdown label="Select Policy Plan" options={PLAN_OPTIONS} value={selectedPlan} onChange={setSelectedPlan} />
@@ -143,7 +146,10 @@ export const PlanDetailsStep: React.FC<PlanDetailsStepProps> = ({
         </RequiredField>
       </View>
     </View>
+    ) : null}
 
+    {section === 'members' ? (
+    <>
     {planType !== '' ? (
       <>
         {planType === 'floater' ? (
@@ -269,8 +275,8 @@ export const PlanDetailsStep: React.FC<PlanDetailsStepProps> = ({
     </View>
 
     <Suggestions />
-
-    <PolicyTenurePremium />
+    </>
+    ) : null}
   </View>
 );
 

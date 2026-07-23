@@ -28,6 +28,27 @@ export const PolicyTenurePremium: React.FC = () => {
 
   return (
     <View style={styles.card}>
+      <View style={styles.premiumCard}>
+        <View style={styles.premiumHeader}>
+          <Text style={styles.heading}>Premium Details</Text>
+        </View>
+        <View style={styles.premiumBody}>
+          <View style={styles.sumInsured}>
+            <Text style={styles.sumLabel}>Sum Insured</Text>
+            <Text style={styles.sumValue}>Rs. 15,00,000</Text>
+          </View>
+          <View style={styles.premiumRows}>
+            <Row label="Base Premium" value="Rs. 34,000" />
+            <Row label="Total Add ons (3)" value="Rs. 3,200" />
+            <Row label="Discount" value="-Rs. 3,200" valueColor={colors.success} />
+          </View>
+          <View style={styles.totalBar}>
+            <Text style={styles.totalLabel}>Total Premium</Text>
+            <Text style={styles.totalValue}>Rs. 34,000</Text>
+          </View>
+        </View>
+      </View>
+
       <ToastGlobal variant="info" title="21 days validity." message="Quote valid till 21st Feb 2026." />
 
       <View style={styles.tenureBlock}>
@@ -51,27 +72,6 @@ export const PolicyTenurePremium: React.FC = () => {
             </Pressable>
           );
         })}
-      </View>
-
-      <View style={styles.premiumCard}>
-        <View style={styles.premiumHeader}>
-          <Text style={styles.heading}>Premium Details</Text>
-        </View>
-        <View style={styles.premiumBody}>
-          <View style={styles.sumInsured}>
-            <Text style={styles.sumLabel}>Sum Insured</Text>
-            <Text style={styles.sumValue}>Rs. 15,00,000</Text>
-          </View>
-          <View style={styles.premiumRows}>
-            <Row label="Base Premium" value="Rs. 34,000" />
-            <Row label="Total Add ons (3)" value="Rs. 3,200" />
-            <Row label="Discount" value="-Rs. 3,200" valueColor={colors.success} />
-          </View>
-          <View style={styles.totalBar}>
-            <Text style={styles.totalLabel}>Total Premium</Text>
-            <Text style={styles.totalValue}>Rs. 34,000</Text>
-          </View>
-        </View>
       </View>
     </View>
   );
