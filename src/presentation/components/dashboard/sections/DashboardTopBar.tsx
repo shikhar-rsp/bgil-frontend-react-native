@@ -55,13 +55,19 @@ export const DashboardTopBar: React.FC<DashboardTopBarProps> = ({
   const insets = useSafeAreaInsets();
 
   return (
-    <LinearGradient
-      useAngle
-      angle={104}
-      colors={gradientColors as string[]}
-      locations={GRADIENT_LOCATIONS}
-      style={[styles.header, { paddingTop: insets.top + spacing.md }]}
-    >
+    <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
+      {/* Background-only: on iOS/Fabric a LinearGradient that owns its own
+          children can paint its native gradient layer over them, leaving the
+          content invisible. Keeping it as an absolutely-positioned sibling
+          behind a plain content View sidesteps that paint-order issue. */}
+      <LinearGradient
+        useAngle
+        angle={104}
+        colors={gradientColors as string[]}
+        locations={GRADIENT_LOCATIONS}
+        style={StyleSheet.absoluteFillObject}
+      />
+
       {/* `translucent` / `backgroundColor` are Android-only. On iOS the gradient
           reaches the status bar because this view starts at y=0 and pads its
           content by the safe-area inset instead. */}
@@ -106,7 +112,7 @@ export const DashboardTopBar: React.FC<DashboardTopBarProps> = ({
       {tabs ? (
         <SegmentedControl size="sm" options={tabs} value={activeTab ?? tabs[0]?.value} onChange={onTabChange} />
       ) : null}
-    </LinearGradient>
+    </View>
   );
 };
 
