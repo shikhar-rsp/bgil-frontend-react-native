@@ -11,6 +11,7 @@ export const dashboardImages: Record<string, ImageSourcePropType> = {
   whatsNewIllustration: require('../../../../assets/images/whats-new-illustration.png'),
   whatsNewPromo: require('../../../../assets/images/Promo.png'),
   agent: require('../../../../assets/images/agent.png'),
+  agent3: require('../../../../assets/images/agent3.png'),
   calendar: require('../../../../assets/images/calendar.png'),
   aiLogo: require('../../../../assets/images/ai-logo.png'),
   rmProfile: require('../../../../assets/images/rm-profile.png'),
@@ -29,6 +30,8 @@ export const dashboardImages: Record<string, ImageSourcePropType> = {
   payslip: require('../../../../assets/images/payslip.png'),
   renewalCalendar: require('../../../../assets/images/renewal-calendar.png'),
   // Trainee
+  whatsapp: require('../../../../assets/images/whatsapp.png'),
+  mail: require('../../../../assets/images/mail.png'),
   gold: require('../../../../assets/images/gold.png'),
   silver: require('../../../../assets/images/silver.png'),
   bronze: require('../../../../assets/images/bronze.png'),

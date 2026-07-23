@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Textfield, Dropdown, DatePicker, colors, spacing, radius, typography, shadow } from '@atlas-ds/react-native';
+import { RequiredField } from '../RequiredField';
 import { INSURER_OPTIONS, formatIndianCurrency, numericOnly } from './proposalData';
 
 export type PreviousPolicyData = {
@@ -20,15 +21,25 @@ interface PreviousPolicyStepProps {
 export const PreviousPolicyStep: React.FC<PreviousPolicyStepProps> = ({ data, update }) => (
   <View style={styles.card}>
     <Text style={styles.heading}>Add Previous Policy details</Text>
-    <Textfield label="Previous policy number *" value={data.policyNumber} onChangeText={(t) => update('policyNumber', t)} placeholder="Enter policy number" />
-    <Dropdown label="Previous Insurer name *" placeholder="Select insurer name" value={data.insurer || null} options={INSURER_OPTIONS} onChange={(v) => update('insurer', v)} />
-    <Textfield label="Sum insured *" value={formatIndianCurrency(data.sumInsured)} onChangeText={(t) => update('sumInsured', numericOnly(t))} placeholder="Enter amount" keyboardType="number-pad" />
+    <RequiredField label="Previous policy number">
+      <Textfield value={data.policyNumber} onChangeText={(t) => update('policyNumber', t)} placeholder="Enter policy number" />
+    </RequiredField>
+    <RequiredField label="Previous Insurer name">
+      <Dropdown placeholder="Select insurer name" value={data.insurer || null} options={INSURER_OPTIONS} onChange={(v) => update('insurer', v)} />
+    </RequiredField>
+    <RequiredField label="Sum insured">
+      <Textfield value={formatIndianCurrency(data.sumInsured)} onChangeText={(t) => update('sumInsured', numericOnly(t))} placeholder="Enter amount" keyboardType="number-pad" />
+    </RequiredField>
     <View style={styles.row}>
       <View style={styles.col}>
-        <DatePicker label="Start Date *" placeholder="Select start date" value={data.startDate} onChange={(d) => update('startDate', d)} />
+        <RequiredField label="Start Date">
+          <DatePicker placeholder="Select start date" value={data.startDate} onChange={(d) => update('startDate', d)} />
+        </RequiredField>
       </View>
       <View style={styles.col}>
-        <DatePicker label="End Date *" placeholder="Select end date" value={data.endDate} onChange={(d) => update('endDate', d)} />
+        <RequiredField label="End Date">
+          <DatePicker placeholder="Select end date" value={data.endDate} onChange={(d) => update('endDate', d)} />
+        </RequiredField>
       </View>
     </View>
     <Textfield label="Cumulative Bonus" value={data.cumulativeBonus} onChangeText={(t) => update('cumulativeBonus', numericOnly(t))} placeholder="Enter bonus" keyboardType="number-pad" />

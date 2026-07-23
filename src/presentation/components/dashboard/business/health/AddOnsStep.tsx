@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { Check, CheckCircle } from 'phosphor-react-native';
-import { Badge, Button, Radio, colors, spacing, radius, typography, shadow } from '@atlas-ds/react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { CheckCircle } from 'phosphor-react-native';
+import { Accordion, Button, Card, Checkbox, Radio, colors, spacing, radius, typography, shadow, fontFamilyForWeight } from '@atlas-ds/react-native';
 import { SkipAddOnsModal } from './SkipAddOnsModal';
 import { ADD_ON_ITEMS, type Member, type MemberDatum } from './healthData';
 
@@ -22,18 +22,9 @@ const AddOnGrid: React.FC<{ selected: string[]; onToggle: (id: string) => void }
     {ADD_ON_ITEMS.map((item) => {
       const isSel = selected.includes(item);
       return (
-        <Pressable
-          key={item}
-          style={[styles.addon, isSel && styles.addonSel]}
-          onPress={() => onToggle(item)}
-          accessibilityRole="checkbox"
-          accessibilityState={{ checked: isSel }}
-        >
-          <View style={[styles.checkbox, isSel && styles.checkboxSel]}>
-            {isSel ? <Check size={12} color="#FFFFFF" weight="bold" /> : null}
-          </View>
-          <Text style={styles.addonLabel}>{item}</Text>
-        </Pressable>
+        <Card key={item} selected={isSel} style={styles.gridItem}>
+          <Checkbox size="sm" checked={isSel} onChange={() => onToggle(item)} label={item} />
+        </Card>
       );
     })}
   </View>
@@ -62,17 +53,17 @@ export const AddOnsStep: React.FC<AddOnsStepProps> = ({
   return (
     <View style={styles.card}>
       <View style={styles.header}>
-        <Text style={styles.heading}>Select Add-ons</Text>
+        <Text style={styles.heading}>Select Add-ons?</Text>
         <Button label="Skip Add-ons" variant="secondaryGray" size="sm" onPress={() => setShowSkip(true)} />
       </View>
 
       {planType === 'individual' ? (
-        <Pressable style={styles.keepRow} onPress={toggleKeepAddOnsSame} accessibilityRole="checkbox" accessibilityState={{ checked: keepAddOnsSame }}>
-          <View style={[styles.checkbox, keepAddOnsSame && styles.checkboxSel]}>
-            {keepAddOnsSame ? <Check size={12} color="#FFFFFF" weight="bold" /> : null}
-          </View>
-          <Text style={styles.keepLabel}>Keep Add-ons same for all</Text>
-        </Pressable>
+        <Checkbox
+          size="sm"
+          checked={keepAddOnsSame}
+          onChange={toggleKeepAddOnsSame}
+          label="Keep Add-ons same for all"
+        />
       ) : null}
 
       {planType === 'individual' ? (
@@ -82,51 +73,55 @@ export const AddOnsStep: React.FC<AddOnsStepProps> = ({
             const wants = md?.wantsAddOns ?? (index === 0 ? 'yes' : '');
             const filled = wants === 'yes' && (md?.selectedAddOns?.length ?? 0) > 0;
             return (
-              <View key={member.id} style={styles.memberCard}>
-                <View style={styles.memberHead}>
-                  <Text style={styles.memberLabel}>{member.label}</Text>
-                  {filled ? (
-                    <Badge variant="light" size="sm" color="lime" label="Add-ons selected" />
+              <Accordion
+                key={member.id}
+                label={member.label}
+                defaultOpen={index === 0}
+                badgeText={filled ? 'Add-ons selected' : undefined}
+                badgeColor="lime"
+                badgeVariant="light"
+                style={styles.memberCard}
+              >
+                <View style={styles.memberBody}>
+                  <Text style={styles.q}>Would you like to select Add ons? <Text style={styles.asterisk}>*</Text></Text>
+                  <View style={styles.wantsRow}>
+                    {[
+                      { value: 'yes', label: 'Yes, show options' },
+                      { value: 'no', label: 'No, skip for now' },
+                    ].map((opt) => (
+                      <Card
+                        key={opt.value}
+                        selected={wants === opt.value}
+                        onPress={() => {
+                          updateMember(member.id, 'wantsAddOns', opt.value);
+                          if (opt.value === 'no') {
+                            updateMember(member.id, 'selectedAddOns', []);
+                          }
+                        }}
+                        style={styles.wantsCard}
+                      >
+                        <View style={styles.wantsInner}>
+                          <Radio selected={wants === opt.value} onPress={() => updateMember(member.id, 'wantsAddOns', opt.value)} />
+                          <Text style={styles.wantsLabel}>{opt.label}</Text>
+                        </View>
+                      </Card>
+                    ))}
+                  </View>
+                  {wants === 'yes' ? (
+                    <>
+                      <Text style={styles.q}>Select from the following <Text style={styles.asterisk}>*</Text></Text>
+                      <AddOnGrid selected={md?.selectedAddOns ?? []} onToggle={(a) => toggleMemberAddOn(member.id, a)} />
+                    </>
                   ) : null}
                 </View>
-                <Text style={styles.q}>Would you like to select Add ons? *</Text>
-                <View style={styles.wantsRow}>
-                  {[
-                    { value: 'yes', label: 'Yes, show options' },
-                    { value: 'no', label: 'No, skip for now' },
-                  ].map((opt) => (
-                    <Pressable
-                      key={opt.value}
-                      style={[styles.wants, wants === opt.value && styles.wantsSel]}
-                      onPress={() => {
-                        updateMember(member.id, 'wantsAddOns', opt.value);
-                        if (opt.value === 'no') {
-                          updateMember(member.id, 'selectedAddOns', []);
-                        }
-                      }}
-                      accessibilityRole="radio"
-                      accessibilityState={{ selected: wants === opt.value }}
-                    >
-                      <Radio selected={wants === opt.value} onPress={() => updateMember(member.id, 'wantsAddOns', opt.value)} />
-                      <Text style={styles.wantsLabel}>{opt.label}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-                {wants === 'yes' ? (
-                  <>
-                    <Text style={styles.q}>Select from the following *</Text>
-                    <AddOnGrid selected={md?.selectedAddOns ?? []} onToggle={(a) => toggleMemberAddOn(member.id, a)} />
-                  </>
-                ) : null}
-              </View>
+              </Accordion>
             );
           })}
         </View>
       ) : (
         <View style={styles.floater}>
           <View style={styles.floaterHead}>
-            <CheckCircle size={16} color={colors.brand} />
-            <Text style={styles.q}>Select add-ons for the family floater *</Text>
+            <Text style={styles.q}>The selected Add-ons will be the same for all members of the policy.</Text>
           </View>
           <AddOnGrid selected={floaterAddOns} onToggle={toggleFloater} />
         </View>
@@ -140,24 +135,20 @@ export const AddOnsStep: React.FC<AddOnsStepProps> = ({
 const styles = StyleSheet.create({
   card: { backgroundColor: colors.surface, borderRadius: radius.xl, padding: spacing.lg, gap: spacing.md, ...shadow.lg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  heading: { fontFamily: typography.fontFamily, fontSize: 20, fontWeight: '500', color: colors.textHeading },
-  keepRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  keepLabel: { fontFamily: typography.fontFamily, fontSize: 14, color: colors.textHeading },
+  heading: { fontFamily: fontFamilyForWeight('500'), fontSize: 20, fontWeight: '500', color: colors.textHeading },
   members: { gap: spacing.md },
-  memberCard: { borderWidth: 1, borderColor: colors.borderSubtle, borderRadius: radius.xl, padding: spacing.md, gap: spacing.md },
-  memberHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  memberLabel: { fontFamily: typography.fontFamily, fontSize: 15, fontWeight: '500', color: colors.textHeading },
+  memberCard: { borderWidth: 1, borderColor: colors.borderSubtle, borderRadius: radius.xl, overflow: 'hidden' },
+  // Accordion's panel body ships no padding — supply it here.
+  memberBody: { gap: spacing.md, paddingHorizontal: spacing.md, paddingBottom: spacing.md, paddingTop: spacing.xs },
   q: { fontFamily: typography.fontFamily, fontSize: 14, color: colors.textBody },
+  asterisk: { color: colors.dangerText },
   wantsRow: { flexDirection: 'row', gap: spacing.md },
-  wants: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderWidth: 1, borderColor: colors.borderSubtle, borderRadius: radius.lg, padding: spacing.md },
-  wantsSel: { borderColor: '#3B82F6', backgroundColor: '#EFF6FF' },
+  wantsCard: { flex: 1 },
+  wantsInner: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexShrink: 1 },
   wantsLabel: { fontFamily: typography.fontFamily, fontSize: 13, color: colors.textHeading, flexShrink: 1 },
   floater: { gap: spacing.md },
   floaterHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  addon: { width: '47%', flexGrow: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderWidth: 1, borderColor: colors.borderSubtle, borderRadius: radius.lg, padding: spacing.md },
-  addonSel: { borderColor: '#3B82F6', backgroundColor: '#EFF6FF' },
-  addonLabel: { fontFamily: typography.fontFamily, fontSize: 13, color: colors.textHeading, flexShrink: 1 },
-  checkbox: { width: 18, height: 18, borderRadius: radius.xs, borderWidth: 1, borderColor: '#D1D5DB', alignItems: 'center', justifyContent: 'center' },
-  checkboxSel: { backgroundColor: colors.brand, borderColor: colors.brand },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', rowGap: spacing.md, columnGap: spacing.sm },
+  // Card supplies border / radius / padding / selected styling; just size it.
+  gridItem: { width: '47%', flexGrow: 1 },
 });

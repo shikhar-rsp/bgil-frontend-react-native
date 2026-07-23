@@ -1,16 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React from 'react';
 import { View, Text, Image, Pressable, ScrollView, StyleSheet } from 'react-native';
-import { SearchBar, colors, spacing, radius, typography } from '@atlas-ds/react-native';
+import { colors, spacing, radius, typography, fontFamilyForWeight } from '@atlas-ds/react-native';
 import { dashboardImages } from '../images';
 
 type Item = { label: string; icon: keyof typeof dashboardImages };
-
-const FEATURED: Item[] = [
-  { label: 'Health Guard', icon: 'health' },
-  { label: 'Criti Care', icon: 'health' },
-  { label: 'Private Car', icon: 'motor' },
-  { label: 'Two Wheeler', icon: 'motor' },
-];
 
 const CATEGORIES: { title: string; items: Item[] }[] = [
   {
@@ -20,6 +13,8 @@ const CATEGORIES: { title: string; items: Item[] }[] = [
       { label: 'Apke Liye', icon: 'health' },
       { label: 'Health Guard', icon: 'health' },
       { label: 'Global Health', icon: 'health' },
+      { label: 'Criti Care', icon: 'health' },
+      { label: 'Arogya Sanjeevni', icon: 'health' },
     ],
   },
   {
@@ -27,14 +22,8 @@ const CATEGORIES: { title: string; items: Item[] }[] = [
     items: [
       { label: 'Private Car', icon: 'motor' },
       { label: 'Two Wheeler', icon: 'motor' },
+      { label: 'Pay as you Consume', icon: 'motor' },
       { label: 'Commercial Vehicle', icon: 'motor' },
-    ],
-  },
-  {
-    title: 'Fire Insurance',
-    items: [
-      { label: 'Standard Fire & Special Perils', icon: 'fire' },
-      { label: 'Bharat Griha Raksha', icon: 'fire' },
     ],
   },
 ];
@@ -43,51 +32,26 @@ interface BrowseCategoriesProps {
   onSelectProduct: (label: string) => void;
 }
 
-export const BrowseCategories: React.FC<BrowseCategoriesProps> = ({ onSelectProduct }) => {
-  const [search, setSearch] = useState('');
-  const term = search.trim().toLowerCase();
+export const BrowseCategories: React.FC<BrowseCategoriesProps> = ({ onSelectProduct }) => (
+  <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    {/* Everything lives in one "Create a quote" card, agent art top-right. */}
+    <View style={styles.card}>
+      <Image source={dashboardImages.agent3} style={styles.headerArt} resizeMode="contain" />
+      <Text style={styles.headerTitle}>Create a quote</Text>
 
-  const categories = useMemo(
-    () =>
-      CATEGORIES.map((cat) => ({
-        ...cat,
-        items: cat.items.filter((it) => !term || it.label.toLowerCase().includes(term)),
-      })).filter((cat) => cat.items.length > 0),
-    [term],
-  );
-
-  return (
-    <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      <SearchBar value={search} onChangeText={setSearch} placeholder="Search products" />
-
-      {!term ? (
-        <View style={styles.block}>
-          <Text style={styles.sectionTitle}>Frequently used</Text>
-          <View style={styles.grid}>
-            {FEATURED.map((item) => (
-              <ProductTile key={item.label} item={item} onPress={() => onSelectProduct(item.label)} />
-            ))}
-          </View>
-        </View>
-      ) : null}
-
-      {categories.map((cat) => (
+      {CATEGORIES.map((cat) => (
         <View key={cat.title} style={styles.block}>
           <Text style={styles.sectionTitle}>{cat.title}</Text>
           <View style={styles.grid}>
             {cat.items.map((item) => (
-              <ProductTile
-                key={`${cat.title}-${item.label}`}
-                item={item}
-                onPress={() => onSelectProduct(item.label)}
-              />
+              <ProductTile key={`${cat.title}-${item.label}`} item={item} onPress={() => onSelectProduct(item.label)} />
             ))}
           </View>
         </View>
       ))}
-    </ScrollView>
-  );
-};
+    </View>
+  </ScrollView>
+);
 
 const ProductTile: React.FC<{ item: Item; onPress: () => void }> = ({ item, onPress }) => (
   <Pressable style={styles.tile} onPress={onPress} accessibilityRole="button">
@@ -99,22 +63,35 @@ const ProductTile: React.FC<{ item: Item; onPress: () => void }> = ({ item, onPr
 );
 
 const styles = StyleSheet.create({
-  content: { padding: spacing.lg, gap: spacing.xl },
+  content: { padding: spacing.lg },
+  // Single card holding the title, agent art (top-right), and both grids.
+  card: {
+    position: 'relative',
+    backgroundColor: colors.surface,
+    borderRadius: radius.xl,
+    padding: spacing.lg,
+    gap: spacing.xl,
+    overflow: 'hidden',
+  },
+  headerTitle: { fontFamily: fontFamilyForWeight('500'), fontSize: 22, fontWeight: '500', color: colors.textHeading, paddingRight: 120 },
+  headerArt: { position: 'absolute', right: 0, top: 0, width: 120, height: 96 },
   block: { gap: spacing.md },
   sectionTitle: { fontFamily: typography.fontFamily, fontSize: 16, fontWeight: '600', color: colors.textHeading },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
+  // Two per row.
   tile: {
-    width: '30%',
+    width: '47%',
     flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
-    padding: spacing.md,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.md,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
     borderRadius: radius.lg,
     backgroundColor: colors.surface,
   },
-  tileIcon: { width: 36, height: 36 },
-  tileLabel: { fontFamily: typography.fontFamily, fontSize: 12, color: colors.textHeading, textAlign: 'center' },
+  tileIcon: { width: 44, height: 44 },
+  tileLabel: { fontFamily: typography.fontFamily, fontSize: 14, color: colors.textHeading, textAlign: 'center' },
 });

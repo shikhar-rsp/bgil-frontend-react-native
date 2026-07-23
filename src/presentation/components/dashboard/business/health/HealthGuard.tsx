@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, ScrollView, Modal, StyleSheet } from 'react-native';
-import { Button, ProgressStepper, colors, spacing, radius, typography } from '@atlas-ds/react-native';
+import { Button, ProgressStepper, colors, spacing, radius, typography, shadow } from '@atlas-ds/react-native';
 import { HealthGuardHeader } from './HealthGuardHeader';
 import { PlanDetailsStep } from './PlanDetailsStep';
 import { ProposerDetailsStep } from './ProposerDetailsStep';
@@ -77,6 +77,27 @@ export const HealthGuard: React.FC<HealthGuardProps> = ({ productName, onClose, 
     });
   };
 
+  // Toggle "keep sum insured same for all". On enable, immediately copy the
+  // first entered sum insured onto every member (thereafter `updateMember`
+  // keeps them in sync on each edit).
+  const toggleKeepSumInsuredSame = () => {
+    setKeepSumInsuredSame((prev) => {
+      const next = !prev;
+      if (next) {
+        setMemberData((data) => {
+          const source = members.map((m) => data[m.id]?.sumInsured).find(Boolean) ?? '';
+          const synced = { ...data };
+          members.forEach((m) => {
+            const base: MemberDatum = synced[m.id] ?? { dob: null, sumInsured: '', selectedAddOns: [], wantsAddOns: '' };
+            synced[m.id] = { ...base, sumInsured: source };
+          });
+          return synced;
+        });
+      }
+      return next;
+    });
+  };
+
   const isStep1Valid =
     planType !== '' &&
     subPlan !== '' &&
@@ -121,6 +142,8 @@ export const HealthGuard: React.FC<HealthGuardProps> = ({ productName, onClose, 
             members={members}
             memberData={memberData}
             updateMember={updateMember}
+            keepSumInsuredSame={keepSumInsuredSame}
+            toggleKeepSumInsuredSame={toggleKeepSumInsuredSame}
           />
         ) : currentStep === 2 ? (
           <ProposerDetailsStep
@@ -201,7 +224,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.surfaceSubtle },
   stepperWrap: { padding: spacing.lg, backgroundColor: colors.surface },
   content: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl },
-  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, padding: spacing.lg, backgroundColor: colors.surface },
+  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, padding: spacing.lg, backgroundColor: colors.surface, ...shadow.lg },
   right: { flexDirection: 'row', gap: spacing.sm },
   modalScrim: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
   modalCard: { width: '100%', maxWidth: 420, backgroundColor: colors.surface, borderRadius: radius.xl, padding: spacing.xl, gap: spacing.md, alignItems: 'center' },

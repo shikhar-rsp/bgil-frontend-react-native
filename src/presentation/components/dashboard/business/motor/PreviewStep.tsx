@@ -49,7 +49,7 @@ export const PreviewStep: React.FC<PreviewStepProps> = ({ proposerName, proposer
     </View>
 
     <Section title="Premium Details" accent>
-      <Field label="Base Premium:" value="Health Guard" />
+      <Field label="Base Premium:" value="Rs. 31,000" />
       <Field label="Discount:" value="20%" />
       <Field label="Central GST:" value="Rs. 0" />
       <Field label="State GST:" value="Rs. 0" />
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
   fieldLabel: { fontFamily: typography.fontFamily, fontSize: 12, color: colors.textBody },
   fieldValue: { fontFamily: typography.fontFamily, fontSize: 14, color: colors.textHeading },
   fieldValueBig: { fontFamily: typography.fontFamily, fontSize: 24, fontWeight: '600', color: colors.textHeading },
-  addons: { flexDirection: 'row', flexWrap: 'wrap', rowGap: spacing.md },
-  addonRow: { width: '50%', flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  addons: { gap: spacing.md },
+  addonRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   addonText: { fontFamily: typography.fontFamily, fontSize: 14, color: colors.textHeading },
 });

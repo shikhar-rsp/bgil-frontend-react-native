@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
 import { Plus, CaretLeft } from 'phosphor-react-native';
-import { Button, Tabs, colors, spacing, radius, typography, shadow } from '@atlas-ds/react-native';
+import { Button, colors, spacing, radius, typography, shadow } from '@atlas-ds/react-native';
 import { BusinessInsights } from '../../components/dashboard/business/BusinessInsights';
 import { SharedQuotes } from '../../components/dashboard/business/SharedQuotes';
-import { DraftsPage } from '../../components/dashboard/business/DraftsPage';
 import { BrowseCategories } from '../../components/dashboard/business/BrowseCategories';
 import { HealthGuard } from '../../components/dashboard/business/health/HealthGuard';
 import { ConvertProposal } from '../../components/dashboard/business/proposal/ConvertProposal';
@@ -30,64 +29,55 @@ const TITLES: Record<BizView['kind'], string> = {
 };
 
 /** Motor products route to the Two-Wheeler / Motor flow; others to Health Guard. */
-const MOTOR_PRODUCTS = ['Private Car', 'Two Wheeler', 'Commercial Vehicle', 'Pay as you consume'];
+const MOTOR_PRODUCTS = ['Private Car', 'Two Wheeler', 'Commercial Vehicle', 'Pay as you Consume'];
 const productView = (label: string): BizView =>
   MOTOR_PRODUCTS.includes(label) ? { kind: 'motor', product: label } : { kind: 'healthguard', product: label };
 
+interface BusinessScreenProps {
+  /** Which view to open on mount. Defaults to the landing page. */
+  initialView?: 'landing' | 'browse';
+}
+
 /** Business tab — landing (insights + lists + drafts) and the quote/proposal wizards. */
-export const BusinessScreen: React.FC = () => {
-  const [view, setView] = useState<BizView>({ kind: 'landing' });
-  const [tab, setTab] = useState<'dashboard' | 'drafts'>('dashboard');
+export const BusinessScreen: React.FC<BusinessScreenProps> = ({ initialView = 'landing' }) => {
+  const [view, setView] = useState<BizView>(initialView === 'browse' ? { kind: 'browse' } : { kind: 'landing' });
 
   const goLanding = () => setView({ kind: 'landing' });
 
   return (
     <View style={styles.flex}>
-      <View style={styles.header}>
-        {view.kind !== 'landing' ? (
+      {/* Wizard sub-views keep a back header; landing and browse have none. */}
+      {view.kind !== 'landing' && view.kind !== 'browse' ? (
+        <View style={styles.header}>
           <Pressable onPress={goLanding} hitSlop={8} accessibilityRole="button" accessibilityLabel="Back" style={styles.back}>
             <CaretLeft size={18} color={colors.textBody} weight="bold" />
           </Pressable>
-        ) : null}
-        <Text style={styles.title}>{TITLES[view.kind]}</Text>
-        {view.kind === 'landing' ? (
-          <Button
-            label="Quote"
-            size="sm"
-            leadingIcon={<Plus size={16} color={colors.textOnBrand} />}
-            onPress={() => setView({ kind: 'browse' })}
-            style={styles.quoteBtn}
-          />
-        ) : null}
-      </View>
+          <Text style={styles.title}>{TITLES[view.kind]}</Text>
+        </View>
+      ) : null}
 
       {view.kind === 'landing' ? (
         <>
-          <View style={styles.tabsWrap}>
-            <Tabs
-              value={tab}
-              onChange={(v) => setTab(v as 'dashboard' | 'drafts')}
-              size="sm"
-              tabs={[
-                { value: 'dashboard', label: 'Dashboard' },
-                { value: 'drafts', label: 'Drafts' },
-              ]}
+          <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+            <BusinessInsights />
+            <SharedQuotes
+              onEditQuote={(q) => setView({ kind: 'healthguard', product: q.product })}
+              onConvertToProposal={(q) => setView({ kind: 'convert', customer: q.customer })}
+              onViewPolicy={(p) => setView({ kind: 'policy', policy: p })}
+            />
+          </ScrollView>
+
+          {/* Floating create-quote action. */}
+          <View style={styles.fab}>
+            <Button
+              iconOnly
+              variant="primary"
+              size="lg"
+              label="Create a quote"
+              leadingIcon={<Plus size={24} color={colors.textOnBrand} weight="bold" />}
+              onPress={() => setView({ kind: 'browse' })}
             />
           </View>
-          <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-            {tab === 'dashboard' ? (
-              <>
-                <BusinessInsights />
-                <SharedQuotes
-                  onEditQuote={(q) => setView({ kind: 'healthguard', product: q.product })}
-                  onConvertToProposal={(q) => setView({ kind: 'convert', customer: q.customer })}
-                  onViewPolicy={(p) => setView({ kind: 'policy', policy: p })}
-                />
-              </>
-            ) : (
-              <DraftsPage onEditDraft={(d) => setView({ kind: 'healthguard', product: d.product })} />
-            )}
-          </ScrollView>
         </>
       ) : view.kind === 'browse' ? (
         <BrowseCategories onSelectProduct={(label) => setView(productView(label))} />
@@ -124,7 +114,6 @@ const styles = StyleSheet.create({
   },
   back: { padding: spacing.xs },
   title: { flex: 1, fontFamily: typography.fontFamily, fontSize: 22, fontWeight: '600', color: colors.textHeading },
-  quoteBtn: { minWidth: 96 },
-  tabsWrap: { padding: spacing.lg, paddingBottom: 0 },
   content: { padding: spacing.lg, gap: spacing.lg },
+  fab: { position: 'absolute', right: spacing.lg, bottom: spacing.lg, zIndex: 10 },
 });

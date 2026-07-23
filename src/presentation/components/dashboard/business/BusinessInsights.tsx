@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Info } from 'phosphor-react-native';
-import { Badge, SegmentedControl, colors, spacing, radius, typography, shadow } from '@atlas-ds/react-native';
+import { Badge, SegmentedControl, colors, spacing, radius, typography, shadow, fontFamilyForWeight } from '@atlas-ds/react-native';
 
 type Range = 'weekly' | 'monthly' | 'yearly';
 
@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
     ...shadow.lg,
   },
-  heading: { fontFamily: typography.fontFamily, fontSize: 22, fontWeight: '500', color: colors.textHeading },
+  heading: { fontFamily: fontFamilyForWeight('500'), fontSize: 22, fontWeight: '500', color: colors.textHeading },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   statCard: {
     width: '47%',

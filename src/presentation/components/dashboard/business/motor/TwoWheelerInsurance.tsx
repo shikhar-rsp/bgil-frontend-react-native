@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, ScrollView, Modal, StyleSheet } from 'react-native';
 import { Warning } from 'phosphor-react-native';
 import { Button, colors, spacing, radius, typography, fontFamilyForWeight, shadow } from '@atlas-ds/react-native';
@@ -14,6 +14,7 @@ import { ProposerDetails } from './ProposerDetails';
 import { MotorSideContainer } from './MotorSideContainer';
 import { PreviewStep } from './PreviewStep';
 import { MotorFooter } from './MotorFooter';
+import { ShareQuoteModal } from './ShareQuoteModal';
 import { Slider } from '@atlas-ds/react-native';
 import { isVehicleFound, validateRegistration, TENURE_YEAR_MAP } from './motorData';
 
@@ -85,6 +86,8 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
       setRegistrationLocation('Pune');
       setRegistrationDate('30 Nov 2020');
       setVehicleIdv('50000');
+      setCurrentPolicyNcb('0');
+      setExpiringPolicyNcb('0');
       setSelectedPlanType('');
     }
   };
@@ -99,8 +102,6 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
     end.setFullYear(end.getFullYear() + totalYears);
     setPolicyEndDate(end);
   };
-
-  const showAddOns = vehicleType === 'new' ? true : isVehicleFound(registrationNumber);
 
   // Premium details unlock once the vehicle is known — identified by its
   // registration (registered) or filled in manually (new) — and a plan type
@@ -130,20 +131,23 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
     vehicleIdv,
   ]);
 
-  const isStep1Valid = useMemo(() => {
-    if (vehicleType === null) {
-      return false;
-    }
-    const isNew = vehicleType === 'new';
-    const regOk = isNew || validateRegistration(registrationNumber);
-    const planOk = isNew || selectedPlanType !== '';
-    const datesOk = isNew || (policyStartDate !== null && policyEndDate !== null);
-    const proposerOk = proposerName.trim() !== '' && proposerPhone.trim() !== '' && proposerEmail.trim() !== '';
-    const vehicleOk = isNew
-      ? vehicleModel.trim() !== '' && vehicleMake.trim() !== '' && vehicleSubType.trim() !== '' && vehicleManufacturingYear.trim() !== '' && vehicleIdv.trim() !== ''
-      : vehicleModel.trim() !== '' && vehicleMake.trim() !== '' && vehicleSubType.trim() !== '' && vehicleManufacturingYear.trim() !== '' && registrationLocation.trim() !== '' && registrationDate.trim() !== '' && vehicleIdv.trim() !== '' && currentPolicyNcb.trim() !== '' && expiringPolicyNcb.trim() !== '';
-    return regOk && planOk && selectedCustomerType !== '' && datesOk && proposerOk && vehicleOk;
-  }, [vehicleType, registrationNumber, selectedPlanType, selectedCustomerType, policyStartDate, policyEndDate, proposerName, proposerPhone, proposerEmail, vehicleModel, vehicleMake, vehicleSubType, vehicleManufacturingYear, registrationLocation, registrationDate, vehicleIdv, currentPolicyNcb, expiringPolicyNcb]);
+  // Per-step "can proceed" gating for the 5-step wizard.
+  const isNew = vehicleType === 'new';
+  const step1Valid = isNew
+    ? vehicleModel.trim() !== '' && vehicleMake.trim() !== '' && vehicleSubType.trim() !== '' && vehicleManufacturingYear.trim() !== ''
+    : validateRegistration(registrationNumber) && isVehicleFound(registrationNumber);
+  const step3Valid =
+    selectedCustomerType !== '' &&
+    vehicleIdv.trim() !== '' &&
+    (isNew || (selectedPlanType !== '' && policyStartDate !== null && policyEndDate !== null));
+  const step4Valid = proposerName.trim() !== '' && proposerPhone.trim() !== '' && proposerEmail.trim() !== '';
+
+  const canProceed =
+    currentStep === 1 ? step1Valid :
+    currentStep === 2 ? true :
+    currentStep === 3 ? step3Valid :
+    currentStep === 4 ? step4Valid :
+    true;
 
   const resetForm = () => {
     setVehicleType(null);
@@ -172,36 +176,56 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
 
   const idvNumber = Number(String(vehicleIdv).replace(/[^\d]/g, '')) || 50000;
 
+  const idProps = {
+    vehicleType,
+    registrationNumber,
+    setRegistrationNumber,
+    vehicleModel,
+    setVehicleModel,
+    vehicleMake,
+    setVehicleMake,
+    vehicleSubType,
+    setVehicleSubType,
+    vehicleManufacturingYear,
+    setVehicleManufacturingYear,
+    registrationLocation,
+    setRegistrationLocation,
+    registrationDate,
+    setRegistrationDate,
+    currentPolicyNcb,
+    setCurrentPolicyNcb,
+    expiringPolicyNcb,
+    setExpiringPolicyNcb,
+  };
+
   return (
     <View style={styles.flex}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {currentStep !== 3 ? <MotorHeader /> : null}
+        {currentStep !== 6 ? <MotorHeader /> : null}
 
-        {currentStep === 1 ? (
+        {currentStep === 1 && vehicleType ? (
           <>
-            {vehicleType ? (
-              <VehicleIdentificationStep
-                vehicleType={vehicleType}
-                registrationNumber={registrationNumber}
-                setRegistrationNumber={setRegistrationNumber}
-                vehicleModel={vehicleModel}
-                setVehicleModel={setVehicleModel}
-                vehicleMake={vehicleMake}
-                setVehicleMake={setVehicleMake}
-                vehicleSubType={vehicleSubType}
-                setVehicleSubType={setVehicleSubType}
-                vehicleManufacturingYear={vehicleManufacturingYear}
-                setVehicleManufacturingYear={setVehicleManufacturingYear}
-                registrationLocation={registrationLocation}
-                setRegistrationLocation={setRegistrationLocation}
-                registrationDate={registrationDate}
-                setRegistrationDate={setRegistrationDate}
-                currentPolicyNcb={currentPolicyNcb}
-                setCurrentPolicyNcb={setCurrentPolicyNcb}
-                expiringPolicyNcb={expiringPolicyNcb}
-                setExpiringPolicyNcb={setExpiringPolicyNcb}
+            {/* Header at top, identification card pushed to the bottom. */}
+            <View style={styles.spacer} />
+            <VehicleIdentificationStep mode="identify" {...idProps} />
+          </>
+        ) : currentStep === 2 && vehicleType ? (
+          <VehicleIdentificationStep mode="ncb" {...idProps} />
+        ) : currentStep === 3 ? (
+          <>
+            <View style={styles.idvCard}>
+              <View style={styles.idvHeader}>
+                <Text style={styles.idvTitle}>Select Vehicle IDV</Text>
+                <Text style={styles.idvValue}>₹ {new Intl.NumberFormat('en-IN').format(idvNumber)}</Text>
+              </View>
+              <Slider
+                min={50000}
+                max={1500000}
+                step={1000}
+                value={idvNumber}
+                onChange={(val) => setVehicleIdv(new Intl.NumberFormat('en-IN').format(typeof val === 'number' ? val : val[0]))}
               />
-            ) : null}
+            </View>
 
             <PlanDetailsStep
               vehicleType={vehicleType}
@@ -218,37 +242,16 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
               calculatePolicyEndDate={calculatePolicyEndDate}
             />
 
-            {vehicleType ? (
-              <View style={styles.idvCard}>
-                <View style={styles.idvHeader}>
-                  <Text style={styles.idvTitle}>Select Vehicle IDV</Text>
-                  <Text style={styles.idvValue}>₹ {new Intl.NumberFormat('en-IN').format(idvNumber)}</Text>
-                </View>
-                <Slider
-                  min={50000}
-                  max={1500000}
-                  step={1000}
-                  value={idvNumber}
-                  onChange={(val) => setVehicleIdv(new Intl.NumberFormat('en-IN').format(typeof val === 'number' ? val : val[0]))}
-                />
-              </View>
-            ) : null}
-
-            {showAddOns ? <SuggestedPlans selectedPlan={selectedPlan} setSelectedPlan={setSelectedPlan} /> : null}
-
-            {showAddOns ? (
-              <>
-                <AddOnsStep
-                  setShowSkipAddonsModal={setShowSkipAddonsModal}
-                  selectedAddOns={selectedAddOns}
-                  setSelectedAddOns={setSelectedAddOns}
-                  vehicleManufacturingYear={vehicleManufacturingYear}
-                />
-                <DiscountLoaderCard value={range} setValue={setRange} />
-                <Suggestions />
-              </>
-            ) : null}
-
+            <SuggestedPlans selectedPlan={selectedPlan} setSelectedPlan={setSelectedPlan} />
+          </>
+        ) : currentStep === 4 ? (
+          <>
+            <AddOnsStep
+              setShowSkipAddonsModal={setShowSkipAddonsModal}
+              selectedAddOns={selectedAddOns}
+              setSelectedAddOns={setSelectedAddOns}
+              vehicleManufacturingYear={vehicleManufacturingYear}
+            />
             <ProposerDetails
               proposerName={proposerName}
               setProposerName={setProposerName}
@@ -257,18 +260,20 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
               proposerEmail={proposerEmail}
               setProposerEmail={setProposerEmail}
             />
-
-            <MotorSideContainer
-              isFormValid={isStep1Valid}
-              showPremiumDetails={showPremiumDetails}
-              policyTenure={policyTenure}
-              setPolicyTenure={setPolicyTenure}
-              policyStartDate={policyStartDate}
-              selectedPlanType={selectedPlanType}
-              calculatePolicyEndDate={calculatePolicyEndDate}
-              discountLoader={range}
-            />
+            <DiscountLoaderCard value={range} setValue={setRange} />
+            {/* <Suggestions /> */}
           </>
+        ) : currentStep === 5 ? (
+          <MotorSideContainer
+            isFormValid={step4Valid}
+            showPremiumDetails={showPremiumDetails}
+            policyTenure={policyTenure}
+            setPolicyTenure={setPolicyTenure}
+            policyStartDate={policyStartDate}
+            selectedPlanType={selectedPlanType}
+            calculatePolicyEndDate={calculatePolicyEndDate}
+            discountLoader={range}
+          />
         ) : (
           <PreviewStep proposerName={proposerName || 'Rakesh Kumar'} proposerDOB={new Date('1998-04-12')} />
         )}
@@ -277,10 +282,10 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
       <View style={styles.footerWrap}>
         <MotorFooter
           currentStep={currentStep}
-          isProceedDisabled={!isStep1Valid}
-          onReset={() => (currentStep === 3 ? setCurrentStep(1) : resetForm())}
-          onBack={() => (currentStep === 1 ? onClose() : setCurrentStep(1))}
-          onProceed={() => setCurrentStep(3)}
+          isProceedDisabled={!canProceed}
+          onReset={resetForm}
+          onBack={() => (currentStep === 1 ? onClose() : setCurrentStep(currentStep - 1))}
+          onProceed={() => setCurrentStep(Math.min(currentStep + 1, 6))}
           onShareQuote={() => setShowShareModal(true)}
           onConvertToProposal={() => onConvertToProposal(proposerName || 'Rakesh Kumar')}
         />
@@ -316,7 +321,7 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
                 label="Skip and move to next step"
                 onPress={() => {
                   setShowSkipAddonsModal(false);
-                  setCurrentStep(3);
+                  setCurrentStep(6);
                 }}
                 style={styles.modalBtn}
               />
@@ -325,23 +330,21 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
         </View>
       </Modal>
 
-      {/* Share quote confirmation */}
-      <Modal visible={showShareModal} transparent animationType="fade" onRequestClose={() => setShowShareModal(false)}>
-        <View style={styles.modalScrim}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Share Quote</Text>
-            <Text style={styles.modalBody}>Quote QT-2026-001 for {proposerName || 'Rajesh Kumar'} is ready to share.</Text>
-            <Button label="Done" onPress={() => setShowShareModal(false)} fullWidth />
-          </View>
-        </View>
-      </Modal>
+      {/* Quote created / share */}
+      <ShareQuoteModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        quoteData={{ id: 'QT - 28686-8728387', customerName: proposerName || 'Rakesh Kumar', policyType: '4 Wheeler policy' }}
+      />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.surfaceSubtle,  },
-  content: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl },
+  // flexGrow lets the step-1 spacer push the identification card to the bottom.
+  content: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl, flexGrow: 1 },
+  spacer: { flex: 1 },
   idvCard: { backgroundColor: colors.surface, borderRadius: radius.xl, padding: spacing.lg, gap: spacing.md, ...shadow.lg },
   idvHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   idvTitle: { fontFamily: fontFamilyForWeight('500'), fontSize: 18, fontWeight: '500', color: colors.textHeading },

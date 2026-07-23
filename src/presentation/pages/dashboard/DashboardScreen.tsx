@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
-import { Button, BottomNav, colors, spacing, typography, type BottomNavItem } from '@atlas-ds/react-native';
+import { Plus } from 'phosphor-react-native';
+import { Button, BottomNav, BOTTOM_NAV_BAR_HEIGHT, colors, spacing, typography, type BottomNavItem } from '@atlas-ds/react-native';
 import { DashboardTopBar, HEADER_GRADIENTS } from '../../components/dashboard/sections/DashboardTopBar';
 import { YourInsights } from '../../components/dashboard/sections/YourInsights';
 import { QuickQuotes } from '../../components/dashboard/sections/QuickQuotes';
@@ -35,6 +36,9 @@ const HOME_TABS = [
  */
 export const DashboardScreen: React.FC<AuthScreenProps<'Dashboard'>> = ({ navigation }) => {
   const [selectedItem, setSelectedItem] = useState('Home');
+  // When true, the Business tab opens straight into the "Create Quote" browser
+  // (used by the centre FAB). Cleared when a normal nav item is tapped.
+  const [createQuote, setCreateQuote] = useState(false);
   const [homeTab, setHomeTab] = useState('tools');
   const [searchOpen, setSearchOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(true);
@@ -97,7 +101,10 @@ export const DashboardScreen: React.FC<AuthScreenProps<'Dashboard'>> = ({ naviga
             )}
           </ScrollView>
         ) : selectedItem === 'Business' ? (
-          <BusinessScreen />
+          <BusinessScreen
+            key={createQuote ? 'biz-browse' : 'biz-landing'}
+            initialView={createQuote ? 'browse' : 'landing'}
+          />
         ) : (
           <View style={styles.placeholder}>
             <Text style={styles.placeholderTitle}>{selectedItem}</Text>
@@ -109,10 +116,24 @@ export const DashboardScreen: React.FC<AuthScreenProps<'Dashboard'>> = ({ naviga
         )}
       </View>
 
+      {/* Floating create-quote action — bottom right, above the nav bar. */}
+      {selectedItem !== 'Business' ? (
+        <View style={styles.fab}>
+          <Button
+            iconOnly
+            variant="primary"
+            size="lg"
+            label="Create a quote"
+            leadingIcon={<Plus size={24} color={colors.textOnBrand} weight="bold" />}
+            onPress={() => { setCreateQuote(true); setSelectedItem('Business'); }}
+          />
+        </View>
+      ) : null}
+
       <BottomNav
         items={NAV_ITEMS}
         activeKey={selectedItem}
-        onChange={handleSelectItem}
+        onChange={(id) => { setCreateQuote(false); handleSelectItem(id); }}
         center={{ onPress: () => handleSelectItem('MyAI'), accessibilityLabel: 'MyAI assistant' }}
       />
 
@@ -131,6 +152,8 @@ export const DashboardScreen: React.FC<AuthScreenProps<'Dashboard'>> = ({ naviga
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.surfaceSubtle },
   body: { flex: 1 },
+  // Floating action button, clear of the bottom nav bar.
+  fab: { position: 'absolute', right: spacing.lg, bottom: BOTTOM_NAV_BAR_HEIGHT + spacing.lg, zIndex: 10 },
   content: { padding: spacing.lg, gap: spacing.lg, paddingBottom: spacing.xxl },
   placeholder: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, padding: spacing.xl },
   placeholderTitle: { fontFamily: typography.fontFamily, fontSize: 24, fontWeight: '600', color: colors.textHeading },

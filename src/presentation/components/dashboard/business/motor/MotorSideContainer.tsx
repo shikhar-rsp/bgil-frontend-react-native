@@ -60,36 +60,6 @@ export const MotorSideContainer: React.FC<MotorSideContainerProps> = ({
         </View>
       ) : null}
 
-      {selectedPlanType ? (
-        <View style={styles.tenureBlock}>
-          <Text style={styles.heading}>Choose Policy Tenure</Text>
-          {tenureOptions.map((t) => {
-            const selected = policyTenure === t.value;
-            return (
-              <Pressable
-                key={t.value}
-                style={[styles.tenure, selected && styles.tenureSel]}
-                onPress={() => {
-                  setPolicyTenure(t.value);
-                  calculatePolicyEndDate(policyStartDate, t.value);
-                }}
-                accessibilityRole="radio"
-                accessibilityState={{ selected }}
-              >
-                <View style={styles.tenureLeft}>
-                  <Radio selected={selected} onPress={() => setPolicyTenure(t.value)} />
-                  <Text style={styles.tenureLabel}>{t.label}</Text>
-                  {t.badge && isFormValid ? <Badge variant="solid" size="sm" color="emerald" label={t.badge} /> : null}
-                </View>
-                <Text style={[styles.tenurePrice, selected && styles.tenurePriceSel]}>
-                  {isFormValid ? `Rs. ${t.price}` : '-'}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      ) : null}
-
       <View style={styles.premiumCard}>
         <View style={styles.premiumHeader}>
           <Text style={styles.heading}>Premium Details</Text>
@@ -124,6 +94,36 @@ export const MotorSideContainer: React.FC<MotorSideContainerProps> = ({
           </View>
         )}
       </View>
+
+      {selectedPlanType ? (
+        <View style={styles.tenureBlock}>
+          <Text style={styles.heading}>Choose Policy Tenure</Text>
+          {tenureOptions.map((t) => {
+            const selected = policyTenure === t.value;
+            return (
+              <Pressable
+                key={t.value}
+                style={[styles.tenure, selected && styles.tenureSel]}
+                onPress={() => {
+                  setPolicyTenure(t.value);
+                  calculatePolicyEndDate(policyStartDate, t.value);
+                }}
+                accessibilityRole="radio"
+                accessibilityState={{ selected }}
+              >
+                <View style={styles.tenureLeft}>
+                  <Radio selected={selected} onPress={() => setPolicyTenure(t.value)} />
+                  <Text style={styles.tenureLabel}>{t.label}</Text>
+                  {t.badge && isFormValid ? <Badge variant="solid" size="sm" color="emerald" label={t.badge} /> : null}
+                </View>
+                <Text style={[styles.tenurePrice, selected && styles.tenurePriceSel]}>
+                  {isFormValid ? `Rs. ${t.price}` : '-'}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      ) : null}
     </View>
   );
 };

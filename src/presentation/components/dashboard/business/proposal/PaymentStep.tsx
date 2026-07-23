@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Textfield, Radio, colors, spacing, radius, typography, shadow } from '@atlas-ds/react-native';
+import { RequiredField } from '../RequiredField';
 import { PAYMENT_MODES, type PaymentMode } from './proposalData';
 
 export type PaymentData = {
@@ -23,7 +24,7 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({ data, update }) => (
   <View style={styles.wrap}>
     <View style={styles.card}>
       <Text style={styles.heading}>Payment</Text>
-      <Text style={styles.label}>Select payment mode *</Text>
+      <Text style={styles.label}>Select payment mode <Text style={styles.asterisk}>*</Text></Text>
       <View style={styles.modes}>
         {PAYMENT_MODES.map((m) => (
           <Pressable
@@ -44,20 +45,34 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({ data, update }) => (
       <View style={styles.card}>
         <Text style={styles.heading}>Payment Details</Text>
         {data.mode === 'online-link' ? (
-          <Textfield label="Email ID *" value={data.email} onChangeText={(t) => update('email', t)} placeholder="Enter email ID" keyboardType="email-address" />
+          <RequiredField label="Email ID">
+            <Textfield value={data.email} onChangeText={(t) => update('email', t)} placeholder="Enter email ID" keyboardType="email-address" />
+          </RequiredField>
         ) : null}
         {data.mode === 'voucher' || data.mode === 'cheque' ? (
-          <Textfield label="Receipt Number *" value={data.receiptNumber} onChangeText={(t) => update('receiptNumber', t)} placeholder="Enter Receipt Number" />
+          <RequiredField label="Receipt Number">
+            <Textfield value={data.receiptNumber} onChangeText={(t) => update('receiptNumber', t)} placeholder="Enter Receipt Number" />
+          </RequiredField>
         ) : null}
         {data.mode === 'agent-float' || data.mode === 'customer-float' ? (
-          <Textfield label="Party ID *" value={data.partyId} onChangeText={(t) => update('partyId', t)} placeholder="Enter Party ID" />
+          <RequiredField label="Party ID">
+            <Textfield value={data.partyId} onChangeText={(t) => update('partyId', t)} placeholder="Enter Party ID" />
+          </RequiredField>
         ) : null}
         {data.mode === 'cheque' ? (
           <>
-            <Textfield label="Account Number *" value={data.accountNumber} onChangeText={(t) => update('accountNumber', t.replace(/\D/g, ''))} placeholder="Enter account number" keyboardType="number-pad" />
-            <Textfield label="IFSC Code *" value={data.ifsc} onChangeText={(t) => update('ifsc', t.toUpperCase())} placeholder="Enter IFSC code" />
-            <Textfield label="Branch Name *" value={data.branch} onChangeText={(t) => update('branch', t)} placeholder="Enter branch name" />
-            <Textfield label="Bank Name *" value={data.bank} onChangeText={(t) => update('bank', t)} placeholder="Enter bank name" />
+            <RequiredField label="Account Number">
+              <Textfield value={data.accountNumber} onChangeText={(t) => update('accountNumber', t.replace(/\D/g, ''))} placeholder="Enter account number" keyboardType="number-pad" />
+            </RequiredField>
+            <RequiredField label="IFSC Code">
+              <Textfield value={data.ifsc} onChangeText={(t) => update('ifsc', t.toUpperCase())} placeholder="Enter IFSC code" />
+            </RequiredField>
+            <RequiredField label="Branch Name">
+              <Textfield value={data.branch} onChangeText={(t) => update('branch', t)} placeholder="Enter branch name" />
+            </RequiredField>
+            <RequiredField label="Bank Name">
+              <Textfield value={data.bank} onChangeText={(t) => update('bank', t)} placeholder="Enter bank name" />
+            </RequiredField>
           </>
         ) : null}
       </View>
@@ -70,6 +85,7 @@ const styles = StyleSheet.create({
   card: { backgroundColor: colors.surface, borderRadius: radius.xl, padding: spacing.lg, gap: spacing.md, ...shadow.lg },
   heading: { fontFamily: typography.fontFamily, fontSize: 20, fontWeight: '500', color: colors.textHeading },
   label: { fontFamily: typography.fontFamily, fontSize: 14, color: colors.textBody },
+  asterisk: { color: colors.dangerText },
   modes: { gap: spacing.sm },
   mode: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderWidth: 1, borderColor: colors.borderSubtle, borderRadius: radius.lg, padding: spacing.md },
   modeSel: { borderColor: '#3B82F6', backgroundColor: '#EFF6FF' },

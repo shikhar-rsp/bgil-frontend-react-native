@@ -57,6 +57,16 @@ export const PAYMENT_MODES: { value: PaymentMode; label: string }[] = [
 
 export const MOCK_OTP = '123456';
 
+/** Pre-existing-disease selection captured in the PED modal, per member. */
+export type PedData = {
+  /** Indices into the modal's fixed condition list. */
+  selectedPeds: number[];
+  /** Free-text detail per selected condition index. */
+  details: Record<number, string>;
+  /** User-entered conditions not in the fixed list. */
+  customConditions: string[];
+};
+
 export type ProposalMember = {
   id: string;
   name: string;
@@ -66,6 +76,7 @@ export type ProposalMember = {
   weight: string;
   sumInsured: string;
   hasPed: string;
+  peds?: PedData;
 };
 
 export type Nominee = {
@@ -73,6 +84,8 @@ export type Nominee = {
   name: string;
   relationship: string;
   dob: Date | null;
+  /** Share of the sum insured, as a percentage string (min 15). */
+  allocation: string;
 };
 
 export const newMember = (id: string): ProposalMember => ({
@@ -86,7 +99,7 @@ export const newMember = (id: string): ProposalMember => ({
   hasPed: '',
 });
 
-export const newNominee = (id: string): Nominee => ({ id, name: '', relationship: '', dob: null });
+export const newNominee = (id: string): Nominee => ({ id, name: '', relationship: '', dob: null, allocation: '15' });
 
 export const formatIndianCurrency = (value: string): string => {
   const numeric = value.replace(/\D/g, '');

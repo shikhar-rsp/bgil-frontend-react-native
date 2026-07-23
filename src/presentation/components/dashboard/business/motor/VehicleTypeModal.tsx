@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { View, Text, Modal, Pressable, StyleSheet } from 'react-native';
-import { FilePlus, FileText } from 'phosphor-react-native';
-import { Button, Radio, colors, spacing, radius, typography, fontFamilyForWeight } from '@atlas-ds/react-native';
+import React from 'react';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { FilePlus, FileText, type IconProps } from 'phosphor-react-native';
+import { BottomSheet, colors, spacing, radius, typography, fontFamilyForWeight } from '@atlas-ds/react-native';
 
 type VehicleType = 'registered' | 'new';
 
@@ -11,81 +11,54 @@ interface VehicleTypeModalProps {
   onProceed: (type: VehicleType) => void;
 }
 
-export const VehicleTypeModal: React.FC<VehicleTypeModalProps> = ({ isOpen, onClose, onProceed }) => {
-  const [selectedType, setSelectedType] = useState<VehicleType | null>(null);
+const OPTIONS: { type: VehicleType; title: string; sub: string; Icon: React.ComponentType<IconProps>; iconBg: string; border: string }[] = [
+  { type: 'registered', title: 'Registered Vehicle', sub: 'Vehicle has registration number', Icon: FileText, iconBg: '#2563EB', border: '#BFDBFE' },
+  { type: 'new', title: 'New Vehicle (Unregistered)', sub: 'Enter details manually.', Icon: FilePlus, iconBg: '#EA580C', border: '#FED7AA' },
+];
 
-  return (
-    <Modal visible={isOpen} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
-      <View style={styles.scrim}>
-        <View style={styles.card}>
-          <Text style={styles.title}>Select Vehicle Type</Text>
-          <Text style={styles.description}>Choose a vehicle type to proceed with quote creation</Text>
-
-          <View style={styles.options}>
-            <Pressable
-              style={[styles.option, selectedType === 'registered' ? styles.optionRegSel : styles.optionReg]}
-              onPress={() => setSelectedType('registered')}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: selectedType === 'registered' }}
-            >
-              <View style={styles.optionTop}>
-                <View style={[styles.optIcon, { backgroundColor: '#2563EB' }]}>
-                  <FileText size={24} color="#FFFFFF" />
-                </View>
-                <Radio selected={selectedType === 'registered'} onPress={() => setSelectedType('registered')} />
-              </View>
-              <Text style={styles.optTitle}>Registered Vehicle</Text>
-              <Text style={styles.optSub}>Vehicle has registration number</Text>
-            </Pressable>
-
-            <Pressable
-              style={[styles.option, selectedType === 'new' ? styles.optionNewSel : styles.optionNew]}
-              onPress={() => setSelectedType('new')}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: selectedType === 'new' }}
-            >
-              <View style={styles.optionTop}>
-                <View style={[styles.optIcon, { backgroundColor: '#EA580C' }]}>
-                  <FilePlus size={24} color="#FFFFFF" />
-                </View>
-                <Radio selected={selectedType === 'new'} onPress={() => setSelectedType('new')} />
-              </View>
-              <Text style={styles.optTitle}>New Vehicle (Unregistered)</Text>
-              <Text style={styles.optSub}>Registration pending, enter details manually.</Text>
-            </Pressable>
+export const VehicleTypeModal: React.FC<VehicleTypeModalProps> = ({ isOpen, onClose, onProceed }) => (
+  <BottomSheet
+    visible={isOpen}
+    onClose={onClose}
+    title="Select Vehicle Type"
+    subtitle="Choose a vehicle type to proceed with quote creation"
+    contentMinHeight={0}
+  >
+    <View style={styles.options}>
+      {OPTIONS.map((o) => (
+        <Pressable
+          key={o.type}
+          style={[styles.option, { borderColor: o.border }]}
+          onPress={() => onProceed(o.type)}
+          accessibilityRole="button"
+          accessibilityLabel={o.title}
+        >
+          <View style={[styles.optIcon, { backgroundColor: o.iconBg }]}>
+            <o.Icon size={24} color="#FFFFFF" />
           </View>
-
-          <View style={styles.footer}>
-            <Button label="Cancel" variant="secondary" onPress={onClose} style={styles.footerBtn} />
-            <Button
-              label="Proceed"
-              disabled={!selectedType}
-              onPress={() => selectedType && onProceed(selectedType)}
-              style={styles.footerBtn}
-            />
+          <View style={styles.optText}>
+            <Text style={styles.optTitle}>{o.title}</Text>
+            <Text style={styles.optSub}>{o.sub}</Text>
           </View>
-        </View>
-      </View>
-    </Modal>
-  );
-};
+        </Pressable>
+      ))}
+    </View>
+  </BottomSheet>
+);
 
 const styles = StyleSheet.create({
-  scrim: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
-  card: { width: '100%', maxWidth: 480, backgroundColor: colors.surface, borderRadius: radius.xl, padding: spacing.xl, gap: spacing.md },
-  title: { fontFamily: fontFamilyForWeight('500'), fontSize: 18, fontWeight: '600', color: colors.textHeading },
-  description: { fontFamily: typography.fontFamily, fontSize: 14, color: colors.textBody },
-  // Stacked one per row.
-  options: { gap: spacing.md, marginTop: spacing.sm },
-  option: { borderWidth: 1, borderRadius: radius.lg, padding: spacing.md, gap: spacing.xs },
-  optionReg: { borderColor: '#BFDBFE', backgroundColor: colors.surface },
-  optionRegSel: { borderColor: '#3B82F6', backgroundColor: '#EFF6FF' },
-  optionNew: { borderColor: '#FED7AA', backgroundColor: colors.surface },
-  optionNewSel: { borderColor: '#FDBA74', backgroundColor: '#FFF7ED' },
-  optionTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  optIcon: { width: 40, height: 40, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center', marginBottom:spacing.md },
-  optTitle: { fontFamily: fontFamilyForWeight('500'), fontSize: 15, color: colors.textHeading },
+  options: { gap: spacing.md },
+  option: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    borderWidth: 1,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    backgroundColor: colors.surface,
+  },
+  optIcon: { width: 40, height: 40, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' },
+  optText: { flex: 1, gap: spacing.xs },
+  optTitle: { fontFamily: fontFamilyForWeight('500'), fontSize: 15, fontWeight: '500', color: colors.textHeading },
   optSub: { fontFamily: typography.fontFamily, fontSize: 13, color: colors.textBody },
-  footer: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.md },
-  footerBtn: { flex: 1 },
 });
