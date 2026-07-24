@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, ScrollView, Modal, StyleSheet } from 'react-native';
-import { Warning } from 'phosphor-react-native';
-import { Button, colors, spacing, radius, typography, fontFamilyForWeight, shadow } from '@atlas-ds/react-native';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { colors, spacing, radius, fontFamilyForWeight, shadow } from '@atlas-ds/react-native';
 import { MotorHeader } from './MotorHeader';
 import { VehicleTypeModal } from './VehicleTypeModal';
 import { VehicleIdentificationStep } from './VehicleIdentificationStep';
@@ -23,6 +22,10 @@ type VehicleType = 'registered' | 'new' | null;
 interface TwoWheelerInsuranceProps {
   onClose: () => void;
   onConvertToProposal: (customer: string) => void;
+  /** Chosen before the flow mounts (from the Browse Categories sheet). */
+  initialVehicleType?: 'registered' | 'new';
+  /** Selected product label, e.g. "Two Wheeler" — drives the header title. */
+  productName?: string;
 }
 
 /**
@@ -31,9 +34,12 @@ interface TwoWheelerInsuranceProps {
  * plan details → IDV → suggested plans → add-ons → discount/loader → suggestions
  * → proposer) with a premium side panel; step 3 is the preview.
  */
-export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClose, onConvertToProposal }) => {
-  const [vehicleType, setVehicleType] = useState<VehicleType>(null);
-  const [showVehicleTypeModal, setShowVehicleTypeModal] = useState(true);
+export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClose, onConvertToProposal, initialVehicleType, productName }) => {
+  // The type is normally picked on the Browse Categories screen before this
+  // flow mounts; the sheet only reappears after a Reset.
+  const isNewInit = initialVehicleType === 'new';
+  const [vehicleType, setVehicleType] = useState<VehicleType>(initialVehicleType ?? null);
+  const [showVehicleTypeModal, setShowVehicleTypeModal] = useState(!initialVehicleType);
   const [registrationNumber, setRegistrationNumber] = useState('');
   const [currentStep, setCurrentStep] = useState(1);
 
@@ -47,21 +53,20 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
   const [proposerPhone, setProposerPhone] = useState('');
   const [proposerEmail, setProposerEmail] = useState('');
 
-  const [vehicleModel, setVehicleModel] = useState('Swift Dzire');
-  const [vehicleMake, setVehicleMake] = useState('28914y0912');
-  const [vehicleSubType, setVehicleSubType] = useState('One year');
-  const [vehicleManufacturingYear, setVehicleManufacturingYear] = useState('2020');
-  const [registrationLocation, setRegistrationLocation] = useState('Pune');
-  const [registrationDate, setRegistrationDate] = useState('30 Nov 2020');
+  const [vehicleModel, setVehicleModel] = useState(isNewInit ? '' : 'Swift Dzire');
+  const [vehicleMake, setVehicleMake] = useState(isNewInit ? '' : '28914y0912');
+  const [vehicleSubType, setVehicleSubType] = useState(isNewInit ? '' : 'One year');
+  const [vehicleManufacturingYear, setVehicleManufacturingYear] = useState(isNewInit ? '' : '2020');
+  const [registrationLocation, setRegistrationLocation] = useState(isNewInit ? '' : 'Pune');
+  const [registrationDate, setRegistrationDate] = useState(isNewInit ? '' : '30 Nov 2020');
   const [vehicleIdv, setVehicleIdv] = useState('50000');
-  const [currentPolicyNcb, setCurrentPolicyNcb] = useState('');
-  const [expiringPolicyNcb, setExpiringPolicyNcb] = useState('');
+  const [currentPolicyNcb, setCurrentPolicyNcb] = useState('0');
+  const [expiringPolicyNcb, setExpiringPolicyNcb] = useState('0');
 
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
   const [selectedPlan, setSelectedPlan] = useState('');
   const [range, setRange] = useState<[number, number]>([0, 0]);
 
-  const [showSkipAddonsModal, setShowSkipAddonsModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
 
   const handleVehicleTypeChange = (type: 'registered' | 'new') => {
@@ -136,15 +141,16 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
   const step1Valid = isNew
     ? vehicleModel.trim() !== '' && vehicleMake.trim() !== '' && vehicleSubType.trim() !== '' && vehicleManufacturingYear.trim() !== ''
     : validateRegistration(registrationNumber) && isVehicleFound(registrationNumber);
-  const step3Valid =
+  // Step 2 now carries the Choose Plan card, so plan validation lives here.
+  const step2Valid =
     selectedCustomerType !== '' &&
-    vehicleIdv.trim() !== '' &&
     (isNew || (selectedPlanType !== '' && policyStartDate !== null && policyEndDate !== null));
+  const step3Valid = vehicleIdv.trim() !== '';
   const step4Valid = proposerName.trim() !== '' && proposerPhone.trim() !== '' && proposerEmail.trim() !== '';
 
   const canProceed =
     currentStep === 1 ? step1Valid :
-    currentStep === 2 ? true :
+    currentStep === 2 ? step2Valid :
     currentStep === 3 ? step3Valid :
     currentStep === 4 ? step4Valid :
     true;
@@ -201,7 +207,7 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
   return (
     <View style={styles.flex}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {currentStep !== 6 ? <MotorHeader /> : null}
+        {currentStep !== 6 ? <MotorHeader productName={productName} /> : null}
 
         {currentStep === 1 && vehicleType ? (
           <>
@@ -210,7 +216,24 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
             <VehicleIdentificationStep mode="identify" {...idProps} />
           </>
         ) : currentStep === 2 && vehicleType ? (
-          <VehicleIdentificationStep mode="ncb" {...idProps} />
+          <>
+            <VehicleIdentificationStep mode="ncb" {...idProps} />
+
+            <PlanDetailsStep
+              vehicleType={vehicleType}
+              selectedPlanType={selectedPlanType}
+              setSelectedPlanType={setSelectedPlanType}
+              selectedCustomerType={selectedCustomerType}
+              setSelectedCustomerType={setSelectedCustomerType}
+              policyStartDate={policyStartDate}
+              setPolicyStartDate={setPolicyStartDate}
+              policyEndDate={policyEndDate}
+              setPolicyEndDate={setPolicyEndDate}
+              policyTenure={policyTenure}
+              setPolicyTenure={setPolicyTenure}
+              calculatePolicyEndDate={calculatePolicyEndDate}
+            />
+          </>
         ) : currentStep === 3 ? (
           <>
             <View style={styles.idvCard}>
@@ -227,27 +250,11 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
               />
             </View>
 
-            <PlanDetailsStep
-              vehicleType={vehicleType}
-              selectedPlanType={selectedPlanType}
-              setSelectedPlanType={setSelectedPlanType}
-              selectedCustomerType={selectedCustomerType}
-              setSelectedCustomerType={setSelectedCustomerType}
-              policyStartDate={policyStartDate}
-              setPolicyStartDate={setPolicyStartDate}
-              policyEndDate={policyEndDate}
-              setPolicyEndDate={setPolicyEndDate}
-              policyTenure={policyTenure}
-              setPolicyTenure={setPolicyTenure}
-              calculatePolicyEndDate={calculatePolicyEndDate}
-            />
-
             <SuggestedPlans selectedPlan={selectedPlan} setSelectedPlan={setSelectedPlan} />
           </>
         ) : currentStep === 4 ? (
           <>
             <AddOnsStep
-              setShowSkipAddonsModal={setShowSkipAddonsModal}
               selectedAddOns={selectedAddOns}
               setSelectedAddOns={setSelectedAddOns}
               vehicleManufacturingYear={vehicleManufacturingYear}
@@ -274,9 +281,9 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
             calculatePolicyEndDate={calculatePolicyEndDate}
             discountLoader={range}
           />
-        ) : (
-          <PreviewStep proposerName={proposerName || 'Rakesh Kumar'} proposerDOB={new Date('1998-04-12')} />
-        )}
+        ) : currentStep === 6 ? (
+          <PreviewStep proposerName={proposerName || 'Rakesh Kumar'} proposerDOB={new Date('1998-04-12')} productName={productName} />
+        ) : null}
       </ScrollView>
 
       <View style={styles.footerWrap}>
@@ -285,7 +292,6 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
           previewStep={6}
           previewQuoteStep={5}
           isProceedDisabled={!canProceed}
-          onReset={resetForm}
           onBack={() => (currentStep === 1 ? onClose() : setCurrentStep(currentStep - 1))}
           onProceed={() => setCurrentStep(Math.min(currentStep + 1, 6))}
           onShareQuote={() => setShowShareModal(true)}
@@ -307,31 +313,6 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
         }}
       />
 
-      {/* Skip add-ons confirmation */}
-      <Modal visible={showSkipAddonsModal} transparent animationType="fade" onRequestClose={() => setShowSkipAddonsModal(false)}>
-        <View style={styles.modalScrim}>
-          <View style={styles.modalCard}>
-            <Warning size={28} color={colors.warning} />
-            <Text style={styles.modalTitle}>Continue without add-ons?</Text>
-            <Text style={styles.modalBody}>
-              You haven't selected any add-ons. However they can be selected at the proposal stage as well. Do you want to
-              continue without them?
-            </Text>
-            <View style={styles.modalActions}>
-              <Button label="Go back to select" variant="secondary" onPress={() => setShowSkipAddonsModal(false)} style={styles.modalBtn} />
-              <Button
-                label="Skip and move to next step"
-                onPress={() => {
-                  setShowSkipAddonsModal(false);
-                  setCurrentStep(6);
-                }}
-                style={styles.modalBtn}
-              />
-            </View>
-          </View>
-        </View>
-      </Modal>
-
       {/* Quote created / share */}
       <ShareQuoteModal
         isOpen={showShareModal}
@@ -345,17 +326,14 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.surfaceSubtle,  },
   // flexGrow lets the step-1 spacer push the identification card to the bottom.
-  content: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl, flexGrow: 1 },
+  // 16px gap between the last card and the footer.
+  content: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.lg, flexGrow: 1 },
   spacer: { flex: 1 },
   idvCard: { backgroundColor: colors.surface, borderRadius: radius.xl, padding: spacing.lg, gap: spacing.md, ...shadow.lg },
-  idvHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  // Value sits under the title, not beside it.
+  idvHeader: { gap: spacing.xs },
   idvTitle: { fontFamily: fontFamilyForWeight('500'), fontSize: 18, fontWeight: '500', color: colors.textHeading },
   idvValue: { fontFamily: fontFamilyForWeight('500'), fontSize: 18, fontWeight: '600', color: colors.textHeading },
-  footerWrap: { padding: spacing.lg, paddingTop: 0 },
-  modalScrim: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
-  modalCard: { width: '100%', maxWidth: 420, backgroundColor: colors.surface, borderRadius: radius.xl, padding: spacing.xl, gap: spacing.md, alignItems: 'center' },
-  modalTitle: { fontFamily: typography.fontFamily, fontSize: 18, fontWeight: '600', color: colors.textHeading, textAlign: 'center' },
-  modalBody: { fontFamily: typography.fontFamily, fontSize: 14, color: colors.textBody, textAlign: 'center' },
-  modalActions: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.sm },
-  modalBtn: { flex: 1 },
+  // Full-bleed: the footer bar supplies its own padding.
+  footerWrap: {},
 });

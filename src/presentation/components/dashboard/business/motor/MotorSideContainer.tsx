@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Info, Scooter } from 'phosphor-react-native';
-import { Radio, Badge, colors, spacing, radius, typography, shadow } from '@atlas-ds/react-native';
+import { Radio, Badge, colors, spacing, radius, typography, shadow, fontFamilyForWeight } from '@atlas-ds/react-native';
 import { tenureOptionsFor } from './motorData';
 
 interface MotorSideContainerProps {
@@ -50,15 +50,7 @@ export const MotorSideContainer: React.FC<MotorSideContainerProps> = ({
 
   return (
     <View style={styles.card}>
-      {selectedPlanType && policyTenure ? (
-        <View style={styles.validity}>
-          <Info size={22} color="#2563EB" />
-          <Text style={styles.validityText}>
-            <Text style={styles.validityBold}>21 days validity. </Text>
-            Quote valid till 21st Feb 2026.
-          </Text>
-        </View>
-      ) : null}
+      
 
       <View style={styles.premiumCard}>
         <View style={styles.premiumHeader}>
@@ -94,6 +86,15 @@ export const MotorSideContainer: React.FC<MotorSideContainerProps> = ({
           </View>
         )}
       </View>
+
+      {selectedPlanType && policyTenure ? (
+        <View style={styles.validity}>
+          <Info size={22} color="#2563EB" />
+          <Text style={styles.validityText}>
+            Quote valid till 21st Feb 2026.
+          </Text>
+        </View>
+      ) : null}
 
       {selectedPlanType ? (
         <View style={styles.tenureBlock}>
@@ -134,7 +135,7 @@ const styles = StyleSheet.create({
   validityText: { flex: 1, fontFamily: typography.fontFamily, fontSize: 14, color: colors.textBody },
   validityBold: { fontWeight: '500', color: colors.textHeading },
   tenureBlock: { gap: spacing.md },
-  heading: { fontFamily: typography.fontFamily, fontSize: 20, fontWeight: '500', color: colors.textHeading },
+  heading: { fontFamily: fontFamilyForWeight('500'), fontSize: 20, fontWeight: '500', color: colors.textHeading },
   tenure: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: spacing.md, borderWidth: 1, borderColor: colors.borderSubtle, borderRadius: radius.xl },
   tenureSel: { borderColor: '#3B82F6', backgroundColor: '#EFF6FF' },
   tenureLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexShrink: 1 },

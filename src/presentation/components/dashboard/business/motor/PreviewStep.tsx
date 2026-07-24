@@ -1,11 +1,14 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { CheckCircle } from 'phosphor-react-native';
-import { colors, spacing, radius, typography, shadow } from '@atlas-ds/react-native';
+import { colors, spacing, radius, typography, shadow, fontFamilyForWeight } from '@atlas-ds/react-native';
+import { motorWheelerLabel } from './MotorHeader';
 
 interface PreviewStepProps {
   proposerName: string;
   proposerDOB: Date | null;
+  /** Selected product label, e.g. "Two Wheeler" / "Private Car". */
+  productName?: string;
 }
 
 const formatDate = (date: Date | null) => {
@@ -42,10 +45,12 @@ const ADD_ONS = [
   'Drive Assure Drive smart',
 ];
 
-export const PreviewStep: React.FC<PreviewStepProps> = ({ proposerName, proposerDOB }) => (
+export const PreviewStep: React.FC<PreviewStepProps> = ({ proposerName, proposerDOB, productName }) => (
   <View style={styles.card}>
     <View style={styles.banner}>
-      <Text style={styles.bannerTitle}>Two Wheeler Insurance - {proposerName || 'Rakesh Kumar'}</Text>
+      <Text style={styles.bannerTitle}>
+        {motorWheelerLabel(productName)} Insurance - {proposerName || 'Rakesh Kumar'}
+      </Text>
     </View>
 
     <Section title="Premium Details" accent>
@@ -97,20 +102,20 @@ export const PreviewStep: React.FC<PreviewStepProps> = ({ proposerName, proposer
 );
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: colors.surface, borderRadius: radius.xl, padding: spacing.lg, gap: spacing.md, ...shadow.lg },
+  card: { backgroundColor: colors.surface, borderRadius: radius.md, borderWidth: 1, borderColor: '#BFDBFE', gap: spacing.md,},
   banner: { backgroundColor: '#EFF6FF', borderRadius: radius.sm, padding: spacing.md },
-  bannerTitle: { fontFamily: typography.fontFamily, fontSize: 20, fontWeight: '600', color: colors.textHeading },
-  section: { borderWidth: 1, borderColor: colors.borderSubtle, borderRadius: radius.sm, overflow: 'hidden' },
-  sectionHeader: { padding: spacing.md },
+  bannerTitle: { fontFamily: fontFamilyForWeight('500'), fontSize: 20, fontWeight: '500', color: colors.textHeading },
+  section: {  borderRadius: radius.sm, overflow: 'hidden',padding: spacing.lg },
+  sectionHeader: { padding: spacing.md, borderRadius: radius.md },
   sectionHeaderAccent: { backgroundColor: colors.success },
   sectionHeaderMuted: { backgroundColor: colors.surfaceMuted },
-  sectionTitle: { fontFamily: typography.fontFamily, fontSize: 16, fontWeight: '500', color: colors.textHeading },
+  sectionTitle: { fontFamily: fontFamilyForWeight('500'), fontSize: 16, fontWeight: '500', color: colors.textHeading },
   sectionTitleAccent: { color: colors.textOnBrand },
   sectionBody: { flexDirection: 'row', flexWrap: 'wrap', padding: spacing.md, rowGap: spacing.lg },
   field: { width: '50%', gap: 2 },
   fieldLabel: { fontFamily: typography.fontFamily, fontSize: 12, color: colors.textBody },
   fieldValue: { fontFamily: typography.fontFamily, fontSize: 14, color: colors.textHeading },
-  fieldValueBig: { fontFamily: typography.fontFamily, fontSize: 24, fontWeight: '600', color: colors.textHeading },
+  fieldValueBig: { fontFamily: fontFamilyForWeight('500'), fontSize: 24, fontWeight: '600', color: colors.textHeading },
   addons: { gap: spacing.md },
   addonRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   addonText: { fontFamily: typography.fontFamily, fontSize: 14, color: colors.textHeading },

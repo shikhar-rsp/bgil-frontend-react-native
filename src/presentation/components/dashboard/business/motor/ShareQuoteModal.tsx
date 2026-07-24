@@ -36,7 +36,7 @@ export const ShareQuoteModal: React.FC<ShareQuoteModalProps> = ({
     <BottomSheet
       visible={isOpen}
       onClose={onClose}
-      icon={<CheckCircle size={20} color="#65A30D" weight="fill" />}
+      icon={<CheckCircle size={20} color="#65A30D" weight="regular" />}
       featuredIconColor="lime"
       title="Quote Created Successfully!"
       subtitle="Share the quote with your customer."

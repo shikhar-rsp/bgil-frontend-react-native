@@ -5,11 +5,23 @@ import { Badge, SegmentedControl, colors, spacing, radius, typography, shadow, f
 
 type Range = 'weekly' | 'monthly' | 'yearly';
 
-const INSIGHTS = [
+type Insight = { label: string; value: string; trend?: string; sub?: string };
+
+/** Flip to `false` to restore the populated figures below. */
+const SHOW_EMPTY_STATE = true;
+
+const INSIGHTS: Insight[] = [
   { label: 'Premium Generated', value: '₹ 88,000', trend: '↑ 32% from last week' },
-  { label: 'Quotes Shared', value: '102', sub: 'Expiring Quotes: 32' },
   { label: 'Policies Sold', value: '60', sub: 'Expiring Policies: 24' },
+  { label: 'Quotes Shared', value: '102', sub: 'Expiring Quotes: 32' },
   { label: 'Renewals Done', value: '32', sub: 'Renewals Due: 12' },
+];
+
+const EMPTY_INSIGHTS: Insight[] = [
+  { label: 'Premium Generated', value: '₹ 0' },
+  { label: 'Policies Sold', value: '0' },
+  { label: 'Quotes Shared', value: '0' },
+  { label: 'Renewals Done', value: '0' },
 ];
 
 export const BusinessInsights: React.FC = () => {
@@ -31,18 +43,17 @@ export const BusinessInsights: React.FC = () => {
       />
 
       <View style={styles.grid}>
-        {INSIGHTS.map((item) => (
+        {(SHOW_EMPTY_STATE ? EMPTY_INSIGHTS : INSIGHTS).map((item) => (
           <View key={item.label} style={styles.statCard}>
             <View style={styles.statLabelRow}>
               <Text style={styles.statLabel}>{item.label}</Text>
-              <Info size={14} color={colors.textMuted} />
             </View>
             <Text style={styles.statValue}>{item.value}</Text>
             {item.trend ? (
               <Badge variant="light" size="sm" color="lime" label={item.trend} />
-            ) : (
+            ) : item.sub ? (
               <Text style={styles.statSub}>{item.sub}</Text>
-            )}
+            ) : null}
           </View>
         ))}
       </View>

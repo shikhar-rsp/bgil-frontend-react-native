@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Check, Warning, X } from 'phosphor-react-native';
-import { Badge, Button, colors, spacing, radius, typography, shadow, fontFamilyForWeight } from '@atlas-ds/react-native';
+import LinearGradient from 'react-native-linear-gradient';
+import { Badge, Checkbox, colors, spacing, radius, typography, shadow, fontFamilyForWeight } from '@atlas-ds/react-native';
+import { HEADER_GRADIENTS, GRADIENT_LOCATIONS } from '../../sections/DashboardTopBar';
 import { MAIN_PACKAGES, TOPUP_PACKAGES } from './motorData';
 
+/** Same platinum ramp as the dashboard header. */
+const PLATINUM = [...HEADER_GRADIENTS.platinum];
+
 interface AddOnsStepProps {
-  setShowSkipAddonsModal: (val: boolean) => void;
   selectedAddOns: string[];
   setSelectedAddOns: React.Dispatch<React.SetStateAction<string[]>>;
   vehicleManufacturingYear: string;
@@ -34,12 +38,12 @@ const AddOnRow: React.FC<{ label: string; price: string; selected: boolean; onPr
 );
 
 export const AddOnsStep: React.FC<AddOnsStepProps> = ({
-  setShowSkipAddonsModal,
   selectedAddOns,
   setSelectedAddOns,
   vehicleManufacturingYear,
 }) => {
   const [showAgeToast, setShowAgeToast] = useState(true);
+  const [noAddOns, setNoAddOns] = useState(false);
 
   const toggle = (id: string) =>
     setSelectedAddOns((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -55,7 +59,17 @@ export const AddOnsStep: React.FC<AddOnsStepProps> = ({
       <View style={styles.header}>
         <Text style={styles.heading}>Select Add-ons?</Text>
         {!isOlderThan15 ? (
-          <Button label="Skip Add-ons" variant="secondary" size="sm" onPress={() => setShowSkipAddonsModal(true)} />
+          <Checkbox
+            size="sm"
+            checked={noAddOns}
+            onChange={(next) => {
+              setNoAddOns(next);
+              if (next) {
+                setSelectedAddOns([]);
+              }
+            }}
+            label="Do not want add-ons"
+          />
         ) : null}
       </View>
 
@@ -72,13 +86,13 @@ export const AddOnsStep: React.FC<AddOnsStepProps> = ({
         </View>
       ) : null}
 
-      {!isOlderThan15 ? (
+      {!isOlderThan15 && !noAddOns ? (
         <View style={styles.packages}>
           <View style={styles.packageCard}>
-            <View style={styles.packageHeader}>
+            <LinearGradient useAngle angle={104} colors={PLATINUM} locations={GRADIENT_LOCATIONS} style={styles.packageHeader}>
               <Text style={styles.packageTitle}>Main Packages</Text>
               <Badge variant="solid" size="sm" color="neutral" label={String(countBy('main-'))} />
-            </View>
+            </LinearGradient>
             <View style={styles.packageList}>
               {MAIN_PACKAGES.map((pkg, i) => (
                 <AddOnRow
@@ -93,10 +107,10 @@ export const AddOnsStep: React.FC<AddOnsStepProps> = ({
           </View>
 
           <View style={styles.packageCard}>
-            <View style={styles.packageHeader}>
+            <LinearGradient useAngle angle={104} colors={PLATINUM} locations={GRADIENT_LOCATIONS} style={styles.packageHeader}>
               <Text style={styles.packageTitle}>Top-up Packages</Text>
               <Badge variant="solid" size="sm" color="neutral" label={String(countBy('topup-'))} />
-            </View>
+            </LinearGradient>
             <View style={styles.packageList}>
               {TOPUP_PACKAGES.map((pkg, i) => (
                 <AddOnRow
@@ -117,14 +131,16 @@ export const AddOnsStep: React.FC<AddOnsStepProps> = ({
 
 const styles = StyleSheet.create({
   card: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.borderSubtle, borderRadius: radius.xl, padding: spacing.lg, gap: spacing.lg, ...shadow.lg },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  // Checkbox sits under the title, not beside it.
+  header: { gap: spacing.sm },
   heading: { fontFamily: fontFamilyForWeight('500'), fontSize: 20, fontWeight: '500', color: colors.textHeading },
   warnToast: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: '#FFFBEB', borderRadius: radius.lg, padding: spacing.md },
   warnText: { flex: 1, fontFamily: typography.fontFamily, fontSize: 13, color: colors.textBody },
   warnBold: { fontWeight: '500', color: colors.textHeading },
   packages: { gap: spacing.md },
   packageCard: { borderWidth: 1, borderColor: '#C7D2FE', borderRadius: radius.lg, padding: spacing.md, gap: spacing.md },
-  packageHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: '#EFF6FF', borderRadius: radius.sm, padding: spacing.md },
+  // Platinum gradient background; overflow keeps it inside the rounded corners.
+  packageHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderRadius: radius.sm, padding: spacing.md, overflow: 'hidden' },
   packageTitle: { fontFamily: fontFamilyForWeight('500'), fontSize: 16, fontWeight: '500', color: colors.textHeading },
   packageList: { gap: spacing.sm },
   addonRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: spacing.md, borderWidth: 1, borderColor: colors.borderSubtle, borderRadius: radius.lg },

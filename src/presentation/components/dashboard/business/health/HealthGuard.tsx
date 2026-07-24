@@ -202,7 +202,6 @@ export const HealthGuard: React.FC<HealthGuardProps> = ({ productName, onClose, 
           previewStep={6}
           previewQuoteStep={5}
           isProceedDisabled={!canProceed}
-          onReset={() => setCurrentStep(1)}
           onBack={() => (currentStep > 1 ? setCurrentStep(currentStep - 1) : onClose())}
           onProceed={goNext}
           onShareQuote={() => setShowShare(true)}
@@ -222,7 +221,8 @@ export const HealthGuard: React.FC<HealthGuardProps> = ({ productName, onClose, 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.surfaceSubtle },
   content: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl },
-  footer: { padding: spacing.lg, paddingTop: 0 },
+  // Full-bleed: the footer bar supplies its own padding.
+  footer: {},
   modalScrim: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
   modalCard: { width: '100%', maxWidth: 420, backgroundColor: colors.surface, borderRadius: radius.xl, padding: spacing.xl, gap: spacing.md, alignItems: 'center' },
   modalTitle: { fontFamily: typography.fontFamily, fontSize: 18, fontWeight: '600', color: colors.textHeading },

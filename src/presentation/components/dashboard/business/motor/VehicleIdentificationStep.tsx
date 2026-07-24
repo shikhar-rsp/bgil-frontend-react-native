@@ -14,7 +14,7 @@ import {
   shadow,
   fontFamilyForWeight,
 } from '@atlas-ds/react-native';
-import { RequiredLabel } from '../RequiredField';
+import { RequiredField, RequiredLabel } from '../RequiredField';
 import { dashboardImages } from '../../images';
 import {
   VEHICLE_LOOKUP,
@@ -52,8 +52,8 @@ interface VehicleIdentificationStepProps {
   setExpiringPolicyNcb: (val: string) => void;
 }
 
-const Detail: React.FC<{ label: string; value: string; big?: boolean }> = ({ label, value, big }) => (
-  <View style={styles.detail}>
+const Detail: React.FC<{ label: string; value: string; big?: boolean; style?: object }> = ({ label, value, big, style }) => (
+  <View style={[styles.detail, style]}>
     <Text style={styles.detailLabel}>{label}</Text>
     <Text style={big ? styles.detailValueBig : styles.detailValue}>{value}</Text>
   </View>
@@ -117,18 +117,27 @@ export const VehicleIdentificationStep: React.FC<VehicleIdentificationStepProps>
         <Text style={styles.heading}>{vehicleType === 'new' ? 'Vehicle Details' : 'Vehicle Identification'}</Text>
 
         {vehicleType === 'registered' ? (
-          <Textfield
-            label="Enter Registration Number *"
-            value={registrationNumber}
-            onChangeText={(t) => setRegistrationNumber(t.toUpperCase())}
-            placeholder="Enter vehicle number"
-          />
+          <RequiredField label="Enter Registration Number">
+            <Textfield
+              value={registrationNumber}
+              onChangeText={(t) => setRegistrationNumber(t.toUpperCase())}
+              placeholder="Enter vehicle number"
+            />
+          </RequiredField>
         ) : (
           <View style={styles.form}>
-            <Dropdown label="Model *" placeholder="Select model" value={vehicleModel || null} options={MODEL_OPTIONS} onChange={setVehicleModel} />
-            <Dropdown label="Make *" placeholder="Select make" value={vehicleMake || null} options={MAKE_OPTIONS} onChange={setVehicleMake} />
-            <Dropdown label="Sub type *" placeholder="Select sub type" value={vehicleSubType || null} options={SUBTYPE_OPTIONS} onChange={setVehicleSubType} />
-            <Dropdown label="Year of manufacturing *" placeholder="Select year" value={vehicleManufacturingYear || null} options={YEAR_OPTIONS} onChange={setVehicleManufacturingYear} />
+            <RequiredField label="Model">
+              <Dropdown placeholder="Select model" value={vehicleModel || null} options={MODEL_OPTIONS} onChange={setVehicleModel} />
+            </RequiredField>
+            <RequiredField label="Make">
+              <Dropdown placeholder="Select make" value={vehicleMake || null} options={MAKE_OPTIONS} onChange={setVehicleMake} />
+            </RequiredField>
+            <RequiredField label="Sub type">
+              <Dropdown placeholder="Select sub type" value={vehicleSubType || null} options={SUBTYPE_OPTIONS} onChange={setVehicleSubType} />
+            </RequiredField>
+            <RequiredField label="Year of manufacturing">
+              <Dropdown placeholder="Select year" value={vehicleManufacturingYear || null} options={YEAR_OPTIONS} onChange={setVehicleManufacturingYear} />
+            </RequiredField>
             <Textfield label="Enter Registration Number" value={registrationNumber} onChangeText={(t) => setRegistrationNumber(t.toUpperCase())} placeholder="Enter vehicle registration" />
             <Dropdown label="Registration Location" placeholder="Enter City" value={registrationLocation || null} options={LOCATION_OPTIONS} onChange={setRegistrationLocation} />
             <DatePicker
@@ -148,14 +157,14 @@ export const VehicleIdentificationStep: React.FC<VehicleIdentificationStepProps>
     <>
       {vehicleType === 'registered' && vehicle ? (
         <View style={styles.cardPlain}>
-          {showToast ? (
+          {/* {showToast ? (
             <ToastGlobal
               variant="success"
               title="Vehicle Found!"
               message="We have fetched the details for you."
               onClose={() => setShowToast(false)}
             />
-          ) : null}
+          ) : null} */}
           <LinearGradient
             colors={['#FFFFFF', '#FFF7ED']}
             style={styles.foundCard}
@@ -164,26 +173,40 @@ export const VehicleIdentificationStep: React.FC<VehicleIdentificationStepProps>
             {foundCardHeight > 0 ? (
               <Image source={dashboardImages.vehicleBack} style={[styles.foundCardArt, { height: foundCardHeight }]} resizeMode="contain" />
             ) : null}
-            <View style={styles.detailGrid}>
-              <Detail label="Model" value={vehicle.model} big />
-              <Detail label="Make" value={vehicle.make} />
-              <Detail label="Sub Type" value={vehicle.subType} />
-              <Detail label="Year of Manufacturing" value={vehicle.year} />
-              <Detail label="Registration Location" value={vehicle.location} />
-              <Detail label="Registration Date" value={vehicle.regDate} />
-            </View>
+
+            {/* Car pinned top-right; the Model/Make block clears it. */}
             <Image source={vehicle.icon} style={styles.vehicleIcon} resizeMode="contain" />
+
+            <View style={styles.topBlock}>
+              <Detail label="Model:" value={vehicle.model} big />
+              <Detail label="Make:" value={vehicle.make} />
+            </View>
+
+            <View style={styles.detailRow}>
+              <Detail style={styles.col} label="Sub Type:" value={vehicle.subType} />
+              <Detail style={styles.col} label="Year of Manufacturing:" value={vehicle.year} />
+            </View>
+
+            <View style={styles.detailRow}>
+              <Detail style={styles.col} label="Registration Location:" value={vehicle.location} />
+              <Detail style={styles.col} label="Registration Date:" value={vehicle.regDate} />
+            </View>
           </LinearGradient>
         </View>
       ) : vehicleType === 'new' ? (
         <View style={styles.card}>
           <Text style={styles.heading}>Vehicle Details</Text>
-          <View style={styles.detailGrid}>
-            <Detail label="Model" value={vehicleModel || '—'} big />
-            <Detail label="Make" value={vehicleMake || '—'} />
-            <Detail label="Sub Type" value={vehicleSubType || '—'} />
-            <Detail label="Year of Manufacturing" value={vehicleManufacturingYear || '—'} />
-            <Detail label="Registration Location" value={registrationLocation || '—'} />
+          <View style={styles.topBlockPlain}>
+            <Detail label="Model:" value={vehicleModel || '—'} big />
+            <Detail label="Make:" value={vehicleMake || '—'} />
+          </View>
+          <View style={styles.detailRow}>
+            <Detail style={styles.col} label="Sub Type:" value={vehicleSubType || '—'} />
+            <Detail style={styles.col} label="Year of Manufacturing:" value={vehicleManufacturingYear || '—'} />
+          </View>
+          <View style={styles.detailRow}>
+            <Detail style={styles.col} label="Registration Location:" value={registrationLocation || '—'} />
+            <Detail style={styles.col} label="Registration Date:" value={registrationDate || '—'} />
           </View>
         </View>
       ) : null}
@@ -202,23 +225,29 @@ const styles = StyleSheet.create({
   // Same card chrome, but the found-card block manages its own inner spacing.
   cardPlain: { backgroundColor: colors.surface, borderRadius: radius.xl, padding: spacing.lg, gap: spacing.md, ...shadow.lg },
   heading: { fontFamily: fontFamilyForWeight('500'), fontSize: 20, fontWeight: '500', color: colors.textHeading },
+  // Space-05 (16) padding all round, 16 between rows.
   foundCard: {
     position: 'relative',
-    flexDirection: 'row',
     borderWidth: 1,
     borderColor: '#FED7AA',
     borderRadius: radius.xl,
-    padding: spacing.md,
-    gap: spacing.sm,
+    padding: spacing.lg,
+    gap: spacing.lg,
     overflow: 'hidden',
   },
-  foundCardArt: { position: 'absolute', top: -48, right: -spacing.md, aspectRatio: 319 / 144 },
-  detailGrid: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
-  detail: { width: '44%', gap: 2 },
+  foundCardArt: { position: 'absolute', top: -68, right: -spacing.md, aspectRatio: 319 / 144 },
+  // Model + Make stack on the left; paddingRight keeps them clear of the car.
+  topBlock: { gap: spacing.lg, paddingRight: 130 },
+  // Same stack without the car, for the manually-entered (new) vehicle.
+  topBlockPlain: { gap: spacing.lg },
+  detailRow: { flexDirection: 'row', gap: spacing.lg },
+  col: { flex: 1 },
+  detailGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.lg },
+  detail: { gap: 2 },
   detailLabel: { fontFamily: typography.fontFamily, fontSize: 13, color: '#78716C' },
-  detailValue: { fontFamily: fontFamilyForWeight('500'), fontSize: 14, fontWeight: '500', color: '#1C1917' },
-  detailValueBig: { fontFamily: fontFamilyForWeight('500'), fontSize: 18, fontWeight: '500', color: '#1C1917' },
-  vehicleIcon: { width: 90, height: 80, alignSelf: 'center' },
+  detailValue: { fontFamily: fontFamilyForWeight('500'), fontSize: 16, fontWeight: '500', color: colors.textHeading },
+  detailValueBig: { fontFamily: fontFamilyForWeight('500'), fontSize: 20, fontWeight: '500', color: colors.textHeading },
+  vehicleIcon: { position: 'absolute', top: spacing.md, right: spacing.md, width: 131, height: 106 },
   form: { gap: spacing.md },
   ncbBlock: { gap: spacing.xs },
   ncbHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },

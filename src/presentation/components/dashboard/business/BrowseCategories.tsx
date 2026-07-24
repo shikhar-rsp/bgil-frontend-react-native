@@ -21,9 +21,9 @@ const CATEGORIES: { title: string; items: Item[] }[] = [
     title: 'Motor Insurance',
     items: [
       { label: 'Private Car', icon: 'motor' },
-      { label: 'Two Wheeler', icon: 'motor' },
-      { label: 'Pay as you Consume', icon: 'motor' },
-      { label: 'Commercial Vehicle', icon: 'motor' },
+      { label: 'Two Wheeler', icon: 'bike' },
+      { label: 'Pay as you Consume', icon: 'bike' },
+      { label: 'Commercial Vehicle', icon: 'commercial' },
     ],
   },
 ];
@@ -73,10 +73,14 @@ const styles = StyleSheet.create({
     gap: spacing.xl,
     overflow: 'hidden',
   },
-  headerTitle: { fontFamily: fontFamilyForWeight('500'), fontSize: 22, fontWeight: '500', color: colors.textHeading, paddingRight: 120 },
-  headerArt: { position: 'absolute', right: 0, top: 0, width: 120, height: 96 },
+  headerTitle: { fontFamily: fontFamilyForWeight('500'), fontSize: 22, fontWeight: '500', color: colors.textHeading, paddingRight: 150 },
+  // Declared as the first child so it paints behind the title and tiles (the
+  // tiles have an opaque background, so they occlude it where they overlap).
+  // Negative insets pull it flush to the card corner past the 16px padding; the
+  // height lets it run down behind the first row of tiles.
+  headerArt: { position: 'absolute', top: -spacing.lg, right: -spacing.lg, width: 180, height: 180 },
   block: { gap: spacing.md },
-  sectionTitle: { fontFamily: typography.fontFamily, fontSize: 16, fontWeight: '600', color: colors.textHeading },
+  sectionTitle: { fontFamily: fontFamilyForWeight('500'), fontSize: 16, fontWeight: '500', color: colors.textBody },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   // Two per row.
   tile: {

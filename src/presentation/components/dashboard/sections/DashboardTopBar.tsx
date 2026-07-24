@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Pressable, StatusBar, Platform, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
-import { Bell } from 'phosphor-react-native';
+import { Bell, CaretLeft } from 'phosphor-react-native';
 import {
   Button,
   SegmentedControl,
@@ -22,13 +22,18 @@ export const HEADER_GRADIENTS = {
   silver: ['#FFFFFF', '#F1F5F9', '#CBD5E1', '#F1F5F9'],
 } as const;
 
-const GRADIENT_LOCATIONS = [0, 0.2816, 0.6073, 1];
+/** Stop positions for {@link HEADER_GRADIENTS}, reused wherever the header
+ *  gradient is echoed elsewhere in the app. */
+export const GRADIENT_LOCATIONS = [0, 0.2816, 0.6073, 1];
 
 interface DashboardTopBarProps {
   /** Gradient colour stops (see {@link HEADER_GRADIENTS}). */
   gradientColors: readonly string[];
   avatarInitials?: string;
   onProfilePress: () => void;
+  /** Swap the avatar for a back button (used by full-screen sub-views). */
+  showBack?: boolean;
+  onBackPress?: () => void;
   onSearchPress: () => void;
   onNotificationsPress: () => void;
   /** Segmented control options — omit to hide the strip (e.g. off the Home tab). */
@@ -46,6 +51,8 @@ export const DashboardTopBar: React.FC<DashboardTopBarProps> = ({
   gradientColors,
   avatarInitials = 'OR',
   onProfilePress,
+  showBack = false,
+  onBackPress,
   onSearchPress,
   onNotificationsPress,
   tabs,
@@ -77,12 +84,23 @@ export const DashboardTopBar: React.FC<DashboardTopBarProps> = ({
       />
 
       <View style={styles.topRow}>
-        <Pressable onPress={onProfilePress} accessibilityRole="button" accessibilityLabel="Profile" hitSlop={6}>
-          {/* Opaque backing so the gradient doesn't tint the avatar. */}
-          <View style={styles.avatarBacking}>
-            <Avatar size="md" type="text" initials={avatarInitials} />
-          </View>
-        </Pressable>
+        {showBack ? (
+          <Button
+            iconOnly
+            variant="tertiaryGray"
+            size="md"
+            label="Back"
+            leadingIcon={<CaretLeft size={16} color={colors.textBody} weight="bold" />}
+            onPress={onBackPress}
+          />
+        ) : (
+          <Pressable onPress={onProfilePress} accessibilityRole="button" accessibilityLabel="Profile" hitSlop={6}>
+            {/* Opaque backing so the gradient doesn't tint the avatar. */}
+            <View style={styles.avatarBacking}>
+              <Avatar size="md" type="text" initials={avatarInitials} />
+            </View>
+          </Pressable>
+        )}
 
         <Pressable
           style={styles.searchWrap}

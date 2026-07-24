@@ -3,14 +3,20 @@ import { View, Text, FlatList, Pressable, StyleSheet } from 'react-native';
 import { DotsThreeVertical, Info, Copy, Trash, PencilSimple, FileText } from 'phosphor-react-native';
 import {
   Badge,
+  Button,
   SearchBar,
   Tabs,
   MoreMenu,
+  Filter,
+  FilterButton,
+  DatePicker,
+  BottomSheet,
   colors,
   spacing,
   radius,
   typography,
   shadow,
+  type FilterGroup,
 } from '@atlas-ds/react-native';
 import {
   QUOTES,
@@ -23,33 +29,91 @@ import {
 
 type TabKey = 'quotes' | 'proposals' | 'policies' | 'renewals';
 
+/** Flip to `false` to restore the populated lists and tab counts. */
+const SHOW_EMPTY_STATE = true;
+
+const FILTER_GROUPS: FilterGroup[] = [
+  {
+    key: 'status',
+    label: 'Status',
+    options: [
+      { value: 'Accepted', label: 'Accepted' },
+      { value: 'Rejected', label: 'Rejected' },
+      { value: 'Awaiting', label: 'Awaiting' },
+    ],
+  },
+  {
+    key: 'planType',
+    label: 'Plan type',
+    options: [
+      { value: 'individual', label: 'Individual' },
+      { value: 'float', label: 'Floater' },
+    ],
+  },
+];
+
+/** Quote dates are `DD/MM/YY` — parse for range comparison. */
+const parseQuoteDate = (s: string): Date | null => {
+  const [d, m, y] = s.split('/').map(Number);
+  if (!d || !m || !y) {
+    return null;
+  }
+  return new Date(2000 + y, m - 1, d);
+};
+
 export interface SharedQuotesProps {
   onEditQuote: (q: Quote) => void;
   onConvertToProposal: (q: Quote) => void;
   onViewPolicy: (p: Policy) => void;
+  /** Opens the Create-a-quote browser from the empty state. */
+  onCreateQuote?: () => void;
 }
 
 export const SharedQuotes: React.FC<SharedQuotesProps> = ({
   onEditQuote,
   onConvertToProposal,
   onViewPolicy,
+  onCreateQuote,
 }) => {
   const [activeTab, setActiveTab] = useState<TabKey>('quotes');
   const [search, setSearch] = useState('');
   const [menuQuote, setMenuQuote] = useState<Quote | null>(null);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [filterValues, setFilterValues] = useState<Record<string, string[]>>({});
+  const [fromDate, setFromDate] = useState<Date | null>(null);
+  const [toDate, setToDate] = useState<Date | null>(null);
+
+  const appliedCount = Object.values(filterValues).reduce((n, v) => n + v.length, 0);
 
   const term = search.trim().toLowerCase();
-  const filteredQuotes = useMemo(
-    () =>
-      QUOTES.filter(
-        (q) =>
-          !term ||
-          q.customer.toLowerCase().includes(term) ||
-          q.quoteId.toLowerCase().includes(term) ||
-          q.product.toLowerCase().includes(term),
-      ),
-    [term],
-  );
+  const filteredQuotes = useMemo(() => {
+    const statuses = filterValues.status ?? [];
+    const planTypes = filterValues.planType ?? [];
+    return QUOTES.filter((q) => {
+      if (
+        term &&
+        !q.customer.toLowerCase().includes(term) &&
+        !q.quoteId.toLowerCase().includes(term) &&
+        !q.product.toLowerCase().includes(term)
+      ) {
+        return false;
+      }
+      if (statuses.length > 0 && !statuses.includes(q.status)) {
+        return false;
+      }
+      if (planTypes.length > 0 && !planTypes.includes(q.planType)) {
+        return false;
+      }
+      const d = parseQuoteDate(q.date);
+      if (d && fromDate && d < fromDate) {
+        return false;
+      }
+      if (d && toDate && d > toDate) {
+        return false;
+      }
+      return true;
+    });
+  }, [term, filterValues, fromDate, toDate]);
 
   return (
     <View style={styles.card}>
@@ -59,26 +123,42 @@ export const SharedQuotes: React.FC<SharedQuotesProps> = ({
         size="sm"
         variant="secondary"
         tabs={[
-          { value: 'quotes', label: 'Quotes', badge: 50 },
-          { value: 'proposals', label: 'Proposals', badge: 25 },
-          { value: 'policies', label: 'Policies', badge: 15 },
-          { value: 'renewals', label: 'Renewals', badge: 10 },
+          { value: 'quotes', label: 'Quotes', badge: SHOW_EMPTY_STATE ? undefined : 50 },
+          { value: 'proposals', label: 'Proposals', badge: SHOW_EMPTY_STATE ? undefined : 25 },
+          { value: 'policies', label: 'Policies', badge: SHOW_EMPTY_STATE ? undefined : 15 },
+          { value: 'renewals', label: 'Renewals', badge: SHOW_EMPTY_STATE ? undefined : 10 },
         ]}
       />
 
       {activeTab !== 'renewals' ? (
         <View style={styles.searchWrap}>
-          <SearchBar value={search} onChangeText={setSearch} placeholder="Search customer" />
+          <View style={styles.toolbar}>
+            <View style={styles.searchFlex}>
+              <SearchBar value={search} onChangeText={setSearch} placeholder="Search" />
+            </View>
+            <FilterButton onPress={() => setFilterOpen(true)} count={appliedCount || undefined} />
+          </View>
+
+          <DatePicker
+            mode="range"
+            startDate={fromDate}
+            endDate={toDate}
+            onRangeChange={(s, e) => {
+              setFromDate(s);
+              setToDate(e);
+            }}
+            sheetTitle="Select date range"
+          />
         </View>
       ) : null}
 
       {activeTab === 'quotes' ? (
         <FlatList
-          data={filteredQuotes}
+          data={SHOW_EMPTY_STATE ? [] : filteredQuotes}
           keyExtractor={(q) => String(q.id)}
           scrollEnabled={false}
           ItemSeparatorComponent={() => <View style={styles.sep} />}
-          ListEmptyComponent={<EmptyState />}
+          ListEmptyComponent={<EmptyState onCreateQuote={onCreateQuote} />}
           renderItem={({ item }) => (
             <RecordCard
               title={item.customer}
@@ -92,10 +172,11 @@ export const SharedQuotes: React.FC<SharedQuotesProps> = ({
         />
       ) : activeTab === 'proposals' ? (
         <FlatList
-          data={PROPOSALS}
+          data={SHOW_EMPTY_STATE ? [] : PROPOSALS}
           keyExtractor={(p) => String(p.id)}
           scrollEnabled={false}
           ItemSeparatorComponent={() => <View style={styles.sep} />}
+          ListEmptyComponent={<EmptyState onCreateQuote={onCreateQuote} />}
           renderItem={({ item }) => (
             <RecordCard
               title={item.customer}
@@ -108,10 +189,11 @@ export const SharedQuotes: React.FC<SharedQuotesProps> = ({
         />
       ) : activeTab === 'policies' ? (
         <FlatList
-          data={POLICIES}
+          data={SHOW_EMPTY_STATE ? [] : POLICIES}
           keyExtractor={(p) => String(p.id)}
           scrollEnabled={false}
           ItemSeparatorComponent={() => <View style={styles.sep} />}
+          ListEmptyComponent={<EmptyState onCreateQuote={onCreateQuote} />}
           renderItem={({ item }) => (
             <RecordCard
               title={item.customer}
@@ -129,6 +211,18 @@ export const SharedQuotes: React.FC<SharedQuotesProps> = ({
           <Text style={styles.renewalsText}>Renewals coming soon</Text>
         </View>
       )}
+
+      <BottomSheet
+        visible={filterOpen}
+        onClose={() => setFilterOpen(false)}
+        title="Filter"
+        subtitle="Narrow down the list"
+        contentMinHeight={0}
+        primaryAction={{ label: 'Apply', onPress: () => setFilterOpen(false) }}
+        secondaryAction={{ label: 'Clear all', onPress: () => setFilterValues({}) }}
+      >
+        <Filter groups={FILTER_GROUPS} values={filterValues} onChange={setFilterValues} />
+      </BottomSheet>
 
       <MoreMenu
         visible={menuQuote !== null}
@@ -206,10 +300,15 @@ const RecordCard: React.FC<{
   </Pressable>
 );
 
-const EmptyState: React.FC = () => (
+const EmptyState: React.FC<{ onCreateQuote?: () => void }> = ({ onCreateQuote }) => (
   <View style={styles.empty}>
-    <Info size={22} color={colors.brand} />
+    <View style={styles.emptyIcon}>
+      <Info size={22} color={colors.brand} />
+    </View>
     <Text style={styles.emptyText}>No data! Start creating quotes to view all information.</Text>
+    {onCreateQuote ? (
+      <Button label="Create a Quote!" variant="secondaryGray" size="sm" onPress={onCreateQuote} style={styles.emptyBtn} />
+    ) : null}
   </View>
 );
 
@@ -222,7 +321,9 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     gap: spacing.md,
   },
-  searchWrap: { marginTop: spacing.xs },
+  searchWrap: { marginTop: spacing.xs, gap: spacing.md },
+  toolbar: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  searchFlex: { flex: 1 },
   sep: { height: 1, backgroundColor: colors.surfaceMuted },
   record: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md, gap: spacing.md },
   recordMain: { flex: 1, gap: spacing.xxs },
@@ -232,7 +333,10 @@ const styles = StyleSheet.create({
   recordAmount: { fontFamily: typography.fontFamily, fontSize: 14, fontWeight: '600', color: colors.textHeading },
   recordMeta: { fontFamily: typography.fontFamily, fontSize: 12, color: colors.textMuted },
   recordRight: { alignItems: 'flex-end', gap: spacing.sm },
-  empty: { alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.xxl },
+  empty: { alignItems: 'center', gap: spacing.md, paddingVertical: spacing.xxl },
+  emptyIcon: { padding: spacing.sm, borderRadius: radius.full, backgroundColor: colors.brandSubtle },
+  // Button defaults to `alignSelf: 'flex-start'` — centre it in the empty state.
+  emptyBtn: { alignSelf: 'center' },
   emptyText: {
     fontFamily: typography.fontFamily,
     fontSize: 14,

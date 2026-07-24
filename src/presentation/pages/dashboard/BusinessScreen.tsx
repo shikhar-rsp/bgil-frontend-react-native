@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
 import { Plus, CaretLeft } from 'phosphor-react-native';
 import { Button, colors, spacing, radius, typography, shadow } from '@atlas-ds/react-native';
@@ -9,13 +9,14 @@ import { HealthGuard } from '../../components/dashboard/business/health/HealthGu
 import { ConvertProposal } from '../../components/dashboard/business/proposal/ConvertProposal';
 import { IssuedPolicy } from '../../components/dashboard/business/IssuedPolicy';
 import { TwoWheelerInsurance } from '../../components/dashboard/business/motor/TwoWheelerInsurance';
+import { VehicleTypeModal } from '../../components/dashboard/business/motor/VehicleTypeModal';
 import type { Policy } from '../../components/dashboard/business/businessData';
 
 type BizView =
   | { kind: 'landing' }
   | { kind: 'browse' }
   | { kind: 'healthguard'; product: string }
-  | { kind: 'motor'; product: string }
+  | { kind: 'motor'; product: string; vehicleType: 'registered' | 'new' }
   | { kind: 'convert'; customer: string }
   | { kind: 'policy'; policy: Policy };
 
@@ -30,19 +31,39 @@ const TITLES: Record<BizView['kind'], string> = {
 
 /** Motor products route to the Two-Wheeler / Motor flow; others to Health Guard. */
 const MOTOR_PRODUCTS = ['Private Car', 'Two Wheeler', 'Commercial Vehicle', 'Pay as you Consume'];
-const productView = (label: string): BizView =>
-  MOTOR_PRODUCTS.includes(label) ? { kind: 'motor', product: label } : { kind: 'healthguard', product: label };
 
 interface BusinessScreenProps {
   /** Which view to open on mount. Defaults to the landing page. */
   initialView?: 'landing' | 'browse';
+  /** Reports when a full-screen view (browse / a wizard) is open, so the host
+   *  can hide the bottom nav and show a back button. Passes a back handler. */
+  onFullScreenChange?: (fullScreen: boolean, onBack: () => void) => void;
 }
 
 /** Business tab — landing (insights + lists + drafts) and the quote/proposal wizards. */
-export const BusinessScreen: React.FC<BusinessScreenProps> = ({ initialView = 'landing' }) => {
+export const BusinessScreen: React.FC<BusinessScreenProps> = ({ initialView = 'landing', onFullScreenChange }) => {
   const [view, setView] = useState<BizView>(initialView === 'browse' ? { kind: 'browse' } : { kind: 'landing' });
+  // Motor product awaiting a vehicle-type choice — the sheet opens over the
+  // Browse Categories page, and the flow mounts only once a type is picked.
+  const [pendingMotor, setPendingMotor] = useState<string | null>(null);
+
+  // Everything except the landing page is full-screen (no bottom nav). Keyed on
+  // `view.kind` only — including the callback would re-run this on every render
+  // of the parent and loop.
+  useEffect(() => {
+    onFullScreenChange?.(view.kind !== 'landing', () => setView({ kind: 'landing' }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view.kind]);
 
   const goLanding = () => setView({ kind: 'landing' });
+
+  const selectProduct = (label: string) => {
+    if (MOTOR_PRODUCTS.includes(label)) {
+      setPendingMotor(label);
+    } else {
+      setView({ kind: 'healthguard', product: label });
+    }
+  };
 
   return (
     <View style={styles.flex}>
@@ -64,6 +85,7 @@ export const BusinessScreen: React.FC<BusinessScreenProps> = ({ initialView = 'l
               onEditQuote={(q) => setView({ kind: 'healthguard', product: q.product })}
               onConvertToProposal={(q) => setView({ kind: 'convert', customer: q.customer })}
               onViewPolicy={(p) => setView({ kind: 'policy', policy: p })}
+              onCreateQuote={() => setView({ kind: 'browse' })}
             />
           </ScrollView>
 
@@ -80,7 +102,7 @@ export const BusinessScreen: React.FC<BusinessScreenProps> = ({ initialView = 'l
           </View>
         </>
       ) : view.kind === 'browse' ? (
-        <BrowseCategories onSelectProduct={(label) => setView(productView(label))} />
+        <BrowseCategories onSelectProduct={selectProduct} />
       ) : view.kind === 'healthguard' ? (
         <HealthGuard
           productName={view.product}
@@ -89,6 +111,8 @@ export const BusinessScreen: React.FC<BusinessScreenProps> = ({ initialView = 'l
         />
       ) : view.kind === 'motor' ? (
         <TwoWheelerInsurance
+          productName={view.product}
+          initialVehicleType={view.vehicleType}
           onClose={goLanding}
           onConvertToProposal={(customer) => setView({ kind: 'convert', customer })}
         />
@@ -97,6 +121,19 @@ export const BusinessScreen: React.FC<BusinessScreenProps> = ({ initialView = 'l
       ) : (
         <IssuedPolicy policy={view.policy} onClose={goLanding} />
       )}
+
+      {/* Vehicle-type chooser — opens over Browse Categories before the motor
+          flow mounts, so the page behind stays the product list. */}
+      <VehicleTypeModal
+        isOpen={pendingMotor !== null}
+        onClose={() => setPendingMotor(null)}
+        onProceed={(type) => {
+          if (pendingMotor) {
+            setView({ kind: 'motor', product: pendingMotor, vehicleType: type });
+          }
+          setPendingMotor(null);
+        }}
+      />
     </View>
   );
 };

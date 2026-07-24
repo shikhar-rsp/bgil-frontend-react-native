@@ -128,7 +128,7 @@ export const SuggestedPlans: React.FC<SuggestedPlansProps> = ({ selectedPlan, se
 
             <View style={styles.planTop}>
               <View style={[styles.planIcon, { backgroundColor: theme.iconBg }]}>
-                <Icon size={20} color={theme.iconColor} weight="fill" />
+                <Icon size={20} color={theme.iconColor} weight="regular" />
               </View>
               <Radio selected={selected} onPress={() => setSelectedPlan(plan.id)} />
             </View>
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
   },
   planTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
   planIcon: { width: 36, height: 36, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' },
-  planName: { fontFamily: typography.fontFamily, fontSize: 13, fontWeight: '500', color: colors.textHeading },
+  planName: { fontFamily: fontFamilyForWeight('500'), fontSize: 13, fontWeight: '500', color: colors.textHeading },
   priceRow: { flexDirection: 'row', alignItems: 'baseline' },
   price: { fontFamily: fontFamilyForWeight('500'), fontSize: 24, fontWeight: '500' },
   priceUnit: { fontFamily: fontFamilyForWeight('500'), fontSize: 20, fontWeight: '500' },

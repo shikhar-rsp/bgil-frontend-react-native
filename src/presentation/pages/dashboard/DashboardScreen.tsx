@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { Plus } from 'phosphor-react-native';
 import { Button, BottomNav, BOTTOM_NAV_BAR_HEIGHT, colors, spacing, typography, type BottomNavItem } from '@atlas-ds/react-native';
@@ -39,6 +39,18 @@ export const DashboardScreen: React.FC<AuthScreenProps<'Dashboard'>> = ({ naviga
   // When true, the Business tab opens straight into the "Create Quote" browser
   // (used by the centre FAB). Cleared when a normal nav item is tapped.
   const [createQuote, setCreateQuote] = useState(false);
+  // Business sub-views (browse / wizards) take over the screen — hide the nav
+  // and swap the header avatar for a back button.
+  const [hideNav, setHideNav] = useState(false);
+  // Held in a ref: storing it in state would re-render on every report and
+  // loop with the child's effect.
+  const businessBackRef = useRef<(() => void) | null>(null);
+
+  // Stable identity so the child's effect doesn't re-run every render.
+  const handleFullScreenChange = useCallback((fullScreen: boolean, onBack: () => void) => {
+    businessBackRef.current = onBack;
+    setHideNav(fullScreen);
+  }, []);
   const [homeTab, setHomeTab] = useState('tools');
   const [searchOpen, setSearchOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(true);
@@ -69,6 +81,8 @@ export const DashboardScreen: React.FC<AuthScreenProps<'Dashboard'>> = ({ naviga
       <DashboardTopBar
         gradientColors={HEADER_GRADIENTS.platinum}
         onProfilePress={openProfile}
+        showBack={hideNav}
+        onBackPress={() => businessBackRef.current?.()}
         onSearchPress={() => setSearchOpen(true)}
         onNotificationsPress={() => navigation.navigate('Notifications')}
         tabs={selectedItem === 'Home' ? HOME_TABS : undefined}
@@ -104,6 +118,7 @@ export const DashboardScreen: React.FC<AuthScreenProps<'Dashboard'>> = ({ naviga
           <BusinessScreen
             key={createQuote ? 'biz-browse' : 'biz-landing'}
             initialView={createQuote ? 'browse' : 'landing'}
+            onFullScreenChange={handleFullScreenChange}
           />
         ) : (
           <View style={styles.placeholder}>
@@ -117,7 +132,7 @@ export const DashboardScreen: React.FC<AuthScreenProps<'Dashboard'>> = ({ naviga
       </View>
 
       {/* Floating create-quote action — bottom right, above the nav bar. */}
-      {selectedItem !== 'Business' ? (
+      {selectedItem !== 'Business' && !hideNav ? (
         <View style={styles.fab}>
           <Button
             iconOnly
@@ -130,12 +145,14 @@ export const DashboardScreen: React.FC<AuthScreenProps<'Dashboard'>> = ({ naviga
         </View>
       ) : null}
 
-      <BottomNav
-        items={NAV_ITEMS}
-        activeKey={selectedItem}
-        onChange={(id) => { setCreateQuote(false); handleSelectItem(id); }}
-        center={{ onPress: () => handleSelectItem('MyAI'), accessibilityLabel: 'MyAI assistant' }}
-      />
+      {!hideNav ? (
+        <BottomNav
+          items={NAV_ITEMS}
+          activeKey={selectedItem}
+          onChange={(id) => { setCreateQuote(false); setHideNav(false); handleSelectItem(id); }}
+          center={{ onPress: () => handleSelectItem('MyAI'), accessibilityLabel: 'MyAI assistant' }}
+        />
+      ) : null}
 
 
       <SearchPanel visible={searchOpen} onClose={() => setSearchOpen(false)} />
