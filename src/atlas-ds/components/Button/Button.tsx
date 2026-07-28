@@ -136,7 +136,12 @@ export const Button: React.FC<ButtonProps> = ({
       ) : (
         <View style={styles.content}>
           {leadingIcon ? <View style={styles.icon}>{leadingIcon}</View> : null}
-          <Text style={[styles.label, { color: textColor, fontSize: s.font }, v.link && styles.linkText, labelStyle]}>
+          {/* Buttons are a fixed height per size, so the label must never wrap —
+              a second line would be clipped rather than growing the button. */}
+          <Text
+            numberOfLines={1}
+            style={[styles.label, { color: textColor, fontSize: s.font }, v.link && styles.linkText, labelStyle]}
+          >
             {label}
           </Text>
           {trailingIcon ? <View style={styles.icon}>{trailingIcon}</View> : null}
@@ -159,8 +164,10 @@ const styles = StyleSheet.create({
   disabledFilled: { backgroundColor: colors.surfaceMuted, borderWidth: 0 }, // bg #F1F5F9
   disabledOutlined: { borderColor: colors.surfaceMuted }, // border.disabled #F1F5F9
   disabledGhost: { backgroundColor: 'transparent' },
-  content: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  // flexShrink lets a long label ellipsize inside a width-constrained button
+  // (e.g. two flex:1 buttons sharing a row) instead of overflowing it.
+  content: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
   icon: { width: 18, height: 18, alignItems: 'center', justifyContent: 'center' },
-  label: { fontFamily: typography.fontFamily, fontWeight: '500', lineHeight: 20 },
+  label: { fontFamily: typography.fontFamily, fontWeight: '500', lineHeight: 20, flexShrink: 1 },
   linkText: { textDecorationLine: 'underline' },
 });

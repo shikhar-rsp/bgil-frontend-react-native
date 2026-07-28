@@ -22,6 +22,7 @@ export const HealthGuardHeader: React.FC<HealthGuardHeaderProps> = ({
       <Text style={styles.title}>{productName || 'Health Guard Policy'}</Text>
     </View>
     <View style={styles.actions}>
+      <Button label="View features" variant="secondaryGray" size="sm" onPress={onViewFeatures} />
       <Button
         label="Brochure"
         variant="link"
@@ -29,7 +30,6 @@ export const HealthGuardHeader: React.FC<HealthGuardHeaderProps> = ({
         leadingIcon={<DownloadSimple size={16} color={colors.brand} />}
         onPress={onDownloadBrochure}
       />
-      <Button label="View features" variant="secondaryGray" size="sm" onPress={onViewFeatures} />
     </View>
   </View>
 );

@@ -17,8 +17,7 @@ import {
 import { RequiredField, RequiredLabel } from '../RequiredField';
 import { dashboardImages } from '../../images';
 import {
-  VEHICLE_LOOKUP,
-  validateRegistration,
+  lookupVehicle,
   MODEL_OPTIONS,
   MAKE_OPTIONS,
   SUBTYPE_OPTIONS,
@@ -108,7 +107,7 @@ export const VehicleIdentificationStep: React.FC<VehicleIdentificationStepProps>
 
   const [showToast, setShowToast] = useState(true);
   const [foundCardHeight, setFoundCardHeight] = useState(0);
-  const vehicle = VEHICLE_LOOKUP[registrationNumber.toUpperCase()];
+  const vehicle = lookupVehicle(registrationNumber);
 
   // ---- Step 1: identify the vehicle ----
   if (mode === 'identify') {

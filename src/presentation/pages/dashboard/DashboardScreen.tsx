@@ -1,7 +1,6 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
-import { Plus } from 'phosphor-react-native';
-import { Button, BottomNav, BOTTOM_NAV_BAR_HEIGHT, colors, spacing, typography, type BottomNavItem } from '@atlas-ds/react-native';
+import { Button, BottomNav, colors, spacing, typography, type BottomNavItem } from '@atlas-ds/react-native';
 import { DashboardTopBar, HEADER_GRADIENTS } from '../../components/dashboard/sections/DashboardTopBar';
 import { YourInsights } from '../../components/dashboard/sections/YourInsights';
 import { QuickQuotes } from '../../components/dashboard/sections/QuickQuotes';
@@ -36,9 +35,6 @@ const HOME_TABS = [
  */
 export const DashboardScreen: React.FC<AuthScreenProps<'Dashboard'>> = ({ navigation }) => {
   const [selectedItem, setSelectedItem] = useState('Home');
-  // When true, the Business tab opens straight into the "Create Quote" browser
-  // (used by the centre FAB). Cleared when a normal nav item is tapped.
-  const [createQuote, setCreateQuote] = useState(false);
   // Business sub-views (browse / wizards) take over the screen — hide the nav
   // and swap the header avatar for a back button.
   const [hideNav, setHideNav] = useState(false);
@@ -115,11 +111,7 @@ export const DashboardScreen: React.FC<AuthScreenProps<'Dashboard'>> = ({ naviga
             )}
           </ScrollView>
         ) : selectedItem === 'Business' ? (
-          <BusinessScreen
-            key={createQuote ? 'biz-browse' : 'biz-landing'}
-            initialView={createQuote ? 'browse' : 'landing'}
-            onFullScreenChange={handleFullScreenChange}
-          />
+          <BusinessScreen onFullScreenChange={handleFullScreenChange} />
         ) : (
           <View style={styles.placeholder}>
             <Text style={styles.placeholderTitle}>{selectedItem}</Text>
@@ -131,25 +123,13 @@ export const DashboardScreen: React.FC<AuthScreenProps<'Dashboard'>> = ({ naviga
         )}
       </View>
 
-      {/* Floating create-quote action — bottom right, above the nav bar. */}
-      {selectedItem !== 'Business' && !hideNav ? (
-        <View style={styles.fab}>
-          <Button
-            iconOnly
-            variant="primary"
-            size="lg"
-            label="Create a quote"
-            leadingIcon={<Plus size={24} color={colors.textOnBrand} weight="bold" />}
-            onPress={() => { setCreateQuote(true); setSelectedItem('Business'); }}
-          />
-        </View>
-      ) : null}
-
+      {/* The create-quote FAB belongs to the Business tab only — BusinessScreen
+          renders its own on its landing view. */}
       {!hideNav ? (
         <BottomNav
           items={NAV_ITEMS}
           activeKey={selectedItem}
-          onChange={(id) => { setCreateQuote(false); setHideNav(false); handleSelectItem(id); }}
+          onChange={(id) => { setHideNav(false); handleSelectItem(id); }}
           center={{ onPress: () => handleSelectItem('MyAI'), accessibilityLabel: 'MyAI assistant' }}
         />
       ) : null}
@@ -169,8 +149,6 @@ export const DashboardScreen: React.FC<AuthScreenProps<'Dashboard'>> = ({ naviga
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.surfaceSubtle },
   body: { flex: 1 },
-  // Floating action button, clear of the bottom nav bar.
-  fab: { position: 'absolute', right: spacing.lg, bottom: BOTTOM_NAV_BAR_HEIGHT + spacing.lg, zIndex: 10 },
   content: { padding: spacing.lg, gap: spacing.lg, paddingBottom: spacing.xxl },
   placeholder: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, padding: spacing.xl },
   placeholderTitle: { fontFamily: typography.fontFamily, fontSize: 24, fontWeight: '600', color: colors.textHeading },

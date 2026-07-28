@@ -24,7 +24,6 @@ import {
   FocusLOBs,
   AgentsData,
 } from '../../components/dashboard/rm/RmSections';
-import { BusinessScreen } from './BusinessScreen';
 import type { AuthScreenProps } from '../../../navigation';
 
 /** RM's own sub-tabs. */
@@ -132,12 +131,14 @@ export const RMDashboardScreen: React.FC<AuthScreenProps<'RMDashboard'>> = ({ na
                 
               )}
             </ScrollView>
-          ) : agentNav === 'Business' ? (
-            <BusinessScreen />
           ) : (
             <View style={styles.placeholder}>
               <Text style={styles.placeholderTitle}>{agentNav}</Text>
-              <Text style={styles.placeholderBody}>This section is part of a later porting phase.</Text>
+              <Text style={styles.placeholderBody}>
+                {agentNav === 'Business'
+                  ? 'Quotes and proposals are read-only in agent view.'
+                  : 'This section is part of a later porting phase.'}
+              </Text>
               <Button label="Back to Home" variant="secondaryGray" onPress={() => setAgentNav('Home')} />
             </View>
           )}

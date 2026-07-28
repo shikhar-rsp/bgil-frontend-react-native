@@ -30,6 +30,31 @@ export const isVehicleFound = (registrationNumber: string): boolean =>
 export const validateRegistration = (val: string): boolean =>
   /^[A-Z]{2}\d{2}[A-Z]{1,2}\d{4}$/.test(val.toUpperCase());
 
+/**
+ * Stand-in details for a correctly-formatted number that isn't in the mock
+ * table above, so the flow can be walked with any realistic registration.
+ */
+export const GENERIC_VEHICLE: VehicleInfo = {
+  type: 'bike',
+  model: 'Two Wheeler',
+  make: 'RE663388',
+  subType: 'On Year',
+  year: '2024',
+  location: 'Kochi',
+  regDate: '21 Mar 2024',
+  icon: dashboardImages.bulletPng,
+};
+
+/**
+ * Resolve a registration number to vehicle details. Numbers in `VEHICLE_LOOKUP`
+ * return their own entry; any other correctly-formatted number falls back to
+ * `GENERIC_VEHICLE`. Returns null only when the format itself is invalid.
+ */
+export const lookupVehicle = (registrationNumber: string): VehicleInfo | null =>
+  validateRegistration(registrationNumber)
+    ? VEHICLE_LOOKUP[registrationNumber.toUpperCase()] ?? GENERIC_VEHICLE
+    : null;
+
 export const PLAN_TYPE_OPTIONS = [
   { label: 'Own Damage', value: 'od' },
   { label: 'Package Policy', value: 'package-policy' },

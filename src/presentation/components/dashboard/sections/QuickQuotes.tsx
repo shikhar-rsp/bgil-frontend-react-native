@@ -96,7 +96,10 @@ const styles = StyleSheet.create({
   heading: { fontFamily: fontFamilyForWeight('500'), fontSize: 20, fontWeight: '500', color: colors.textHeading },
   subtitle: { fontFamily: typography.fontFamily, fontSize: 14, color: colors.textBody },
   actions: { flexDirection: 'row', gap: spacing.sm },
-  actionBtn: { flex: 1 },
+  // flexBasis 'auto' (not flex:1's 0) sizes each button to its label first and
+  // shares the leftover width, so "View All Quotes" isn't squeezed into half the
+  // row and truncated. The row still fills the card.
+  actionBtn: { flexGrow: 1, flexBasis: 'auto' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   tile: {
     width: '47%',

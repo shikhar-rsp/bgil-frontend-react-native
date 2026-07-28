@@ -166,6 +166,14 @@ export const Calendar: React.FC<CalendarProps> = ({
           onViewableItemsChanged={onViewable}
           viewabilityConfig={viewabilityConfig}
           onMomentumScrollEnd={onMomentumEnd}
+          // `months` is a 481-entry (±20 year) window, and the whole Calendar
+          // mounts from scratch every time the sheet opens — RN's Modal renders
+          // null while hidden. FlatList's defaults (initialNumToRender 10,
+          // windowSize 21) would build ~10 month grids of 42 cells each on that
+          // first frame, which is what made opening the picker feel slow.
+          initialNumToRender={1}
+          maxToRenderPerBatch={2}
+          windowSize={3}
           style={styles.list}
           contentContainerStyle={{ paddingBottom: spacing.sm }}
           renderItem={({ item }) => (

@@ -15,7 +15,7 @@ import { PreviewStep } from './PreviewStep';
 import { QuoteFooter } from '../QuoteFooter';
 import { ShareQuoteModal } from './ShareQuoteModal';
 import { Slider } from '@atlas-ds/react-native';
-import { isVehicleFound, validateRegistration, TENURE_YEAR_MAP } from './motorData';
+import { validateRegistration, TENURE_YEAR_MAP } from './motorData';
 
 type VehicleType = 'registered' | 'new' | null;
 
@@ -124,7 +124,7 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
         vehicleIdv.trim() !== ''
       );
     }
-    return isVehicleFound(registrationNumber);
+    return validateRegistration(registrationNumber);
   }, [
     vehicleType,
     selectedPlanType,
@@ -140,7 +140,7 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
   const isNew = vehicleType === 'new';
   const step1Valid = isNew
     ? vehicleModel.trim() !== '' && vehicleMake.trim() !== '' && vehicleSubType.trim() !== '' && vehicleManufacturingYear.trim() !== ''
-    : validateRegistration(registrationNumber) && isVehicleFound(registrationNumber);
+    : validateRegistration(registrationNumber);
   // Step 2 now carries the Choose Plan card, so plan validation lives here.
   const step2Valid =
     selectedCustomerType !== '' &&

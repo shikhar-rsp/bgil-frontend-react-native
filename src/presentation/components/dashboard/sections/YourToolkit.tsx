@@ -152,7 +152,8 @@ const styles = StyleSheet.create({
   heading: { fontFamily: fontFamilyForWeight('500'), fontSize: 20, fontWeight: '500', color: colors.textHeading },
   subtitle: { fontFamily: typography.fontFamily, fontSize: 14, color: colors.textBody },
   actions: { flexDirection: 'row', gap: spacing.sm },
-  actionBtn: { flex: 1 },
+  // Matches QuickQuotes: size to the label, then share the remaining width.
+  actionBtn: { flexGrow: 1, flexBasis: 'auto' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   tile: {
     // Two per row — the pair grows to fill the leftover gap.

@@ -35,7 +35,6 @@ export const MotorHeader: React.FC<MotorHeaderProps> = ({ productName, onDownloa
         leadingIcon={<DownloadSimple size={18} color={colors.brand} />}
         onPress={onDownloadBrochure}
       />
-
     </View>
   </View>
 );
