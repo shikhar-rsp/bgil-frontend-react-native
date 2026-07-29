@@ -86,6 +86,17 @@ export const ProfileScreen: React.FC<AuthScreenProps<'Profile'>> = ({ navigation
     setSheetOpen(false);
   };
 
+  // Re-entry for the dashboard walkthrough — the analogue of the web's avatar
+  // dropdown item. Only the agent dashboard hosts a tour, so other personas
+  // just return to their own dashboard.
+  const restartTour = () => {
+    if (persona === 'agent') {
+      navigation.navigate('Dashboard', { startTour: true });
+      return;
+    }
+    navigation.goBack();
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       {/* Header */}
@@ -116,7 +127,11 @@ export const ProfileScreen: React.FC<AuthScreenProps<'Profile'>> = ({ navigation
 
         <View style={styles.rowList}>
           {MENU_ROWS.map((row) => (
-            <AvatarDropdownItem key={row.key} icon={row.icon} onPress={() => undefined}>
+            <AvatarDropdownItem
+              key={row.key}
+              icon={row.icon}
+              onPress={row.key === 'tour' ? restartTour : () => undefined}
+            >
               {row.label}
             </AvatarDropdownItem>
           ))}

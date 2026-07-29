@@ -7,11 +7,31 @@ export type MemberDatum = { dob: Date | null; sumInsured: string; selectedAddOns
 export const SUM_INSURED_MIN = 500000;
 export const SUM_INSURED_MAX = 2500000;
 
+/** Covers every health product offered on the Browse Categories screen, so any
+ *  of them can be preselected when the flow is entered from that tile. */
 export const PLAN_OPTIONS = [
   { label: 'Health Guard Policy', value: 'health-guard' },
+  { label: 'My Health Care', value: 'my-health-care' },
+  { label: 'Apke Liye', value: 'apke-liye' },
+  { label: 'Global Health', value: 'global-health' },
   { label: 'Criti Care', value: 'criti-care' },
   { label: 'Arogya Sanjeevni', value: 'arogya-sanjeevni' },
 ];
+
+/**
+ * Map a Browse Categories product label onto a plan option, so entering the
+ * flow via "Arogya Sanjeevni" preselects it instead of Health Guard. Catalogue
+ * labels drop the "Policy" suffix ("Health Guard" vs "Health Guard Policy"),
+ * so match on that too. Unknown products fall back to Health Guard.
+ */
+export const planValueForProduct = (productName: string): string => {
+  const target = productName.trim().toLowerCase();
+  const match = PLAN_OPTIONS.find((option) => {
+    const label = option.label.toLowerCase();
+    return label === target || label.replace(/ policy$/, '') === target;
+  });
+  return match?.value ?? 'health-guard';
+};
 
 export const COUNT_OPTIONS = ['0', '1', '2', '3', '4', '5'].map((v) => ({ value: v, label: v }));
 

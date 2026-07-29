@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, Modal, Pressable, StyleSheet } from 'react-native';
 import { Play } from 'phosphor-react-native';
 import { Button, colors, spacing, radius, typography } from '@atlas-ds/react-native';
+import { VideoPlayerModal } from './VideoPlayerModal';
 
 interface ObboardingModalProps {
   isOpen: boolean;
@@ -14,16 +15,24 @@ export const ObboardingModal: React.FC<ObboardingModalProps> = ({
   isOpen,
   onClose,
   onStartWalkthrough,
-}) => (
+}) => {
+  const [videoOpen, setVideoOpen] = useState(false);
+
+  return (
   <Modal visible={isOpen} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
     <View style={styles.scrim}>
       <View style={styles.card}>
-        <View style={styles.video}>
+        <Pressable
+          style={styles.video}
+          onPress={() => setVideoOpen(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Play walkthrough video"
+        >
           <View style={styles.playButton}>
             <Play size={40} color={colors.textOnBrand} weight="fill" />
           </View>
           <Text style={styles.duration}>40 secs</Text>
-        </View>
+        </Pressable>
 
         <View style={styles.textBlock}>
           <Text style={styles.title}>Welcome Aboard! 🎉</Text>
@@ -39,8 +48,11 @@ export const ObboardingModal: React.FC<ObboardingModalProps> = ({
         </View>
       </View>
     </View>
+
+    <VideoPlayerModal isOpen={videoOpen} onClose={() => setVideoOpen(false)} />
   </Modal>
-);
+  );
+};
 
 const styles = StyleSheet.create({
   scrim: {

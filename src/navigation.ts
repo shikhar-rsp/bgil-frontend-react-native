@@ -26,7 +26,8 @@ export type RootStackParamList = {
   ForgotPassword: undefined;
   ResetPassword: undefined;
   PasswordSuccess: undefined;
-  Dashboard: undefined;
+  /** `startTour` re-runs the product walkthrough (Profile → Product Tour). */
+  Dashboard: { startTour?: boolean } | undefined;
   /** `viewAgent` puts the RM dashboard into read-only "agent view" mode. */
   RMDashboard: { viewAgent?: AgentViewTarget } | undefined;
   Trainee: undefined;

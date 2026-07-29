@@ -10,6 +10,7 @@ import { ConvertProposal } from '../../components/dashboard/business/proposal/Co
 import { IssuedPolicy } from '../../components/dashboard/business/IssuedPolicy';
 import { TwoWheelerInsurance } from '../../components/dashboard/business/motor/TwoWheelerInsurance';
 import { VehicleTypeModal } from '../../components/dashboard/business/motor/VehicleTypeModal';
+import { WalkthroughTarget } from '../../components/dashboard/walkthrough/WalkthroughContext';
 import type { Policy } from '../../components/dashboard/business/businessData';
 
 type BizView =
@@ -32,16 +33,30 @@ const TITLES: Record<BizView['kind'], string> = {
 /** Motor products route to the Two-Wheeler / Motor flow; others to Health Guard. */
 const MOTOR_PRODUCTS = ['Private Car', 'Two Wheeler', 'Commercial Vehicle', 'Pay as you Consume'];
 
+/** A Quick Quotes tile tap. `product` is a Browse Categories product label;
+ *  without one the tile has no flow yet and lands on the product list. */
+export type QuoteRequest = { product?: string };
+
 interface BusinessScreenProps {
   /** Which view to open on mount. Defaults to the landing page. */
   initialView?: 'landing' | 'browse';
+  /** Set by the host when a Quick Quotes tile is tapped. A fresh object each
+   *  tap, so re-picking the same tile routes again. */
+  quoteRequest?: QuoteRequest | null;
+  /** Called once `quoteRequest` has been routed, so the host can clear it. */
+  onQuoteRequestHandled?: () => void;
   /** Reports when a full-screen view (browse / a wizard) is open, so the host
    *  can hide the bottom nav and show a back button. Passes a back handler. */
   onFullScreenChange?: (fullScreen: boolean, onBack: () => void) => void;
 }
 
 /** Business tab — landing (insights + lists + drafts) and the quote/proposal wizards. */
-export const BusinessScreen: React.FC<BusinessScreenProps> = ({ initialView = 'landing', onFullScreenChange }) => {
+export const BusinessScreen: React.FC<BusinessScreenProps> = ({
+  initialView = 'landing',
+  quoteRequest,
+  onQuoteRequestHandled,
+  onFullScreenChange,
+}) => {
   const [view, setView] = useState<BizView>(initialView === 'browse' ? { kind: 'browse' } : { kind: 'landing' });
   // Motor product awaiting a vehicle-type choice — the sheet opens over the
   // Browse Categories page, and the flow mounts only once a type is picked.
@@ -65,6 +80,21 @@ export const BusinessScreen: React.FC<BusinessScreenProps> = ({ initialView = 'l
     }
   };
 
+  // Route a Quick Quotes tile tap. Motor products land on the landing page with
+  // the vehicle-type sheet over it, so dismissing the sheet is never a dead end.
+  useEffect(() => {
+    if (!quoteRequest) {
+      return;
+    }
+    if (quoteRequest.product) {
+      selectProduct(quoteRequest.product);
+    } else {
+      setView({ kind: 'browse' });
+    }
+    onQuoteRequestHandled?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quoteRequest]);
+
   return (
     <View style={styles.flex}>
       {/* Landing, browse and the quote/proposal wizards have no top header. */}
@@ -80,7 +110,9 @@ export const BusinessScreen: React.FC<BusinessScreenProps> = ({ initialView = 'l
       {view.kind === 'landing' ? (
         <>
           <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-            <BusinessInsights />
+            <WalkthroughTarget id="business-insights">
+              <BusinessInsights />
+            </WalkthroughTarget>
             <SharedQuotes
               onEditQuote={(q) => setView({ kind: 'healthguard', product: q.product })}
               onConvertToProposal={(q) => setView({ kind: 'convert', customer: q.customer })}

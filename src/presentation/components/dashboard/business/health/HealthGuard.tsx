@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
-import { Button, colors, spacing, radius, typography } from '@atlas-ds/react-native';
+import { ToastGlobal, colors, spacing, radius, typography } from '@atlas-ds/react-native';
 import { QuoteFooter } from '../QuoteFooter';
 import { ShareQuoteModal } from '../motor/ShareQuoteModal';
 import { HealthGuardHeader } from './HealthGuardHeader';
@@ -9,7 +9,7 @@ import { ProposerDetailsStep } from './ProposerDetailsStep';
 import { AddOnsStep } from './AddOnsStep';
 import { PreviewStep } from './PreviewStep';
 import { PolicyTenurePremium } from './PolicyTenurePremium';
-import { buildMembers, type MemberDatum } from './healthData';
+import { buildMembers, planValueForProduct, type MemberDatum } from './healthData';
 
 const STEPS = [
   { label: 'Plan' },
@@ -19,6 +19,9 @@ const STEPS = [
   { label: 'Premium' },
   { label: 'Preview' },
 ];
+
+/** Policy years per tenure option offered on the premium step. */
+const TENURE_YEARS: Record<string, number> = { '1y': 1, '2y': 2, '3y': 3 };
 
 interface HealthGuardProps {
   productName: string;
@@ -34,7 +37,8 @@ interface HealthGuardProps {
 export const HealthGuard: React.FC<HealthGuardProps> = ({ productName, onClose, onConvertToProposal }) => {
   const [currentStep, setCurrentStep] = useState(1);
 
-  const [selectedPlan, setSelectedPlan] = useState('health-guard');
+  // Preselect the product the flow was entered with (Browse Categories tile).
+  const [selectedPlan, setSelectedPlan] = useState(() => planValueForProduct(productName));
   const [planType, setPlanType] = useState('');
   const [subPlan, setSubPlan] = useState('');
   const [adults, setAdults] = useState('0');
@@ -57,6 +61,41 @@ export const HealthGuard: React.FC<HealthGuardProps> = ({ productName, onClose, 
   const [keepAddOnsSame, setKeepAddOnsSame] = useState(false);
   const [floaterAddOns, setFloaterAddOns] = useState<string[]>([]);
   const [showShare, setShowShare] = useState(false);
+  const [tenure, setTenure] = useState('');
+  const [showBrochureToast, setShowBrochureToast] = useState(false);
+  const brochureTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (brochureTimer.current) {
+      clearTimeout(brochureTimer.current);
+    }
+  }, []);
+
+  // Mirrors the web brochure toast: show, then auto-dismiss after 3s.
+  const handleDownloadBrochure = () => {
+    if (brochureTimer.current) {
+      clearTimeout(brochureTimer.current);
+    }
+    setShowBrochureToast(true);
+    brochureTimer.current = setTimeout(() => setShowBrochureToast(false), 3000);
+  };
+
+  // Sub-plan tiers and their benefit lists live on the members step; until the
+  // web FeaturesModal is ported, "View features" jumps there.
+  const handleViewFeatures = () => setCurrentStep(2);
+
+  // Picking a tenure also recalculates the end date off the start date, the
+  // same way the motor flow's `calculatePolicyEndDate` does.
+  const selectTenure = (value: string) => {
+    setTenure(value);
+    const years = TENURE_YEARS[value];
+    if (!startDate || !years) {
+      return;
+    }
+    const end = new Date(startDate);
+    end.setFullYear(end.getFullYear() + years);
+    setEndDate(end);
+  };
 
   const members = useMemo(
     () => buildMembers(proposerIsMember, proposerName, Number(adults), Number(seniorCitizens), Number(childrenCount)),
@@ -123,7 +162,13 @@ export const HealthGuard: React.FC<HealthGuardProps> = ({ productName, onClose, 
   return (
     <View style={styles.flex}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {currentStep !== 6 ? <HealthGuardHeader productName={productName} /> : null}
+        {currentStep !== 6 ? (
+          <HealthGuardHeader
+            productName={productName}
+            onDownloadBrochure={handleDownloadBrochure}
+            onViewFeatures={handleViewFeatures}
+          />
+        ) : null}
 
         {currentStep === 1 || currentStep === 2 ? (
           <PlanDetailsStep
@@ -182,7 +227,7 @@ export const HealthGuard: React.FC<HealthGuardProps> = ({ productName, onClose, 
             setFloaterAddOns={setFloaterAddOns}
           />
         ) : currentStep === 5 ? (
-          <PolicyTenurePremium />
+          <PolicyTenurePremium tenure={tenure} onSelectTenure={selectTenure} />
         ) : (
           <PreviewStep
             productName={productName}
@@ -214,6 +259,12 @@ export const HealthGuard: React.FC<HealthGuardProps> = ({ productName, onClose, 
         onClose={() => setShowShare(false)}
         quoteData={{ id: 'QT - 28686-8728387', customerName: proposerName || 'Customer', policyType: `${productName} Policy` }}
       />
+
+      {showBrochureToast ? (
+        <View style={styles.toast} pointerEvents="box-none">
+          <ToastGlobal variant="success" title="Brochure is downloaded!" />
+        </View>
+      ) : null}
     </View>
   );
 };
@@ -223,6 +274,8 @@ const styles = StyleSheet.create({
   content: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl },
   // Full-bleed: the footer bar supplies its own padding.
   footer: {},
+  // Floats over the step content, clear of the header row.
+  toast: { position: 'absolute', top: spacing.lg, left: spacing.lg, right: spacing.lg, zIndex: 20 },
   modalScrim: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
   modalCard: { width: '100%', maxWidth: 420, backgroundColor: colors.surface, borderRadius: radius.xl, padding: spacing.xl, gap: spacing.md, alignItems: 'center' },
   modalTitle: { fontFamily: typography.fontFamily, fontSize: 18, fontWeight: '600', color: colors.textHeading },

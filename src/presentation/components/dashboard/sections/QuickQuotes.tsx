@@ -5,13 +5,21 @@ import { Button, colors, spacing, radius, typography, shadow, fontFamilyForWeigh
 import { dashboardImages } from '../images';
 import { CustomizeModal, type CustomizeOption } from './CustomizeModal';
 
-const QUICK_QUOTE_DATA: Record<string, { label: string; icon: keyof typeof dashboardImages }> = {
-  health: { label: 'Health Insurance', icon: 'health' },
+/**
+ * `product` is the Browse Categories product a tile opens, so a tap lands
+ * straight in that quote flow. Tiles whose product has no flow yet carry
+ * `undefined` and fall back to the Create Quote product list.
+ */
+const QUICK_QUOTE_DATA: Record<
+  string,
+  { label: string; icon: keyof typeof dashboardImages; product?: string }
+> = {
+  health: { label: 'Health Insurance', icon: 'health', product: 'Health Guard' },
   fire: { label: 'Fire Insurance', icon: 'fire' },
-  motor: { label: 'Motor Insurance', icon: 'motor' },
+  motor: { label: 'Motor Insurance', icon: 'motor', product: 'Private Car' },
   property: { label: 'Property Insurance', icon: 'property' },
-  twmotorinsurance: { label: '2W Motor Insurance', icon: 'motor' },
-  fourwheelerinsurance: { label: '4W Insurance', icon: 'motor' },
+  twmotorinsurance: { label: '2W Motor Insurance', icon: 'motor', product: 'Two Wheeler' },
+  fourwheelerinsurance: { label: '4W Insurance', icon: 'motor', product: 'Private Car' },
 };
 
 const QUICK_QUOTE_OPTIONS: CustomizeOption[] = Object.entries(QUICK_QUOTE_DATA).map(
@@ -19,7 +27,11 @@ const QUICK_QUOTE_OPTIONS: CustomizeOption[] = Object.entries(QUICK_QUOTE_DATA).
 );
 
 interface QuickQuotesProps {
-  onNavigateToQuote?: (tile: string) => void;
+  /**
+   * Opens the Business tab on a quote. `product` is a Browse Categories
+   * product label, or undefined to land on the product list instead.
+   */
+  onNavigateToQuote?: (product?: string) => void;
 }
 
 export const QuickQuotes: React.FC<QuickQuotesProps> = ({ onNavigateToQuote }) => {
@@ -57,7 +69,7 @@ export const QuickQuotes: React.FC<QuickQuotesProps> = ({ onNavigateToQuote }) =
               key={value}
               style={styles.tile}
               accessibilityRole="button"
-              onPress={() => value === 'health' && onNavigateToQuote?.('Health Guard')}
+              onPress={() => onNavigateToQuote?.(item.product)}
             >
               <Image source={dashboardImages[item.icon]} style={styles.tileIcon} resizeMode="contain" />
               <Text style={styles.tileLabel} numberOfLines={1}>

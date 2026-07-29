@@ -78,7 +78,6 @@ export const Calendar: React.FC<CalendarProps> = ({
       ),
     [anchorMonth, monthWindow]
   );
-  const initialIndex = monthWindow; // anchor sits at the center
   // Last year reachable in the scroll window — the year picker is capped to
   // this so a selected year always has a month page to scroll to.
   const maxNavigableYear = months[months.length - 1].getFullYear();
@@ -86,6 +85,17 @@ export const Calendar: React.FC<CalendarProps> = ({
   const [headerDate, setHeaderDate] = useState<Date>(anchorMonth);
   const [view, setView] = useState<CalendarView>('days');
   const listRef = useRef<FlatList<Date>>(null);
+
+  // The day list unmounts while a picker is open, so `scrollToMonth` can't
+  // reach it — `initialScrollIndex`, read when the list remounts, is what
+  // actually lands us on the chosen month. Derive it from `headerDate` rather
+  // than pinning it to the anchor, otherwise returning from the month/year
+  // picker snaps back to the month the calendar opened on. Re-reads after
+  // mount are ignored by FlatList, so scrolling isn't affected.
+  const initialIndex = useMemo(() => {
+    const idx = months.findIndex((m) => monthKey(m) === monthKey(headerDate));
+    return idx < 0 ? monthWindow : idx;
+  }, [months, headerDate, monthWindow]);
 
   // ---- header navigation (chevrons) ----------------------------------------
   const scrollToMonth = useCallback((target: Date) => {

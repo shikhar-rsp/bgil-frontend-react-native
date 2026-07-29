@@ -170,8 +170,10 @@ const styles = StyleSheet.create({
   headerLabelActive: {
     color: colors.brand,
   },
+  // No `flex: 1` here: hosts size to their content (the DatePicker sheet has no
+  // fixed height), so flexing would collapse the grid to zero and render the
+  // month picker invisible. Rows carry their own padding, so this sizes itself.
   grid: {
-    flex: 1,
     paddingHorizontal: spacing.sm, // 8
     paddingVertical: spacing.sm,   // 8
     gap: spacing.md,               // 12 between rows
