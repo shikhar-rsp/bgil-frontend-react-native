@@ -8,6 +8,7 @@ import {
   type NativeSyntheticEvent,
   type NativeScrollEvent,
 } from 'react-native';
+import { ListChecks } from 'phosphor-react-native';
 import { Button, BottomNav, colors, spacing, typography, type BottomNavItem } from '@atlas-ds/react-native';
 import { DashboardTopBar, HEADER_GRADIENTS } from '../../components/dashboard/sections/DashboardTopBar';
 import { YourInsights } from '../../components/dashboard/sections/YourInsights';
@@ -33,7 +34,16 @@ import type { AuthScreenProps } from '../../../navigation';
 const NAV_ITEMS: BottomNavItem[] = [
   { key: 'Home', label: 'Home', iconName: 'home' },
   { key: 'Business', label: 'Business', iconName: 'bank' },
-  { key: 'Customer', label: 'Customer', iconName: 'user' },
+  // BottomNav's built-in glyph set has no tasks icon, so this passes Phosphor
+  // through the `icon` override. Custom nodes are rendered as-is — the bar
+  // doesn't recolour them — so both states are supplied to match the built-ins
+  // (regular + textBody inactive, fill + brand active).
+  {
+    key: 'Tasks',
+    label: 'Tasks',
+    icon: <ListChecks size={24} color={colors.textBody} weight="regular" />,
+    activeIcon: <ListChecks size={24} color={colors.brand} weight="fill" />,
+  },
   { key: 'More', label: 'More', iconName: 'grid' },
 ];
 
@@ -186,6 +196,14 @@ const DashboardScreenInner: React.FC<AuthScreenProps<'Dashboard'>> = ({ navigati
                   <QuickQuotes
                     onNavigateToQuote={(product) => {
                       setQuoteRequest({ product });
+                      setSelectedItem('Business');
+                    }}
+                    onNavigateToRenewals={() => {
+                      setQuoteRequest({ tab: 'renewals' });
+                      setSelectedItem('Business');
+                    }}
+                    onNavigateToEndorsements={() => {
+                      setQuoteRequest({ page: 'endorsements' });
                       setSelectedItem('Business');
                     }}
                   />

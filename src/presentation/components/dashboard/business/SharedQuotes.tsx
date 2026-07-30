@@ -32,7 +32,7 @@ import {
   type Renewal,
 } from './businessData';
 
-type TabKey = 'quotes' | 'proposals' | 'policies' | 'renewals';
+export type TabKey = 'quotes' | 'proposals' | 'policies' | 'renewals';
 
 type ToastState = { variant: 'success' | 'error' | 'neutral' | 'info'; title: string; message?: string } | null;
 
@@ -139,6 +139,14 @@ export interface SharedQuotesProps {
   onCreateQuote?: () => void;
   /** Optional: opens an existing proposal for editing. */
   onEditProposal?: (p: Proposal) => void;
+  /** Opens the renewal wizard for a policy due for renewal. */
+  onRenewPolicy?: (r: Renewal) => void;
+  /** Opens the read-only renewal summary for a policy due for renewal. */
+  onViewRenewal?: (r: Renewal) => void;
+  /** Opens the endorsements list, scoped to a policy when one is given. */
+  onEndorsement?: (p: Policy) => void;
+  /** Selects a tab from outside — e.g. a Quick Quotes tile choosing Renewals. */
+  initialTab?: TabKey;
 }
 
 export const SharedQuotes: React.FC<SharedQuotesProps> = ({
@@ -147,8 +155,20 @@ export const SharedQuotes: React.FC<SharedQuotesProps> = ({
   onViewPolicy,
   onCreateQuote,
   onEditProposal,
+  onRenewPolicy,
+  onViewRenewal,
+  onEndorsement,
+  initialTab,
 }) => {
-  const [activeTab, setActiveTab] = useState<TabKey>('quotes');
+  const [activeTab, setActiveTab] = useState<TabKey>(initialTab ?? 'quotes');
+
+  // Follow the host when it asks for a specific tab; the user can still switch
+  // freely afterwards.
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
   const [search, setSearch] = useState('');
   const [filterOpen, setFilterOpen] = useState(false);
   const [filtersByTab, setFiltersByTab] = useState<Record<TabKey, Record<string, string[]>>>({
@@ -388,18 +408,14 @@ export const SharedQuotes: React.FC<SharedQuotesProps> = ({
           onShare={(p) =>
             setShareTarget({ kind: 'policy', id: p.policyId, customerName: p.customer, policyType: p.product })
           }
-          onEndorsement={(p) =>
-            setToast({ variant: 'info', title: 'Endorsement', message: `Not available yet for ${p.policyId}.` })
-          }
+          onEndorsement={(p) => onEndorsement?.(p)}
         />
       ) : (
         <RenewalsList
           data={filteredRenewals}
           searchStatus={resolveSearchStatus(search, filteredRenewals.length)}
           isSourceEmpty={RENEWALS.length === 0}
-          onRenew={(r) =>
-            setToast({ variant: 'info', title: 'Renew policy', message: `The renewal flow for ${r.renewalPolicyId} is not built yet.` })
-          }
+          onRenew={(r) => onRenewPolicy?.(r)}
           onShareNotice={(r) =>
             setShareTarget({
               kind: 'renewal',
@@ -408,9 +424,7 @@ export const SharedQuotes: React.FC<SharedQuotesProps> = ({
               policyType: r.product,
             })
           }
-          onViewPolicy={(r) =>
-            setToast({ variant: 'info', title: 'View policy', message: `No policy record linked to ${r.renewalPolicyId} yet.` })
-          }
+          onViewPolicy={(r) => onViewRenewal?.(r)}
           onCallCustomer={(r) => setToast({ variant: 'neutral', title: `Calling ${r.customer}…` })}
         />
       )}

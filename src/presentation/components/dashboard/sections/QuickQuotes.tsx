@@ -1,8 +1,18 @@
 import React, { useState } from 'react';
 import { View, Text, Image, Pressable, StyleSheet } from 'react-native';
-import { FadersHorizontal } from 'phosphor-react-native';
-import { Button, colors, spacing, radius, typography, shadow, fontFamilyForWeight } from '@atlas-ds/react-native';
+import { FadersHorizontal, FilePlus, ArrowsClockwise, HandCoins, NotePencil } from 'phosphor-react-native';
+import {
+  Button,
+  Modal,
+  colors,
+  spacing,
+  radius,
+  typography,
+  shadow,
+  fontFamilyForWeight,
+} from '@atlas-ds/react-native';
 import { dashboardImages } from '../images';
+import { ActionMenu } from '../common/ActionMenu';
 import { CustomizeModal, type CustomizeOption } from './CustomizeModal';
 
 /**
@@ -32,11 +42,24 @@ interface QuickQuotesProps {
    * product label, or undefined to land on the product list instead.
    */
   onNavigateToQuote?: (product?: string) => void;
+  /** Opens the Business tab on the Renewals list. */
+  onNavigateToRenewals?: () => void;
+  /** Opens the Business tab on the Endorsements page. */
+  onNavigateToEndorsements?: () => void;
 }
 
-export const QuickQuotes: React.FC<QuickQuotesProps> = ({ onNavigateToQuote }) => {
+const MENU_ICON = 18;
+
+export const QuickQuotes: React.FC<QuickQuotesProps> = ({
+  onNavigateToQuote,
+  onNavigateToRenewals,
+  onNavigateToEndorsements,
+}) => {
   const [isCustomizeOpen, setIsCustomizeOpen] = useState(false);
   const [activeQuotes, setActiveQuotes] = useState<string[]>(['health', 'fire', 'motor', 'property']);
+  // Claims still opens a side drawer on web that has no RN equivalent yet — say
+  // so rather than letting the menu item do nothing.
+  const [unavailable, setUnavailable] = useState<string | null>(null);
 
   const visibleQuotes = activeQuotes.filter((val) => val && QUICK_QUOTE_DATA[val]);
 
@@ -71,6 +94,41 @@ export const QuickQuotes: React.FC<QuickQuotesProps> = ({ onNavigateToQuote }) =
               accessibilityRole="button"
               onPress={() => onNavigateToQuote?.(item.product)}
             >
+              {/* Per-tile actions, matching the web tile's ⋮ menu. Always
+                  visible here — there is no hover state to reveal it on. */}
+              <View style={styles.tileMenu}>
+                <ActionMenu
+                  variant="boxed"
+                  accessibilityLabel={`Actions for ${item.label}`}
+                  items={[
+                    {
+                      key: 'quote',
+                      label: 'Create Quote',
+                      icon: <FilePlus size={MENU_ICON} color={colors.textBody} />,
+                      onPress: () => onNavigateToQuote?.(item.product),
+                    },
+                    {
+                      key: 'renewals',
+                      label: 'Renewals',
+                      icon: <ArrowsClockwise size={MENU_ICON} color={colors.textBody} />,
+                      onPress: () => onNavigateToRenewals?.(),
+                    },
+                    {
+                      key: 'claims',
+                      label: 'Claims',
+                      icon: <HandCoins size={MENU_ICON} color={colors.textBody} />,
+                      onPress: () => setUnavailable('Claims'),
+                    },
+                    {
+                      key: 'endorsement',
+                      label: 'Endorsement',
+                      icon: <NotePencil size={MENU_ICON} color={colors.textBody} />,
+                      onPress: () => onNavigateToEndorsements?.(),
+                    },
+                  ]}
+                />
+              </View>
+
               <Image source={dashboardImages[item.icon]} style={styles.tileIcon} resizeMode="contain" />
               <Text style={styles.tileLabel} numberOfLines={1}>
                 {item.label}
@@ -90,6 +148,14 @@ export const QuickQuotes: React.FC<QuickQuotesProps> = ({ onNavigateToQuote }) =
         description="Select the quotes you want to see on your dashboard"
         options={QUICK_QUOTE_OPTIONS}
         maxSelections={4}
+      />
+
+      <Modal
+        visible={unavailable !== null}
+        onClose={() => setUnavailable(null)}
+        title={`${unavailable} coming soon`}
+        subtitle={`The ${unavailable?.toLowerCase()} journey hasn’t been built for mobile yet.`}
+        primaryAction={{ label: 'Got it', onPress: () => setUnavailable(null) }}
       />
     </View>
   );
@@ -113,7 +179,10 @@ const styles = StyleSheet.create({
   // row and truncated. The row still fills the card.
   actionBtn: { flexGrow: 1, flexBasis: 'auto' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
+  // `relative` so the ⋮ can be pinned to the tile's top-right corner.
+  tileMenu: { position: 'absolute', top: spacing.sm, right: spacing.sm, zIndex: 1 },
   tile: {
+    position: 'relative',
     width: '47%',
     flexGrow: 1,
     alignItems: 'center',

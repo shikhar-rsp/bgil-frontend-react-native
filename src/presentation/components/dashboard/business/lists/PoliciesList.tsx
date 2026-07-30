@@ -2,7 +2,7 @@ import React from 'react';
 import { View, FlatList, StyleSheet } from 'react-native';
 import { DownloadSimple, ShareNetwork, NotePencil } from 'phosphor-react-native';
 import { colors } from '@atlas-ds/react-native';
-import { RowActionMenu } from './RowActionMenu';
+import { ActionMenu } from '../../common/ActionMenu';
 import { RecordCard } from './RecordCard';
 import { ListEmptyState, type SearchStatus } from './ListEmptyState';
 import { statusColor, type Policy } from '../businessData';
@@ -49,7 +49,7 @@ export const PoliciesList: React.FC<PoliciesListProps> = ({
         statusColor={statusColor(item.status)}
         onPress={() => onView(item)}
         menu={
-          <RowActionMenu
+          <ActionMenu
             items={[
               { key: 'download', label: 'Download', icon: <DownloadSimple size={ICON} color={colors.textBody} />, onPress: () => onDownload(item) },
               { key: 'share', label: 'Share', icon: <ShareNetwork size={ICON} color={colors.textBody} />, onPress: () => onShare(item) },

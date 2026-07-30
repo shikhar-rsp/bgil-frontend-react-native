@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
-import { ArrowLeft } from 'phosphor-react-native';
+import { ArrowLeft, ListChecks } from 'phosphor-react-native';
 import {
   BottomNav,
   Button,
@@ -46,7 +46,14 @@ const RM_TOOLS = ['Brochures', 'Calculators', 'Campaigns', 'Query Tracker'];
 const NAV_ITEMS: BottomNavItem[] = [
   { key: 'Home', label: 'Home', iconName: 'home' },
   { key: 'Business', label: 'Business', iconName: 'bank' },
-  { key: 'Customer', label: 'Customer', iconName: 'user' },
+  // Phosphor override — BottomNav has no built-in tasks glyph, and custom
+  // icons are rendered without recolouring, so both states are supplied.
+  {
+    key: 'Tasks',
+    label: 'Tasks',
+    icon: <ListChecks size={24} color={colors.textBody} weight="regular" />,
+    activeIcon: <ListChecks size={24} color={colors.brand} weight="fill" />,
+  },
   { key: 'More', label: 'More', iconName: 'grid' },
 ];
 

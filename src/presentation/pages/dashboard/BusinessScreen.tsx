@@ -1,17 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
 import { Plus, CaretLeft } from 'phosphor-react-native';
-import { Button, colors, spacing, radius, typography, shadow } from '@atlas-ds/react-native';
+import { Button, colors, spacing, typography, shadow } from '@atlas-ds/react-native';
 import { BusinessInsights } from '../../components/dashboard/business/BusinessInsights';
-import { SharedQuotes } from '../../components/dashboard/business/SharedQuotes';
+import { SharedQuotes, type TabKey } from '../../components/dashboard/business/SharedQuotes';
 import { BrowseCategories } from '../../components/dashboard/business/BrowseCategories';
 import { HealthGuard } from '../../components/dashboard/business/health/HealthGuard';
 import { ConvertProposal } from '../../components/dashboard/business/proposal/ConvertProposal';
+import { RenewPolicy } from '../../components/dashboard/business/renewal/RenewPolicy';
+import { EndorsementsPage } from '../../components/dashboard/business/endorsement/EndorsementsPage';
 import { IssuedPolicy } from '../../components/dashboard/business/IssuedPolicy';
 import { TwoWheelerInsurance } from '../../components/dashboard/business/motor/TwoWheelerInsurance';
 import { VehicleTypeModal } from '../../components/dashboard/business/motor/VehicleTypeModal';
 import { WalkthroughTarget } from '../../components/dashboard/walkthrough/WalkthroughContext';
-import type { Policy } from '../../components/dashboard/business/businessData';
+import type { Policy, Renewal } from '../../components/dashboard/business/businessData';
 
 type BizView =
   | { kind: 'landing' }
@@ -19,7 +21,11 @@ type BizView =
   | { kind: 'healthguard'; product: string }
   | { kind: 'motor'; product: string; vehicleType: 'registered' | 'new' }
   | { kind: 'convert'; customer: string }
-  | { kind: 'policy'; policy: Policy };
+  | { kind: 'policy'; policy: Policy }
+  /** `view` opens the read-only renewal summary; `flow` opens the wizard. */
+  | { kind: 'renewal'; renewal: Renewal; mode: 'view' | 'flow' }
+  /** `search` pre-fills the search box (set when opened from a policy row). */
+  | { kind: 'endorsements'; search?: string };
 
 const TITLES: Record<BizView['kind'], string> = {
   landing: 'My Business',
@@ -28,6 +34,8 @@ const TITLES: Record<BizView['kind'], string> = {
   motor: 'Motor Insurance',
   convert: 'Convert to Proposal',
   policy: 'Policy Details',
+  renewal: 'Renew Policy',
+  endorsements: 'Endorsements',
 };
 
 /** Motor products route to the Two-Wheeler / Motor flow; others to Health Guard. */
@@ -35,7 +43,13 @@ const MOTOR_PRODUCTS = ['Private Car', 'Two Wheeler', 'Commercial Vehicle', 'Pay
 
 /** A Quick Quotes tile tap. `product` is a Browse Categories product label;
  *  without one the tile has no flow yet and lands on the product list. */
-export type QuoteRequest = { product?: string };
+export type QuoteRequest = {
+  product?: string;
+  /** Land on a specific Shared Quotes tab instead of opening a product. */
+  tab?: TabKey;
+  /** Open a standalone Business page instead of a product or a tab. */
+  page?: 'endorsements';
+};
 
 interface BusinessScreenProps {
   /** Which view to open on mount. Defaults to the landing page. */
@@ -61,6 +75,9 @@ export const BusinessScreen: React.FC<BusinessScreenProps> = ({
   // Motor product awaiting a vehicle-type choice — the sheet opens over the
   // Browse Categories page, and the flow mounts only once a type is picked.
   const [pendingMotor, setPendingMotor] = useState<string | null>(null);
+  // Which Shared Quotes tab the landing page should show, when something
+  // outside the list asks for one (e.g. a Quick Quotes tile choosing Renewals).
+  const [landingTab, setLandingTab] = useState<TabKey | undefined>(undefined);
 
   // Everything except the landing page is full-screen (no bottom nav). Keyed on
   // `view.kind` only — including the callback would re-run this on every render
@@ -86,7 +103,12 @@ export const BusinessScreen: React.FC<BusinessScreenProps> = ({
     if (!quoteRequest) {
       return;
     }
-    if (quoteRequest.product) {
+    if (quoteRequest.page === 'endorsements') {
+      setView({ kind: 'endorsements' });
+    } else if (quoteRequest.tab) {
+      setLandingTab(quoteRequest.tab);
+      setView({ kind: 'landing' });
+    } else if (quoteRequest.product) {
       selectProduct(quoteRequest.product);
     } else {
       setView({ kind: 'browse' });
@@ -97,13 +119,16 @@ export const BusinessScreen: React.FC<BusinessScreenProps> = ({
 
   return (
     <View style={styles.flex}>
-      {/* Landing, browse and the quote/proposal wizards have no top header. */}
-      {view.kind === 'policy' ? (
+      {/* Landing, browse and the quote/proposal wizards have no top header —
+          the policy and renewal screens do, since they open from a list row. */}
+      {view.kind === 'policy' || view.kind === 'renewal' || view.kind === 'endorsements' ? (
         <View style={styles.header}>
           <Pressable onPress={goLanding} hitSlop={8} accessibilityRole="button" accessibilityLabel="Back" style={styles.back}>
             <CaretLeft size={18} color={colors.textBody} weight="bold" />
           </Pressable>
-          <Text style={styles.title}>{TITLES[view.kind]}</Text>
+          <Text style={styles.title}>
+            {view.kind === 'renewal' && view.mode === 'view' ? 'Policy Details' : TITLES[view.kind]}
+          </Text>
         </View>
       ) : null}
 
@@ -114,9 +139,15 @@ export const BusinessScreen: React.FC<BusinessScreenProps> = ({
               <BusinessInsights />
             </WalkthroughTarget>
             <SharedQuotes
+              initialTab={landingTab}
               onEditQuote={(q) => setView({ kind: 'healthguard', product: q.product })}
               onConvertToProposal={(q) => setView({ kind: 'convert', customer: q.customer })}
               onViewPolicy={(p) => setView({ kind: 'policy', policy: p })}
+              onRenewPolicy={(r) => setView({ kind: 'renewal', renewal: r, mode: 'flow' })}
+              onViewRenewal={(r) => setView({ kind: 'renewal', renewal: r, mode: 'view' })}
+              // Web's policy-row endorsement action is a stub; opening the
+              // endorsements list filtered to that policy is the useful read.
+              onEndorsement={(p) => setView({ kind: 'endorsements', search: p.policyId })}
               onCreateQuote={() => setView({ kind: 'browse' })}
             />
           </ScrollView>
@@ -150,6 +181,18 @@ export const BusinessScreen: React.FC<BusinessScreenProps> = ({
         />
       ) : view.kind === 'convert' ? (
         <ConvertProposal customerName={view.customer} onClose={goLanding} />
+      ) : view.kind === 'renewal' ? (
+        <RenewPolicy
+          record={view.renewal}
+          mode={view.mode}
+          onClose={goLanding}
+          // "Renew Policy" in the read-only view hands over to the wizard; flip
+          // the view's mode so the header retitles with it. RenewPolicy stays
+          // mounted, so nothing the agent entered is lost.
+          onRenewFlowStart={() => setView({ kind: 'renewal', renewal: view.renewal, mode: 'flow' })}
+        />
+      ) : view.kind === 'endorsements' ? (
+        <EndorsementsPage initialSearch={view.search} />
       ) : (
         <IssuedPolicy policy={view.policy} onClose={goLanding} />
       )}

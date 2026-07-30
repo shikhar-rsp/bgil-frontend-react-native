@@ -2,7 +2,7 @@ import React from 'react';
 import { View, FlatList, StyleSheet } from 'react-native';
 import { ArrowsClockwise, ShareNetwork, Eye, Phone } from 'phosphor-react-native';
 import { colors } from '@atlas-ds/react-native';
-import { RowActionMenu } from './RowActionMenu';
+import { ActionMenu } from '../../common/ActionMenu';
 import { RecordCard } from './RecordCard';
 import { ListEmptyState, type SearchStatus } from './ListEmptyState';
 import { statusColor, expiringWithinColor, type Renewal } from '../businessData';
@@ -45,7 +45,7 @@ export const RenewalsList: React.FC<RenewalsListProps> = ({
         status={item.status}
         statusColor={statusColor(item.status)}
         menu={
-          <RowActionMenu
+          <ActionMenu
             items={[
               { key: 'renew', label: 'Renew Policy', icon: <ArrowsClockwise size={ICON} color={colors.textBody} />, onPress: () => onRenew(item) },
               { key: 'share', label: 'Share Renewal Notice', icon: <ShareNetwork size={ICON} color={colors.textBody} />, onPress: () => onShareNotice(item) },

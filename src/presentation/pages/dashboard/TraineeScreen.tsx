@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { ListChecks } from 'phosphor-react-native';
 import { Button, BottomNav, colors, spacing, typography, type BottomNavItem } from '@atlas-ds/react-native';
 import { DashboardTopBar, HEADER_GRADIENTS } from '../../components/dashboard/sections/DashboardTopBar';
 import { QuickQuotes } from '../../components/dashboard/sections/QuickQuotes';
@@ -19,7 +20,14 @@ import type { AuthScreenProps } from '../../../navigation';
 const NAV_ITEMS: BottomNavItem[] = [
   { key: 'Home', label: 'Home', iconName: 'home' },
   { key: 'Business', label: 'Business', iconName: 'bank' },
-  { key: 'Customer', label: 'Customer', iconName: 'user' },
+  // Phosphor override — BottomNav has no built-in tasks glyph, and custom
+  // icons are rendered without recolouring, so both states are supplied.
+  {
+    key: 'Tasks',
+    label: 'Tasks',
+    icon: <ListChecks size={24} color={colors.textBody} weight="regular" />,
+    activeIcon: <ListChecks size={24} color={colors.brand} weight="fill" />,
+  },
   { key: 'More', label: 'More', iconName: 'grid' },
 ];
 

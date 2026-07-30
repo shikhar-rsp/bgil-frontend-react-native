@@ -2,7 +2,7 @@ import React from 'react';
 import { View, FlatList, StyleSheet } from 'react-native';
 import { Copy, Trash, PencilSimple, FileText } from 'phosphor-react-native';
 import { colors } from '@atlas-ds/react-native';
-import { RowActionMenu } from './RowActionMenu';
+import { ActionMenu } from '../../common/ActionMenu';
 import { RecordCard } from './RecordCard';
 import { ListEmptyState, type SearchStatus } from './ListEmptyState';
 import { statusColor, type Quote } from '../businessData';
@@ -49,7 +49,7 @@ export const QuotesList: React.FC<QuotesListProps> = ({
         status={item.status}
         statusColor={statusColor(item.status)}
         menu={
-          <RowActionMenu
+          <ActionMenu
             items={[
               { key: 'duplicate', label: 'Duplicate', icon: <Copy size={ICON} color={colors.textBody} />, onPress: () => onDuplicate(item) },
               { key: 'delete', label: 'Delete', icon: <Trash size={ICON} color={colors.textBody} />, onPress: () => onDelete(item) },

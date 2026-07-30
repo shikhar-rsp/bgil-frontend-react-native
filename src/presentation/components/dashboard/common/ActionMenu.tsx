@@ -1,9 +1,10 @@
 import React, { useRef, useState } from 'react';
 import { View, Modal, Pressable, StyleSheet, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DotsThreeVertical } from 'phosphor-react-native';
 import { AvatarDropdownItem, colors, radius, spacing, shadow } from '@atlas-ds/react-native';
 
-export interface RowAction {
+export interface ActionMenuItem {
   key: string;
   label: string;
   icon?: React.ReactNode;
@@ -11,8 +12,10 @@ export interface RowAction {
   onPress: () => void;
 }
 
-interface RowActionMenuProps {
-  items: RowAction[];
+interface ActionMenuProps {
+  items: ActionMenuItem[];
+  /** `plain` is a bare ⋮ (list rows); `boxed` adds the bordered chip used on tiles. */
+  variant?: 'plain' | 'boxed';
   accessibilityLabel?: string;
 }
 
@@ -22,42 +25,57 @@ const GAP = 4;
 const EDGE = spacing.sm;
 
 /**
- * The ⋮ row-actions button and its anchored menu.
+ * A ⋮ trigger and the menu it anchors.
  *
- * Opens a small card next to the button that was tapped, rather than the
- * full-width `MoreMenu` grid docked at the bottom of the screen — with long
- * lists that grid meant scrolling to the end to reach the actions for a row
- * near the top.
+ * Opens a small card next to the button that was tapped, rather than a
+ * full-width sheet docked at the bottom of the screen — with long lists that
+ * meant scrolling to the end to reach the actions for a row near the top.
  *
- * Anchoring follows `AvatarDropdown`: measure the trigger in window
- * coordinates, then position a `Modal`-hosted card from those coordinates so it
- * escapes the scroll container. Rows reuse `AvatarDropdownItem` so the icon +
- * label treatment matches the profile menu.
+ * Anchoring follows the design system's `AvatarDropdown`: measure the trigger
+ * in window coordinates, then position a `Modal`-hosted card from those
+ * coordinates so it escapes any scroll container. Rows reuse
+ * `AvatarDropdownItem` so the icon + label treatment matches the profile menu.
  */
-export const RowActionMenu: React.FC<RowActionMenuProps> = ({ items, accessibilityLabel = 'Row actions' }) => {
+export const ActionMenu: React.FC<ActionMenuProps> = ({
+  items,
+  variant = 'plain',
+  accessibilityLabel = 'Actions',
+}) => {
   const [open, setOpen] = useState(false);
   const [anchor, setAnchor] = useState({ top: 0, left: 0 });
   const triggerRef = useRef<View>(null);
   const { width: screenW, height: screenH } = useWindowDimensions();
+  // The menu is hosted in a full-screen Modal, so it has to clear the notch /
+  // Dynamic Island at the top and the home indicator at the bottom.
+  const insets = useSafeAreaInsets();
 
   // Rough card height, used only to decide whether to flip above the trigger.
   const menuHeight = items.length * 44 + spacing.sm * 2;
 
   const openMenu = () => {
     triggerRef.current?.measureInWindow((x, y, width, height) => {
-      // Right-align to the trigger, then clamp inside the screen.
-      const left = Math.min(Math.max(EDGE, x + width - MENU_WIDTH), screenW - MENU_WIDTH - EDGE);
+      // Right-align to the trigger, then clamp inside the safe area.
+      const minLeft = insets.left + EDGE;
+      const maxLeft = screenW - insets.right - MENU_WIDTH - EDGE;
+      const left = Math.min(Math.max(minLeft, x + width - MENU_WIDTH), Math.max(minLeft, maxLeft));
+      const topLimit = insets.top + EDGE;
       const below = y + height + GAP;
-      const flip = below + menuHeight > screenH - EDGE;
-      setAnchor({ top: flip ? Math.max(EDGE, y - menuHeight - GAP) : below, left });
+      const flip = below + menuHeight > screenH - insets.bottom - EDGE;
+      setAnchor({ top: flip ? Math.max(topLimit, y - menuHeight - GAP) : below, left });
       setOpen(true);
     });
   };
 
   return (
     <View ref={triggerRef} collapsable={false}>
-      <Pressable onPress={openMenu} hitSlop={8} accessibilityRole="button" accessibilityLabel={accessibilityLabel}>
-        <DotsThreeVertical size={20} color={colors.textBody} weight="bold" />
+      <Pressable
+        onPress={openMenu}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
+        style={variant === 'boxed' ? styles.boxedTrigger : undefined}
+      >
+        <DotsThreeVertical size={variant === 'boxed' ? 16 : 20} color={colors.textBody} weight="bold" />
       </Pressable>
 
       <Modal visible={open} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setOpen(false)}>
@@ -85,6 +103,14 @@ export const RowActionMenu: React.FC<RowActionMenuProps> = ({ items, accessibili
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1 },
+  // Bordered chip, per the tile treatment in the web dashboard.
+  boxedTrigger: {
+    padding: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
+    backgroundColor: colors.surface,
+  },
   menu: {
     position: 'absolute',
     width: MENU_WIDTH,

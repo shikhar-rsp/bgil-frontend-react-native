@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, BackHandler, InteractionManager, useWindowDimensions, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ProductTour, spacing } from '@atlas-ds/react-native';
 import { Spotlight } from './Spotlight';
 import { useWalkthrough, type TargetRect } from './WalkthroughContext';
@@ -18,6 +19,13 @@ interface DashboardWalkthroughProps {
 /** A freshly-switched tab needs a beat to mount and lay out before measuring. */
 const MEASURE_ATTEMPTS = 8;
 const MEASURE_INTERVAL = 70;
+
+/** Distance between the spotlight cutout and the coach-mark card. */
+const CARD_GAP = spacing.md;
+/** Minimum breathing room between the card and a screen edge. */
+const CARD_EDGE = spacing.lg;
+/** Used only until the card reports its real height via onLayout. */
+const CARD_HEIGHT_ESTIMATE = 190;
 
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
@@ -40,8 +48,15 @@ export const DashboardWalkthrough: React.FC<DashboardWalkthroughProps> = ({
 }) => {
   const registry = useWalkthrough();
   const { height: screenH } = useWindowDimensions();
+  // The overlay spans the whole screen, including the notch / Dynamic Island /
+  // punch-hole and the home indicator, so the card is kept inside these rather
+  // than inside the raw screen bounds.
+  const insets = useSafeAreaInsets();
   const [index, setIndex] = useState(0);
   const [rect, setRect] = useState<TargetRect | null>(null);
+  // Measured from the card itself; the estimate only governs the first frame's
+  // below/above choice, which self-corrects once the real height arrives.
+  const [cardHeight, setCardHeight] = useState(CARD_HEIGHT_ESTIMATE);
   // Bumped on every step change; async resolution from a superseded step is
   // discarded rather than painting a stale spotlight.
   const runId = useRef(0);
@@ -142,35 +157,65 @@ export const DashboardWalkthrough: React.FC<DashboardWalkthroughProps> = ({
   }
 
   const isLast = index === steps.length - 1;
-  // Keep the card clear of the hole: sit below a target in the upper half of
-  // the screen, above one in the lower half. The web pins it to the bottom
-  // unconditionally, which would bury the MyAI step's bottom-nav target.
-  const targetIsHigh = rect ? rect.y + rect.height < screenH * 0.55 : true;
+
+  // Sit the card directly against the target — below it by preference, above it
+  // when there isn't room below. Anything that doesn't fit either side falls
+  // back to the roomier one, clamped on screen.
+  const topLimit = insets.top + CARD_EDGE;
+  const bottomLimit = screenH - insets.bottom - CARD_EDGE;
+  const belowTop = rect ? rect.y + rect.height + CARD_GAP : 0;
+  const aboveTop = rect ? rect.y - CARD_GAP - cardHeight : 0;
+  const cardTop = !rect
+    ? 0
+    : belowTop + cardHeight <= bottomLimit
+      ? belowTop
+      : aboveTop >= topLimit
+        ? aboveTop
+        : Math.max(
+            topLimit,
+            Math.min(
+              screenH - (rect.y + rect.height) >= rect.y ? belowTop : aboveTop,
+              bottomLimit - cardHeight,
+            ),
+          );
+  const isBelow = rect ? cardTop >= rect.y : true;
 
   return (
     <View style={styles.root} pointerEvents="box-none">
-      {rect ? <Spotlight rect={rect} radius={step.radius} onPressOutside={finish} /> : null}
+      {/* Both are gated on `rect`: placing the card before the target is
+          measured would park it somewhere arbitrary and then jump. */}
+      {rect ? (
+        <>
+          <Spotlight rect={rect} radius={step.radius} onPressOutside={finish} />
 
-      <View
-        style={[styles.cardSlot, targetIsHigh ? styles.cardBottom : styles.cardTop]}
-        pointerEvents="box-none"
-      >
-        <ProductTour
-            title={step.title}
-            description={step.description}
-            tail={targetIsHigh ? 'up' : 'down'}
-            progress
-            steps={steps.length}
-            currentStep={index + 1}
-            onSnooze={finish}
-            // Hidden rather than disabled on the first step — ProductTour has no
-            // disabled state, and a dead-looking button reads as a bug.
-            backButton={index > 0}
-            onBack={() => setIndex((i) => Math.max(0, i - 1))}
-          nextLabel={isLast ? 'Finish' : 'Next'}
-          onNext={() => (isLast ? finish() : setIndex((i) => i + 1))}
-        />
-      </View>
+          <View
+            style={[
+              styles.cardSlot,
+              // Horizontal insets matter in landscape, where the notch eats
+              // into one side.
+              { top: cardTop, left: spacing.md + insets.left, right: spacing.md + insets.right },
+            ]}
+            pointerEvents="box-none"
+            onLayout={(e) => setCardHeight(e.nativeEvent.layout.height)}
+          >
+            <ProductTour
+              title={step.title}
+              description={step.description}
+              tail={isBelow ? 'up' : 'down'}
+              progress
+              steps={steps.length}
+              currentStep={index + 1}
+              onSnooze={finish}
+              // Hidden rather than disabled on the first step — ProductTour has
+              // no disabled state, and a dead-looking button reads as a bug.
+              backButton={index > 0}
+              onBack={() => setIndex((i) => Math.max(0, i - 1))}
+              nextLabel={isLast ? 'Finish' : 'Next'}
+              onNext={() => (isLast ? finish() : setIndex((i) => i + 1))}
+            />
+          </View>
+        </>
+      ) : null}
     </View>
   );
 };
@@ -182,6 +227,4 @@ const styles = StyleSheet.create({
   // `box-none` lets taps fall through the slot to the dim layer, while the card
   // itself still receives them.
   cardSlot: { position: 'absolute', left: spacing.md, right: spacing.md, alignItems: 'center' },
-  cardTop: { top: spacing.xxl },
-  cardBottom: { bottom: spacing.xl },
 });

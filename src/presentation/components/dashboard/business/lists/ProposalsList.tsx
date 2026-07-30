@@ -2,7 +2,7 @@ import React from 'react';
 import { View, FlatList, StyleSheet } from 'react-native';
 import { Trash, PencilSimple } from 'phosphor-react-native';
 import { colors } from '@atlas-ds/react-native';
-import { RowActionMenu } from './RowActionMenu';
+import { ActionMenu } from '../../common/ActionMenu';
 import { RecordCard } from './RecordCard';
 import { ListEmptyState, type SearchStatus } from './ListEmptyState';
 import { statusColor, type Proposal } from '../businessData';
@@ -43,7 +43,7 @@ export const ProposalsList: React.FC<ProposalsListProps> = ({
         status={item.status}
         statusColor={statusColor(item.status)}
         menu={
-          <RowActionMenu
+          <ActionMenu
             items={[
               { key: 'delete', label: 'Delete', icon: <Trash size={ICON} color={colors.textBody} />, onPress: () => onDelete(item) },
               { key: 'edit', label: 'Edit Proposal', icon: <PencilSimple size={ICON} color={colors.textBody} />, onPress: () => onEdit(item) },

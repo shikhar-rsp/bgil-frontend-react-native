@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { colors, spacing, radius, fontFamilyForWeight, shadow } from '@atlas-ds/react-native';
-import { MotorHeader } from './MotorHeader';
+import { MotorHeader, motorPolicyTitle } from './MotorHeader';
 import { VehicleTypeModal } from './VehicleTypeModal';
 import { VehicleIdentificationStep } from './VehicleIdentificationStep';
 import { PlanDetailsStep } from './PlanDetailsStep';
@@ -14,6 +14,8 @@ import { MotorSideContainer } from './MotorSideContainer';
 import { PreviewStep } from './PreviewStep';
 import { QuoteFooter } from '../QuoteFooter';
 import { ShareQuoteModal } from './ShareQuoteModal';
+import { PolicyFeaturesModal } from '../PolicyFeaturesModal';
+import { MOTOR_POLICY_FEATURES } from '../policyFeaturesData';
 import { Slider } from '@atlas-ds/react-native';
 import { validateRegistration, TENURE_YEAR_MAP } from './motorData';
 
@@ -42,6 +44,7 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
   const [showVehicleTypeModal, setShowVehicleTypeModal] = useState(!initialVehicleType);
   const [registrationNumber, setRegistrationNumber] = useState('');
   const [currentStep, setCurrentStep] = useState(1);
+  const [showFeatures, setShowFeatures] = useState(false);
 
   const [selectedPlanType, setSelectedPlanType] = useState('');
   const [selectedCustomerType, setSelectedCustomerType] = useState('');
@@ -207,7 +210,9 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
   return (
     <View style={styles.flex}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {currentStep !== 6 ? <MotorHeader productName={productName} /> : null}
+        {currentStep !== 6 ? (
+          <MotorHeader productName={productName} onViewFeatures={() => setShowFeatures(true)} />
+        ) : null}
 
         {currentStep === 1 && vehicleType ? (
           <>
@@ -318,6 +323,12 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
         quoteData={{ id: 'QT - 28686-8728387', customerName: proposerName || 'Rakesh Kumar', policyType: '4 Wheeler policy' }}
+      />
+
+      <PolicyFeaturesModal
+        isOpen={showFeatures}
+        onClose={() => setShowFeatures(false)}
+        features={{ ...MOTOR_POLICY_FEATURES, title: motorPolicyTitle(productName) }}
       />
     </View>
   );

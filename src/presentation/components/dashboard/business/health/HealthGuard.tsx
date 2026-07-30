@@ -3,6 +3,8 @@ import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { ToastGlobal, colors, spacing, radius, typography } from '@atlas-ds/react-native';
 import { QuoteFooter } from '../QuoteFooter';
 import { ShareQuoteModal } from '../motor/ShareQuoteModal';
+import { PolicyFeaturesModal } from '../PolicyFeaturesModal';
+import { HEALTH_POLICY_FEATURES } from '../policyFeaturesData';
 import { HealthGuardHeader } from './HealthGuardHeader';
 import { PlanDetailsStep } from './PlanDetailsStep';
 import { ProposerDetailsStep } from './ProposerDetailsStep';
@@ -80,9 +82,7 @@ export const HealthGuard: React.FC<HealthGuardProps> = ({ productName, onClose, 
     brochureTimer.current = setTimeout(() => setShowBrochureToast(false), 3000);
   };
 
-  // Sub-plan tiers and their benefit lists live on the members step; until the
-  // web FeaturesModal is ported, "View features" jumps there.
-  const handleViewFeatures = () => setCurrentStep(2);
+  const [showFeatures, setShowFeatures] = useState(false);
 
   // Picking a tenure also recalculates the end date off the start date, the
   // same way the motor flow's `calculatePolicyEndDate` does.
@@ -166,7 +166,7 @@ export const HealthGuard: React.FC<HealthGuardProps> = ({ productName, onClose, 
           <HealthGuardHeader
             productName={productName}
             onDownloadBrochure={handleDownloadBrochure}
-            onViewFeatures={handleViewFeatures}
+            onViewFeatures={() => setShowFeatures(true)}
           />
         ) : null}
 
@@ -258,6 +258,12 @@ export const HealthGuard: React.FC<HealthGuardProps> = ({ productName, onClose, 
         isOpen={showShare}
         onClose={() => setShowShare(false)}
         quoteData={{ id: 'QT - 28686-8728387', customerName: proposerName || 'Customer', policyType: `${productName} Policy` }}
+      />
+
+      <PolicyFeaturesModal
+        isOpen={showFeatures}
+        onClose={() => setShowFeatures(false)}
+        features={HEALTH_POLICY_FEATURES}
       />
 
       {showBrochureToast ? (
