@@ -28,6 +28,10 @@ export interface DatePickerProps {
 
   /** Placeholder shown per segment. Default `dd/mm/yyyy`. */
   placeholder?: string;
+  /** Range mode: overrides `placeholder` for the start segment (e.g. "From"). */
+  startPlaceholder?: string;
+  /** Range mode: overrides `placeholder` for the end segment (e.g. "To"). */
+  endPlaceholder?: string;
   /** Helper text below the field. */
   helper?: string;
   /** Error message — red border + red helper. */
@@ -63,6 +67,8 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   endDate,
   onRangeChange,
   placeholder = 'dd/mm/yyyy',
+  startPlaceholder,
+  endPlaceholder,
   helper,
   error,
   disabled,
@@ -95,6 +101,10 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 
   const startText = mode === 'range' ? fmt(startDate) : fmt(value);
   const endText = fmt(endDate);
+  // Each segment can carry its own hint ("From" / "To") so an empty range field
+  // reads as a labelled range rather than two identical date masks.
+  const startHint = startPlaceholder ?? placeholder;
+  const endHint = endPlaceholder ?? placeholder;
 
   return (
     <View style={[styles.wrap, style]}>
@@ -104,7 +114,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         onPress={openSheet}
         disabled={disabled}
         accessibilityRole="button"
-        accessibilityLabel={`${label ?? 'Date'}: ${startText ?? placeholder}`}
+        accessibilityLabel={`${label ?? 'Date'}: ${startText ?? startHint}`}
         style={[
           styles.field,
           { borderColor, backgroundColor: colors.surface },
@@ -116,7 +126,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
             style={[styles.valueText, { color: disabled ? colors.textDisabled : startText ? fieldText : placeholderColor }]}
             numberOfLines={1}
           >
-            {startText ?? placeholder}
+            {startText ?? startHint}
           </Text>
 
           {mode === 'range' && (
@@ -126,7 +136,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                 style={[styles.valueText, { color: disabled ? colors.textDisabled : endText ? fieldText : placeholderColor }]}
                 numberOfLines={1}
               >
-                {endText ?? placeholder}
+                {endText ?? endHint}
               </Text>
             </>
           )}

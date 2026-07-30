@@ -12,7 +12,6 @@ import {
   Slider,
   Textfield,
   Badge,
-  Button,
   colors,
   spacing,
   radius,
@@ -20,7 +19,6 @@ import {
   shadow,
   fontFamilyForWeight,
 } from '@atlas-ds/react-native';
-import { Suggestions } from '../motor/Suggestions';
 import { RequiredField } from './RequiredField';
 import {
   PLAN_OPTIONS,
@@ -236,7 +234,19 @@ export const PlanDetailsStep: React.FC<PlanDetailsStepProps> = ({
           const selected = subPlan === sp.id;
           const g = SUB_PLAN_GRADIENTS[sp.id];
           return (
-            <View key={sp.id} style={[styles.subPlan, { borderColor: sp.border }, selected && { backgroundColor: sp.tint }]}>
+            // Whole card is the radio target, matching motor's Suggested Plans —
+            // the tier is a choice among three, not an action per card.
+            <Pressable
+              key={sp.id}
+              onPress={() => setSubPlan(sp.id)}
+              accessibilityRole="radio"
+              accessibilityState={{ selected }}
+              style={[
+                styles.subPlan,
+                { borderColor: selected ? sp.border : colors.borderSubtle },
+                selected && { backgroundColor: sp.tint },
+              ]}
+            >
               <LinearGradient
                 useAngle
                 angle={g.angle}
@@ -244,8 +254,11 @@ export const PlanDetailsStep: React.FC<PlanDetailsStepProps> = ({
                 locations={g.locations}
                 style={styles.subPlanHead}
               >
-                <View style={[styles.subPlanIcon, { backgroundColor: sp.iconBg }]}>
-                  <SubPlanIcon id={sp.id} />
+                <View style={styles.subPlanTop}>
+                  <View style={[styles.subPlanIcon, { backgroundColor: sp.iconBg }]}>
+                    <SubPlanIcon id={sp.id} />
+                  </View>
+                  <Radio selected={selected} onPress={() => setSubPlan(sp.id)} />
                 </View>
                 <View style={styles.subPlanTitleRow}>
                   <Text style={styles.subPlanName}>{sp.name}</Text>
@@ -253,12 +266,6 @@ export const PlanDetailsStep: React.FC<PlanDetailsStepProps> = ({
                 </View>
                 <Text style={styles.subPlanTagline}>Lorem ipsum dolor sit amet</Text>
               </LinearGradient>
-              <Button
-                label={selected ? 'Selected' : 'Select sub plan'}
-                variant={selected ? 'primary' : 'secondaryGray'}
-                onPress={() => setSubPlan(sp.id)}
-                fullWidth
-              />
               <View style={styles.benefits}>
                 <Text style={styles.benefitsHeading}>What you get</Text>
                 {sp.benefits.map((b, i) => (
@@ -268,13 +275,12 @@ export const PlanDetailsStep: React.FC<PlanDetailsStepProps> = ({
                   </View>
                 ))}
               </View>
-            </View>
+            </Pressable>
           );
         })}
       </View>
     </View>
 
-    <Suggestions />
     </>
     ) : null}
   </View>
@@ -299,6 +305,8 @@ const styles = StyleSheet.create({
   subPlans: { gap: spacing.md },
   subPlan: { borderWidth: 1, borderRadius: radius.lg, padding: spacing.md, gap: spacing.md },
   subPlanHead: { gap: spacing.xs, padding: spacing.md, borderRadius: radius.lg },
+  // Tier glyph left, radio right — the same header row motor's plan cards use.
+  subPlanTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
   subPlanIcon: { width: 32, height: 32, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
   subPlanTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.xs },
   subPlanName: { fontFamily: typography.fontFamily, fontSize: 22, fontWeight: '500', color: colors.textHeading },

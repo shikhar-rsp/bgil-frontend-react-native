@@ -13,12 +13,28 @@ interface ShareQuoteModalProps {
     customerName: string;
     policyType: string;
   };
+  /** Sheet heading. Defaults to the quote-created wording. */
+  title?: string;
+  subtitle?: string;
+  /** Label for the id row — 'Policy ID:' / 'Renewal Policy ID:' etc. */
+  idLabel?: string;
+  /** Heading above the channel buttons. */
+  shareLabel?: string;
 }
 
+/**
+ * Share sheet used after creating a quote, and reused by the Policies and
+ * Renewals tabs — the layout and channels are identical, only the wording
+ * differs, so the labels are parameterised rather than duplicated.
+ */
 export const ShareQuoteModal: React.FC<ShareQuoteModalProps> = ({
   isOpen,
   onClose,
   quoteData = { id: 'QT - 28686-8728387', customerName: 'Rakesh Kumar', policyType: '4 Wheeler policy' },
+  title = 'Quote Created Successfully!',
+  subtitle = 'Share the quote with your customer.',
+  idLabel = 'Quote ID:',
+  shareLabel = 'Share the quote via:',
 }) => {
   const [copied, setCopied] = useState(false);
 
@@ -38,8 +54,8 @@ export const ShareQuoteModal: React.FC<ShareQuoteModalProps> = ({
       onClose={onClose}
       icon={<CheckCircle size={20} color="#65A30D" weight="regular" />}
       featuredIconColor="lime"
-      title="Quote Created Successfully!"
-      subtitle="Share the quote with your customer."
+      title={title}
+      subtitle={subtitle}
       contentMinHeight={0}
     >
       <View style={styles.content}>
@@ -47,14 +63,14 @@ export const ShareQuoteModal: React.FC<ShareQuoteModalProps> = ({
 
         {/* Quote summary */}
         <View style={styles.summary}>
-          <Row label="Quote ID:" value={quoteData.id} />
+          <Row label={idLabel} value={quoteData.id} />
           <Row label="Customer name:" value={quoteData.customerName} />
           <Row label="Policy Type:" value={quoteData.policyType} />
         </View>
 
         {/* Share via */}
         <View style={styles.shareBlock}>
-          <Text style={styles.shareLabel}>Share the quote via:</Text>
+          <Text style={styles.shareLabel}>{shareLabel}</Text>
 
           <View style={styles.channelRow}>
             <ShareCard

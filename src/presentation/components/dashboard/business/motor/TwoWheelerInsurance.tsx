@@ -65,7 +65,7 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
 
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
   const [selectedPlan, setSelectedPlan] = useState('');
-  const [range, setRange] = useState<[number, number]>([0, 0]);
+  const [discountLoader, setDiscountLoader] = useState(0);
 
   const [showShareModal, setShowShareModal] = useState(false);
 
@@ -176,7 +176,7 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
     setProposerPhone('');
     setProposerEmail('');
     setSelectedAddOns([]);
-    setRange([0, 0]);
+    setDiscountLoader(0);
     setSelectedPlan('');
   };
 
@@ -267,7 +267,7 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
               proposerEmail={proposerEmail}
               setProposerEmail={setProposerEmail}
             />
-            <DiscountLoaderCard value={range} setValue={setRange} />
+            <DiscountLoaderCard value={discountLoader} setValue={setDiscountLoader} />
             {/* <Suggestions /> */}
           </>
         ) : currentStep === 5 ? (
@@ -279,7 +279,7 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
             policyStartDate={policyStartDate}
             selectedPlanType={selectedPlanType}
             calculatePolicyEndDate={calculatePolicyEndDate}
-            discountLoader={range}
+            discountLoader={discountLoader}
           />
         ) : currentStep === 6 ? (
           <PreviewStep proposerName={proposerName || 'Rakesh Kumar'} proposerDOB={new Date('1998-04-12')} productName={productName} />

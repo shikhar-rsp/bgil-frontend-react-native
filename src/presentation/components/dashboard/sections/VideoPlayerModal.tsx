@@ -41,6 +41,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
   },
   // 1430:661 in the web layout — the same ratio, sized to the viewport here.
+  // Near-black letterbox is a one-off video surface, not a themed colour.
   stage: {
     width: '100%',
     aspectRatio: 1430 / 661,

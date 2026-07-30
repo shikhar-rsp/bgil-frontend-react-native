@@ -1,59 +1,129 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, FlatList, Pressable, StyleSheet } from 'react-native';
-import { DotsThreeVertical, Info, Copy, Trash, PencilSimple, FileText } from 'phosphor-react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, StyleSheet } from 'react-native';
 import {
-  Badge,
-  Button,
   SearchBar,
   Tabs,
-  MoreMenu,
   Filter,
   FilterButton,
   DatePicker,
   BottomSheet,
+  ToastGlobal,
   colors,
   spacing,
   radius,
-  typography,
-  shadow,
   type FilterGroup,
 } from '@atlas-ds/react-native';
+import { QuotesList } from './lists/QuotesList';
+import { ProposalsList } from './lists/ProposalsList';
+import { PoliciesList } from './lists/PoliciesList';
+import { RenewalsList } from './lists/RenewalsList';
+import { ConfirmDeleteModal } from './lists/ConfirmDeleteModal';
+import { resolveSearchStatus } from './lists/ListEmptyState';
+import { ShareQuoteModal } from './motor/ShareQuoteModal';
 import {
   QUOTES,
   PROPOSALS,
   POLICIES,
-  statusColor,
+  RENEWALS,
+  parseExpiringDays,
   type Quote,
+  type Proposal,
   type Policy,
+  type Renewal,
 } from './businessData';
 
 type TabKey = 'quotes' | 'proposals' | 'policies' | 'renewals';
 
-/** Flip to `false` to restore the populated lists and tab counts. */
-const SHOW_EMPTY_STATE = true;
+type ToastState = { variant: 'success' | 'error' | 'neutral' | 'info'; title: string; message?: string } | null;
 
-const FILTER_GROUPS: FilterGroup[] = [
-  {
-    key: 'status',
-    label: 'Status',
-    options: [
-      { value: 'Accepted', label: 'Accepted' },
-      { value: 'Rejected', label: 'Rejected' },
-      { value: 'Awaiting', label: 'Awaiting' },
-    ],
-  },
-  {
-    key: 'planType',
-    label: 'Plan type',
-    options: [
-      { value: 'individual', label: 'Individual' },
-      { value: 'float', label: 'Floater' },
-    ],
-  },
-];
+/** Per-tab filter categories — the web pairs stage+LOB for records and
+ *  LOB+expiringWithin for renewals. */
+const FILTER_GROUPS: Record<TabKey, FilterGroup[]> = {
+  quotes: [
+    {
+      key: 'status',
+      label: 'Status',
+      options: [
+        { value: 'Accepted', label: 'Accepted' },
+        { value: 'Rejected', label: 'Rejected' },
+        { value: 'Awaiting', label: 'Awaiting' },
+      ],
+    },
+    {
+      key: 'planType',
+      label: 'Plan type',
+      options: [
+        { value: 'individual', label: 'Individual' },
+        { value: 'float', label: 'Floater' },
+      ],
+    },
+  ],
+  proposals: [
+    {
+      key: 'status',
+      label: 'Status',
+      options: [
+        { value: 'Payment Received', label: 'Payment Received' },
+        { value: 'Payment Pending', label: 'Payment Pending' },
+        { value: 'Payment Rejected', label: 'Payment Rejected' },
+        { value: 'Underwriting', label: 'Underwriting' },
+      ],
+    },
+    {
+      key: 'businessType',
+      label: 'Business type',
+      options: [
+        { value: 'new', label: 'New' },
+        { value: 'portability', label: 'Portability' },
+      ],
+    },
+  ],
+  policies: [
+    {
+      key: 'status',
+      label: 'Status',
+      options: [
+        { value: 'Paid', label: 'Paid' },
+        { value: 'Pending', label: 'Pending' },
+        { value: 'Rejected', label: 'Rejected' },
+        { value: 'Underwriting', label: 'Underwriting' },
+        { value: 'Issued', label: 'Issued' },
+      ],
+    },
+    {
+      key: 'type',
+      label: 'Plan type',
+      options: [
+        { value: 'Individual', label: 'Individual' },
+        { value: 'Floater', label: 'Floater' },
+      ],
+    },
+  ],
+  renewals: [
+    {
+      key: 'status',
+      label: 'Status',
+      options: [
+        { value: 'Accepted', label: 'Accepted' },
+        { value: 'Payment Due', label: 'Payment Due' },
+        { value: 'Rejected', label: 'Rejected' },
+        { value: 'Not Started', label: 'Not Started' },
+      ],
+    },
+    {
+      key: 'expiringWithin',
+      label: 'Expiring within',
+      options: [
+        { value: '7', label: '7 days' },
+        { value: '14', label: '14 days' },
+        { value: '30', label: '30 days' },
+      ],
+    },
+  ],
+};
 
-/** Quote dates are `DD/MM/YY` — parse for range comparison. */
-const parseQuoteDate = (s: string): Date | null => {
+/** Record dates are `DD/MM/YY` — parse for range comparison. */
+const parseRecordDate = (s: string): Date | null => {
   const [d, m, y] = s.split('/').map(Number);
   if (!d || !m || !y) {
     return null;
@@ -67,6 +137,8 @@ export interface SharedQuotesProps {
   onViewPolicy: (p: Policy) => void;
   /** Opens the Create-a-quote browser from the empty state. */
   onCreateQuote?: () => void;
+  /** Optional: opens an existing proposal for editing. */
+  onEditProposal?: (p: Proposal) => void;
 }
 
 export const SharedQuotes: React.FC<SharedQuotesProps> = ({
@@ -74,22 +146,54 @@ export const SharedQuotes: React.FC<SharedQuotesProps> = ({
   onConvertToProposal,
   onViewPolicy,
   onCreateQuote,
+  onEditProposal,
 }) => {
   const [activeTab, setActiveTab] = useState<TabKey>('quotes');
   const [search, setSearch] = useState('');
-  const [menuQuote, setMenuQuote] = useState<Quote | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
-  const [filterValues, setFilterValues] = useState<Record<string, string[]>>({});
+  const [filtersByTab, setFiltersByTab] = useState<Record<TabKey, Record<string, string[]>>>({
+    quotes: {},
+    proposals: {},
+    policies: {},
+    renewals: {},
+  });
   const [fromDate, setFromDate] = useState<Date | null>(null);
   const [toDate, setToDate] = useState<Date | null>(null);
 
+  // Quotes are stateful so Duplicate can prepend a row; the other tabs read
+  // straight from the fixtures.
+  const [quotes, setQuotes] = useState<Quote[]>(QUOTES);
+
+  const [toast, setToast] = useState<ToastState>(null);
+  const [pendingDelete, setPendingDelete] = useState<{ noun: string; label: string; customer: string } | null>(null);
+  const [shareTarget, setShareTarget] = useState<
+    { kind: 'policy' | 'renewal'; id: string; customerName: string; policyType: string } | null
+  >(null);
+
+  const filterValues = filtersByTab[activeTab];
   const appliedCount = Object.values(filterValues).reduce((n, v) => n + v.length, 0);
+  const setFilterValues = (values: Record<string, string[]>) =>
+    setFiltersByTab((prev) => ({ ...prev, [activeTab]: values }));
 
   const term = search.trim().toLowerCase();
+
+  const inDateRange = (date: string) => {
+    const d = parseRecordDate(date);
+    if (!d) {
+      return true;
+    }
+    if (fromDate && d < fromDate) {
+      return false;
+    }
+    if (toDate && d > toDate) {
+      return false;
+    }
+    return true;
+  };
+
   const filteredQuotes = useMemo(() => {
-    const statuses = filterValues.status ?? [];
-    const planTypes = filterValues.planType ?? [];
-    return QUOTES.filter((q) => {
+    const { status = [], planType = [] } = filtersByTab.quotes;
+    return quotes.filter((q) => {
       if (
         term &&
         !q.customer.toLowerCase().includes(term) &&
@@ -98,22 +202,116 @@ export const SharedQuotes: React.FC<SharedQuotesProps> = ({
       ) {
         return false;
       }
-      if (statuses.length > 0 && !statuses.includes(q.status)) {
+      if (status.length > 0 && !status.includes(q.status)) {
         return false;
       }
-      if (planTypes.length > 0 && !planTypes.includes(q.planType)) {
+      if (planType.length > 0 && !planType.includes(q.planType)) {
         return false;
       }
-      const d = parseQuoteDate(q.date);
-      if (d && fromDate && d < fromDate) {
+      return inDateRange(q.date);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quotes, term, filtersByTab.quotes, fromDate, toDate]);
+
+  const filteredProposals = useMemo(() => {
+    const { status = [], businessType = [] } = filtersByTab.proposals;
+    return PROPOSALS.filter((p) => {
+      if (
+        term &&
+        !p.customer.toLowerCase().includes(term) &&
+        !p.proposalId.toLowerCase().includes(term) &&
+        !p.product.toLowerCase().includes(term)
+      ) {
         return false;
       }
-      if (d && toDate && d > toDate) {
+      if (status.length > 0 && !status.includes(p.status)) {
         return false;
+      }
+      if (businessType.length > 0 && !businessType.includes(p.businessType)) {
+        return false;
+      }
+      return inDateRange(p.date);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [term, filtersByTab.proposals, fromDate, toDate]);
+
+  const filteredPolicies = useMemo(() => {
+    const { status = [], type = [] } = filtersByTab.policies;
+    return POLICIES.filter((p) => {
+      if (
+        term &&
+        !p.customer.toLowerCase().includes(term) &&
+        !p.policyId.toLowerCase().includes(term) &&
+        !p.product.toLowerCase().includes(term)
+      ) {
+        return false;
+      }
+      if (status.length > 0 && !status.includes(p.status)) {
+        return false;
+      }
+      if (type.length > 0 && !type.includes(p.type)) {
+        return false;
+      }
+      return inDateRange(p.date);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [term, filtersByTab.policies, fromDate, toDate]);
+
+  const filteredRenewals = useMemo(() => {
+    const { status = [], expiringWithin = [] } = filtersByTab.renewals;
+    return RENEWALS.filter((r) => {
+      if (
+        term &&
+        !r.customer.toLowerCase().includes(term) &&
+        !r.renewalPolicyId.toLowerCase().includes(term) &&
+        !r.product.toLowerCase().includes(term)
+      ) {
+        return false;
+      }
+      if (status.length > 0 && !status.includes(r.status)) {
+        return false;
+      }
+      if (expiringWithin.length > 0) {
+        const days = parseExpiringDays(r.expiringWithin);
+        if (!expiringWithin.some((threshold) => days <= Number(threshold))) {
+          return false;
+        }
       }
       return true;
     });
-  }, [term, filterValues, fromDate, toDate]);
+  }, [term, filtersByTab.renewals]);
+
+  // Toasts sit inside this card rather than at the screen root, so leaving one
+  // up after the user scrolls away would strand it — auto-dismiss instead.
+  useEffect(() => {
+    if (!toast) {
+      return;
+    }
+    const timer = setTimeout(() => setToast(null), 3000);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  // --- row actions ----------------------------------------------------------
+
+  const duplicateQuote = (q: Quote) => {
+    const copy: Quote = {
+      ...q,
+      id: Math.max(0, ...quotes.map((x) => x.id)) + 1,
+      quoteId: `QT${Date.now()}`,
+      copiedFrom: q.quoteId,
+    };
+    setQuotes((prev) => [copy, ...prev]);
+    setToast({ variant: 'success', title: 'Quote duplicated', message: `A copy of ${q.quoteId} was added to the top.` });
+  };
+
+  const confirmDelete = () => {
+    const target = pendingDelete;
+    setPendingDelete(null);
+    if (target) {
+      // Matches the web: the row is not actually removed, only reported.
+      setToast({ variant: 'error', title: `${target.noun} deleted`, message: `${target.label} for ${target.customer}.` });
+    }
+  };
 
   return (
     <View style={styles.card}>
@@ -123,24 +321,27 @@ export const SharedQuotes: React.FC<SharedQuotesProps> = ({
         size="sm"
         variant="secondary"
         tabs={[
-          { value: 'quotes', label: 'Quotes', badge: SHOW_EMPTY_STATE ? undefined : 50 },
-          { value: 'proposals', label: 'Proposals', badge: SHOW_EMPTY_STATE ? undefined : 25 },
-          { value: 'policies', label: 'Policies', badge: SHOW_EMPTY_STATE ? undefined : 15 },
-          { value: 'renewals', label: 'Renewals', badge: SHOW_EMPTY_STATE ? undefined : 10 },
+          { value: 'quotes', label: 'Quotes', badge: quotes.length },
+          { value: 'proposals', label: 'Proposals', badge: PROPOSALS.length },
+          { value: 'policies', label: 'Policies', badge: POLICIES.length },
+          { value: 'renewals', label: 'Renewals', badge: RENEWALS.length },
         ]}
       />
 
-      {activeTab !== 'renewals' ? (
-        <View style={styles.searchWrap}>
-          <View style={styles.toolbar}>
-            <View style={styles.searchFlex}>
-              <SearchBar value={search} onChangeText={setSearch} placeholder="Search" />
-            </View>
-            <FilterButton onPress={() => setFilterOpen(true)} count={appliedCount || undefined} />
+      <View style={styles.searchWrap}>
+        <View style={styles.toolbar}>
+          <View style={styles.searchFlex}>
+            <SearchBar value={search} onChangeText={setSearch} placeholder="Search" />
           </View>
+          <FilterButton onPress={() => setFilterOpen(true)} count={appliedCount || undefined} />
+        </View>
 
+        {/* Renewals are filtered by expiry band rather than a created-on range. */}
+        {activeTab !== 'renewals' ? (
           <DatePicker
             mode="range"
+            startPlaceholder="From"
+            endPlaceholder="To"
             startDate={fromDate}
             endDate={toDate}
             onRangeChange={(s, e) => {
@@ -149,67 +350,69 @@ export const SharedQuotes: React.FC<SharedQuotesProps> = ({
             }}
             sheetTitle="Select date range"
           />
-        </View>
-      ) : null}
+        ) : null}
+      </View>
 
       {activeTab === 'quotes' ? (
-        <FlatList
-          data={SHOW_EMPTY_STATE ? [] : filteredQuotes}
-          keyExtractor={(q) => String(q.id)}
-          scrollEnabled={false}
-          ItemSeparatorComponent={() => <View style={styles.sep} />}
-          ListEmptyComponent={<EmptyState onCreateQuote={onCreateQuote} />}
-          renderItem={({ item }) => (
-            <RecordCard
-              title={item.customer}
-              subtitle={`${item.quoteId} · ${item.product}`}
-              amount={`₹ ${item.premium.toLocaleString('en-IN')}`}
-              meta={item.date}
-              status={item.status}
-              onMenu={() => setMenuQuote(item)}
-            />
-          )}
+        <QuotesList
+          data={filteredQuotes}
+          searchStatus={resolveSearchStatus(search, filteredQuotes.length)}
+          isSourceEmpty={quotes.length === 0}
+          onCreateQuote={onCreateQuote}
+          onDuplicate={duplicateQuote}
+          onDelete={(q) => setPendingDelete({ noun: 'Quote', label: q.quoteId, customer: q.customer })}
+          onEdit={onEditQuote}
+          onConvert={onConvertToProposal}
         />
       ) : activeTab === 'proposals' ? (
-        <FlatList
-          data={SHOW_EMPTY_STATE ? [] : PROPOSALS}
-          keyExtractor={(p) => String(p.id)}
-          scrollEnabled={false}
-          ItemSeparatorComponent={() => <View style={styles.sep} />}
-          ListEmptyComponent={<EmptyState onCreateQuote={onCreateQuote} />}
-          renderItem={({ item }) => (
-            <RecordCard
-              title={item.customer}
-              subtitle={`${item.proposalId} · ${item.product}`}
-              amount={item.premium}
-              meta={item.businessType === 'new' ? 'New' : 'Portability'}
-              status={item.underwriting ? 'Underwriting' : undefined}
-            />
-          )}
+        <ProposalsList
+          data={filteredProposals}
+          searchStatus={resolveSearchStatus(search, filteredProposals.length)}
+          isSourceEmpty={PROPOSALS.length === 0}
+          onCreateQuote={onCreateQuote}
+          onDelete={(p) => setPendingDelete({ noun: 'Proposal', label: p.proposalId, customer: p.customer })}
+          onEdit={(p) =>
+            onEditProposal
+              ? onEditProposal(p)
+              : setToast({ variant: 'info', title: 'Edit proposal', message: `${p.proposalId} is not editable yet.` })
+          }
         />
       ) : activeTab === 'policies' ? (
-        <FlatList
-          data={SHOW_EMPTY_STATE ? [] : POLICIES}
-          keyExtractor={(p) => String(p.id)}
-          scrollEnabled={false}
-          ItemSeparatorComponent={() => <View style={styles.sep} />}
-          ListEmptyComponent={<EmptyState onCreateQuote={onCreateQuote} />}
-          renderItem={({ item }) => (
-            <RecordCard
-              title={item.customer}
-              subtitle={`${item.policyId} · ${item.product}`}
-              amount={`₹ ${item.premium.toLocaleString('en-IN')}`}
-              meta={item.type}
-              status={item.status}
-              onPress={() => onViewPolicy(item)}
-            />
-          )}
+        <PoliciesList
+          data={filteredPolicies}
+          searchStatus={resolveSearchStatus(search, filteredPolicies.length)}
+          isSourceEmpty={POLICIES.length === 0}
+          onCreateQuote={onCreateQuote}
+          onView={onViewPolicy}
+          onDownload={(p) => setToast({ variant: 'neutral', title: 'Download started', message: `${p.policyId}.pdf` })}
+          onShare={(p) =>
+            setShareTarget({ kind: 'policy', id: p.policyId, customerName: p.customer, policyType: p.product })
+          }
+          onEndorsement={(p) =>
+            setToast({ variant: 'info', title: 'Endorsement', message: `Not available yet for ${p.policyId}.` })
+          }
         />
       ) : (
-        <View style={styles.renewalsEmpty}>
-          <Info size={20} color={colors.brand} />
-          <Text style={styles.renewalsText}>Renewals coming soon</Text>
-        </View>
+        <RenewalsList
+          data={filteredRenewals}
+          searchStatus={resolveSearchStatus(search, filteredRenewals.length)}
+          isSourceEmpty={RENEWALS.length === 0}
+          onRenew={(r) =>
+            setToast({ variant: 'info', title: 'Renew policy', message: `The renewal flow for ${r.renewalPolicyId} is not built yet.` })
+          }
+          onShareNotice={(r) =>
+            setShareTarget({
+              kind: 'renewal',
+              id: r.renewalPolicyId,
+              customerName: r.customer,
+              policyType: r.product,
+            })
+          }
+          onViewPolicy={(r) =>
+            setToast({ variant: 'info', title: 'View policy', message: `No policy record linked to ${r.renewalPolicyId} yet.` })
+          }
+          onCallCustomer={(r) => setToast({ variant: 'neutral', title: `Calling ${r.customer}…` })}
+        />
       )}
 
       <BottomSheet
@@ -221,96 +424,49 @@ export const SharedQuotes: React.FC<SharedQuotesProps> = ({
         primaryAction={{ label: 'Apply', onPress: () => setFilterOpen(false) }}
         secondaryAction={{ label: 'Clear all', onPress: () => setFilterValues({}) }}
       >
-        <Filter groups={FILTER_GROUPS} values={filterValues} onChange={setFilterValues} />
+        <Filter groups={FILTER_GROUPS[activeTab]} values={filterValues} onChange={setFilterValues} />
       </BottomSheet>
 
-      <MoreMenu
-        visible={menuQuote !== null}
-        onClose={() => setMenuQuote(null)}
-        columns={2}
-        items={[
-          { key: 'duplicate', label: 'Duplicate', color: '#64748B', icon: <Copy size={26} color="#FFFFFF" />, onPress: () => setMenuQuote(null) },
-          { key: 'delete', label: 'Delete', color: '#DC2626', icon: <Trash size={26} color="#FFFFFF" />, onPress: () => setMenuQuote(null) },
-          {
-            key: 'edit',
-            label: 'Edit Quote',
-            color: '#005DAC',
-            icon: <PencilSimple size={26} color="#FFFFFF" />,
-            onPress: () => {
-              const q = menuQuote;
-              setMenuQuote(null);
-              if (q) {
-                onEditQuote(q);
-              }
-            },
-          },
-          {
-            key: 'convert',
-            label: 'Convert to Proposal',
-            color: '#0D9488',
-            icon: <FileText size={26} color="#FFFFFF" />,
-            onPress: () => {
-              const q = menuQuote;
-              setMenuQuote(null);
-              if (q) {
-                onConvertToProposal(q);
-              }
-            },
-          },
-        ]}
+      <ConfirmDeleteModal
+        visible={pendingDelete !== null}
+        noun={(pendingDelete?.noun ?? 'record').toLowerCase()}
+        recordLabel={pendingDelete?.label}
+        customerName={pendingDelete?.customer}
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={confirmDelete}
       />
+
+      <ShareQuoteModal
+        isOpen={shareTarget !== null}
+        onClose={() => setShareTarget(null)}
+        title={shareTarget?.kind === 'renewal' ? 'Share Renewal Notice' : 'Share Policy'}
+        subtitle={
+          shareTarget?.kind === 'renewal'
+            ? 'Send the renewal notice to your customer.'
+            : 'Share the policy document with your customer.'
+        }
+        idLabel={shareTarget?.kind === 'renewal' ? 'Renewal Policy ID:' : 'Policy ID:'}
+        shareLabel={shareTarget?.kind === 'renewal' ? 'Share the notice via:' : 'Share the policy via:'}
+        quoteData={
+          shareTarget
+            ? { id: shareTarget.id, customerName: shareTarget.customerName, policyType: shareTarget.policyType }
+            : undefined
+        }
+      />
+
+      {toast ? (
+        <View style={styles.toast} pointerEvents="box-none">
+          <ToastGlobal
+            variant={toast.variant}
+            title={toast.title}
+            message={toast.message}
+            onClose={() => setToast(null)}
+          />
+        </View>
+      ) : null}
     </View>
   );
 };
-
-const RecordCard: React.FC<{
-  title: string;
-  subtitle: string;
-  amount: string;
-  meta: string;
-  status?: string;
-  onMenu?: () => void;
-  onPress?: () => void;
-}> = ({ title, subtitle, amount, meta, status, onMenu, onPress }) => (
-  <Pressable
-    style={styles.record}
-    onPress={onPress}
-    disabled={!onPress}
-    accessibilityRole={onPress ? 'button' : undefined}
-  >
-    <View style={styles.recordMain}>
-      <Text style={styles.recordTitle}>{title}</Text>
-      <Text style={styles.recordSubtitle} numberOfLines={1}>
-        {subtitle}
-      </Text>
-      <View style={styles.recordMetaRow}>
-        <Text style={styles.recordAmount}>{amount}</Text>
-        <Text style={styles.recordMeta}>· {meta}</Text>
-      </View>
-    </View>
-
-    <View style={styles.recordRight}>
-      {status ? <Badge variant="light" size="sm" color={statusColor(status)} label={status} /> : null}
-      {onMenu ? (
-        <Pressable onPress={onMenu} hitSlop={8} accessibilityRole="button" accessibilityLabel="Row actions">
-          <DotsThreeVertical size={20} color={colors.textBody} weight="bold" />
-        </Pressable>
-      ) : null}
-    </View>
-  </Pressable>
-);
-
-const EmptyState: React.FC<{ onCreateQuote?: () => void }> = ({ onCreateQuote }) => (
-  <View style={styles.empty}>
-    <View style={styles.emptyIcon}>
-      <Info size={22} color={colors.brand} />
-    </View>
-    <Text style={styles.emptyText}>No data! Start creating quotes to view all information.</Text>
-    {onCreateQuote ? (
-      <Button label="Create a Quote!" variant="secondaryGray" size="sm" onPress={onCreateQuote} style={styles.emptyBtn} />
-    ) : null}
-  </View>
-);
 
 const styles = StyleSheet.create({
   card: {
@@ -324,26 +480,5 @@ const styles = StyleSheet.create({
   searchWrap: { marginTop: spacing.xs, gap: spacing.md },
   toolbar: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   searchFlex: { flex: 1 },
-  sep: { height: 1, backgroundColor: colors.surfaceMuted },
-  record: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md, gap: spacing.md },
-  recordMain: { flex: 1, gap: spacing.xxs },
-  recordTitle: { fontFamily: typography.fontFamily, fontSize: 15, fontWeight: '500', color: colors.textHeading },
-  recordSubtitle: { fontFamily: typography.fontFamily, fontSize: 13, color: colors.textBody },
-  recordMetaRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
-  recordAmount: { fontFamily: typography.fontFamily, fontSize: 14, fontWeight: '600', color: colors.textHeading },
-  recordMeta: { fontFamily: typography.fontFamily, fontSize: 12, color: colors.textMuted },
-  recordRight: { alignItems: 'flex-end', gap: spacing.sm },
-  empty: { alignItems: 'center', gap: spacing.md, paddingVertical: spacing.xxl },
-  emptyIcon: { padding: spacing.sm, borderRadius: radius.full, backgroundColor: colors.brandSubtle },
-  // Button defaults to `alignSelf: 'flex-start'` — centre it in the empty state.
-  emptyBtn: { alignSelf: 'center' },
-  emptyText: {
-    fontFamily: typography.fontFamily,
-    fontSize: 14,
-    color: colors.textBody,
-    textAlign: 'center',
-    maxWidth: 240,
-  },
-  renewalsEmpty: { alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.xxl },
-  renewalsText: { fontFamily: typography.fontFamily, fontSize: 14, color: colors.textBody },
+  toast: { position: 'absolute', top: spacing.sm, left: spacing.sm, right: spacing.sm, zIndex: 30 },
 });

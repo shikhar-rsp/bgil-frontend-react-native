@@ -17,7 +17,8 @@ interface MotorSideContainerProps {
   policyStartDate: Date | null;
   selectedPlanType: string;
   calculatePolicyEndDate: (startDate: Date | null, tenure: string) => void;
-  discountLoader: [number, number];
+  /** Signed percentage from the Discount/Loader slider — negative discounts. */
+  discountLoader: number;
 }
 
 const Row: React.FC<{ label: string; value: string; valueColor?: string }> = ({ label, value, valueColor }) => (
@@ -37,10 +38,12 @@ export const MotorSideContainer: React.FC<MotorSideContainerProps> = ({
   calculatePolicyEndDate,
   discountLoader,
 }) => {
-  const [discount, loader] = discountLoader;
-  const discountAmount = Math.abs(discount) * 160;
-  const loaderAmount = loader * 120;
-  const isLoaderSelected = loader > 0;
+  // One signed slider value splits into the two amounts; they never coexist.
+  const discountPct = discountLoader < 0 ? Math.abs(discountLoader) : 0;
+  const loaderPct = discountLoader > 0 ? discountLoader : 0;
+  const discountAmount = discountPct * 160;
+  const loaderAmount = loaderPct * 120;
+  const isLoaderSelected = loaderPct > 0;
 
   const tenureOptions = useMemo(() => tenureOptionsFor(selectedPlanType), [selectedPlanType]);
 

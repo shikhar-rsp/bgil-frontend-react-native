@@ -3,13 +3,23 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Slider, colors, spacing, radius, typography, fontFamilyForWeight, shadow } from '@atlas-ds/react-native';
 
 interface DiscountLoaderCardProps {
-  value: [number, number];
-  setValue: React.Dispatch<React.SetStateAction<[number, number]>>;
+  /** Signed percentage: negative is a discount, positive a loader, 0 neither. */
+  value: number;
+  setValue: (value: number) => void;
 }
 
+/**
+ * Discount / loader percentage.
+ *
+ * A single thumb resting at the centre: drag left for a discount, right for a
+ * loader. It was previously a dual-thumb `range` slider, which models a span —
+ * so it carried two thumbs and a tap moved whichever was nearer, making the
+ * control appear to move from both ends. Discount and loader are mutually
+ * exclusive, so one signed value is the right model.
+ */
 export const DiscountLoaderCard: React.FC<DiscountLoaderCardProps> = ({ value, setValue }) => {
-  const pctColor = value[0] < 0 ? colors.success : value[1] > 0 ? colors.dangerText : colors.textMuted;
-  const pctText = value[0] < 0 ? `-${Math.abs(value[0])}%` : value[1] > 0 ? `+${value[1]}%` : '0%';
+  const pctColor = value < 0 ? colors.success : value > 0 ? colors.dangerText : colors.textMuted;
+  const pctText = value < 0 ? `-${Math.abs(value)}%` : value > 0 ? `+${value}%` : '0%';
 
   return (
     <View style={styles.card}>
@@ -18,13 +28,12 @@ export const DiscountLoaderCard: React.FC<DiscountLoaderCardProps> = ({ value, s
         <Text style={[styles.pct, { color: pctColor }]}>{pctText}</Text>
       </View>
       <Slider
-        range
         label="Discount"
         rightLabel="Loader"
         min={-50}
         max={50}
         value={value}
-        onChange={(val) => Array.isArray(val) && setValue(val as [number, number])}
+        onChange={(val) => setValue(typeof val === 'number' ? val : val[0])}
         valueLabels={['-50%', '0%', '+50%']}
       />
     </View>
