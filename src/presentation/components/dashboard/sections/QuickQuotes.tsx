@@ -23,6 +23,13 @@ import {
 } from '@atlas-ds/react-native';
 import { dashboardImages } from '../images';
 import { CustomizeModal, type CustomizeOption } from './CustomizeModal';
+import { MOTOR_PRODUCTS } from '../business/motor/motorData';
+import {
+  VehicleTypeOptions,
+  VEHICLE_TYPE_TITLE,
+  VEHICLE_TYPE_SUBTITLE,
+  type VehicleType,
+} from '../business/motor/VehicleTypeOptions';
 
 type QuickQuoteTile = { label: string; icon: keyof typeof dashboardImages; product?: string };
 
@@ -48,8 +55,10 @@ interface QuickQuotesProps {
   /**
    * Opens the Business tab on a quote. `product` is a Browse Categories
    * product label, or undefined to land on the product list instead.
+   * `vehicleType` is supplied for motor products, which ask for it in-sheet so
+   * the Business tab doesn't have to open a second sheet on arrival.
    */
-  onNavigateToQuote?: (product?: string) => void;
+  onNavigateToQuote?: (product?: string, vehicleType?: VehicleType) => void;
   /** Opens the Business tab on the Renewals list. */
   onNavigateToRenewals?: () => void;
 }
@@ -83,24 +92,48 @@ export const QuickQuotes: React.FC<QuickQuotesProps> = ({
   // never cleared: the sheet's header would blank out mid slide-out if it were.
   const [actionsTile, setActionsTile] = useState<QuickQuoteTile | null>(null);
   const [actionsOpen, setActionsOpen] = useState(false);
+  // Step within the sheet: 0 = the tile's actions, 1 = vehicle type. Choosing a
+  // vehicle type is a sub-step of Create Quote, so it glides in over the
+  // actions rather than arriving as a second sheet.
+  const [sheetStep, setSheetStep] = useState(0);
 
   const visibleQuotes = activeQuotes.filter((val) => val && QUICK_QUOTE_DATA[val]);
 
   const openActions = (tile: QuickQuoteTile) => {
     setActionsTile(tile);
+    setSheetStep(0);
     setActionsOpen(true);
+  };
+
+  const closeActions = () => {
+    setActionsOpen(false);
+    // Reset once the sheet is gone, so re-opening never flashes step 2.
+    setTimeout(() => setSheetStep(0), 250);
   };
 
   const runAction = (key: ActionKey) => {
     const product = actionsTile?.product;
-    setActionsOpen(false);
     if (key === 'quote') {
+      // Motor needs a vehicle type before the flow can mount — ask here.
+      if (product && MOTOR_PRODUCTS.includes(product)) {
+        setSheetStep(1);
+        return;
+      }
+      closeActions();
       onNavigateToQuote?.(product);
     } else if (key === 'renewals') {
+      closeActions();
       onNavigateToRenewals?.();
     } else {
+      closeActions();
       setUnavailable('Claims');
     }
+  };
+
+  const chooseVehicleType = (type: VehicleType) => {
+    const product = actionsTile?.product;
+    closeActions();
+    onNavigateToQuote?.(product, type);
   };
 
   return (
@@ -149,29 +182,47 @@ export const QuickQuotes: React.FC<QuickQuotesProps> = ({
 
       <BottomSheet
         visible={actionsOpen}
-        onClose={() => setActionsOpen(false)}
-        title={actionsTile?.label ?? 'Quick Quote'}
-        subtitle="Choose an action to continue."
-        contentMinHeight={0}
-      >
-        <View style={styles.sheetActions}>
-          {TILE_ACTIONS.map((action) => (
-            <Pressable
-              key={action.key}
-              style={styles.sheetAction}
-              accessibilityRole="button"
-              accessibilityLabel={action.label}
-              onPress={() => runAction(action.key)}
-            >
-              <View style={[styles.sheetActionIcon, { backgroundColor: accent[action.color].lightBg }]}>
-                <action.Icon size={ACTION_ICON} color={accent[action.color].solidBg} />
+        onClose={closeActions}
+        // Back pops to the actions from the vehicle-type step, and leaves the
+        // sheet from the actions themselves.
+        onBack={() => (sheetStep > 0 ? setSheetStep(0) : closeActions())}
+        backAccessibilityLabel={sheetStep > 0 ? 'Back to actions' : 'Close'}
+        pageIndex={sheetStep}
+        pages={[
+          {
+            key: 'actions',
+            title: actionsTile?.label ?? 'Quick Quote',
+            subtitle: 'Choose an action to continue.',
+            contentMinHeight: 0,
+            content: (
+              <View style={styles.sheetActions}>
+                {TILE_ACTIONS.map((action) => (
+                  <Pressable
+                    key={action.key}
+                    style={styles.sheetAction}
+                    accessibilityRole="button"
+                    accessibilityLabel={action.label}
+                    onPress={() => runAction(action.key)}
+                  >
+                    <View style={[styles.sheetActionIcon, { backgroundColor: accent[action.color].lightBg }]}>
+                      <action.Icon size={ACTION_ICON} color={accent[action.color].solidBg} />
+                    </View>
+                    <Text style={styles.sheetActionLabel}>{action.label}</Text>
+                    <CaretRight size={16} color={colors.textMuted} weight="bold" />
+                  </Pressable>
+                ))}
               </View>
-              <Text style={styles.sheetActionLabel}>{action.label}</Text>
-              <CaretRight size={16} color={colors.textMuted} weight="bold" />
-            </Pressable>
-          ))}
-        </View>
-      </BottomSheet>
+            ),
+          },
+          {
+            key: 'vehicle-type',
+            title: VEHICLE_TYPE_TITLE,
+            subtitle: VEHICLE_TYPE_SUBTITLE,
+            contentMinHeight: 0,
+            content: <VehicleTypeOptions onSelect={chooseVehicleType} />,
+          },
+        ]}
+      />
 
       <CustomizeModal
         isOpen={isCustomizeOpen}

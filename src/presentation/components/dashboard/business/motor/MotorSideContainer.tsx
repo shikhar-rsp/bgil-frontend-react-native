@@ -3,6 +3,7 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Info, Scooter } from 'phosphor-react-native';
 import { Radio, Badge, colors, spacing, radius, typography, shadow, fontFamilyForWeight } from '@atlas-ds/react-native';
 import { tenureOptionsFor } from './motorData';
+import { discountPctOf, loaderPctOf, type DiscountLoader } from './DiscountLoaderCard';
 
 interface MotorSideContainerProps {
   isFormValid: boolean;
@@ -17,8 +18,8 @@ interface MotorSideContainerProps {
   policyStartDate: Date | null;
   selectedPlanType: string;
   calculatePolicyEndDate: (startDate: Date | null, tenure: string) => void;
-  /** Signed percentage from the Discount/Loader slider — negative discounts. */
-  discountLoader: number;
+  /** `[discount, loader]` ends of the Discount/Loader slider. */
+  discountLoader: DiscountLoader;
 }
 
 const Row: React.FC<{ label: string; value: string; valueColor?: string }> = ({ label, value, valueColor }) => (
@@ -38,9 +39,9 @@ export const MotorSideContainer: React.FC<MotorSideContainerProps> = ({
   calculatePolicyEndDate,
   discountLoader,
 }) => {
-  // One signed slider value splits into the two amounts; they never coexist.
-  const discountPct = discountLoader < 0 ? Math.abs(discountLoader) : 0;
-  const loaderPct = discountLoader > 0 ? discountLoader : 0;
+  // The two slider ends are independent, so a quote can carry both at once.
+  const discountPct = discountPctOf(discountLoader);
+  const loaderPct = loaderPctOf(discountLoader);
   const discountAmount = discountPct * 160;
   const loaderAmount = loaderPct * 120;
   const isLoaderSelected = loaderPct > 0;

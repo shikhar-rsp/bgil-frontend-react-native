@@ -6,7 +6,6 @@ import {
   Textfield,
   DatePicker,
   Slider,
-  ToastGlobal,
   colors,
   spacing,
   radius,
@@ -105,7 +104,6 @@ export const VehicleIdentificationStep: React.FC<VehicleIdentificationStepProps>
     setExpiringPolicyNcb,
   } = props;
 
-  const [showToast, setShowToast] = useState(true);
   const [foundCardHeight, setFoundCardHeight] = useState(0);
   const vehicle = lookupVehicle(registrationNumber);
 
@@ -155,15 +153,10 @@ export const VehicleIdentificationStep: React.FC<VehicleIdentificationStepProps>
   return (
     <>
       {vehicleType === 'registered' && vehicle ? (
-        <View style={styles.cardPlain}>
-          {/* {showToast ? (
-            <ToastGlobal
-              variant="success"
-              title="Vehicle Found!"
-              message="We have fetched the details for you."
-              onClose={() => setShowToast(false)}
-            />
-          ) : null} */}
+        // Shadow only — it can't live on the gradient card itself, since
+        // `overflow: hidden` there would clip it away on iOS. No padding, so the
+        // gradient card reaches the edges instead of sitting in a white frame.
+        <View style={styles.foundCardShadow}>
           {/* A plain View owns the border, radius and `overflow: hidden`: on iOS
               the native gradient view drops the clip and paints over its own
               children, so the oversized background art escaped the card. The
@@ -226,8 +219,9 @@ export const VehicleIdentificationStep: React.FC<VehicleIdentificationStepProps>
 
 const styles = StyleSheet.create({
   card: { backgroundColor: colors.surface, borderRadius: radius.xl, padding: spacing.lg, gap: spacing.md, ...shadow.lg },
-  // Same card chrome, but the found-card block manages its own inner spacing.
-  cardPlain: { backgroundColor: colors.surface, borderRadius: radius.xl, padding: spacing.lg, gap: spacing.md, ...shadow.lg },
+  // Carries the card shadow for the found-vehicle block, which manages its own
+  // inner spacing — so this adds radius and elevation but no padding.
+  foundCardShadow: { backgroundColor: colors.surface, borderRadius: radius.xl, ...shadow.lg },
   heading: { fontFamily: fontFamilyForWeight('500'), fontSize: 20, fontWeight: '500', color: colors.textHeading },
   // Space-05 (16) padding all round, 16 between rows.
   foundCard: {

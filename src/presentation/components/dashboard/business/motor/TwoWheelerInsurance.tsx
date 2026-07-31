@@ -7,7 +7,7 @@ import { VehicleIdentificationStep } from './VehicleIdentificationStep';
 import { PlanDetailsStep } from './PlanDetailsStep';
 import { AddOnsStep } from './AddOnsStep';
 import { SuggestedPlans } from './SuggestedPlans';
-import { DiscountLoaderCard } from './DiscountLoaderCard';
+import { DiscountLoaderCard, type DiscountLoader } from './DiscountLoaderCard';
 import { Suggestions } from './Suggestions';
 import { ProposerDetails } from './ProposerDetails';
 import { MotorSideContainer } from './MotorSideContainer';
@@ -68,7 +68,8 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
 
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
   const [selectedPlan, setSelectedPlan] = useState('');
-  const [discountLoader, setDiscountLoader] = useState(0);
+  // `[discount, loader]` — the two ends of the Discount/Loader slider.
+  const [discountLoader, setDiscountLoader] = useState<DiscountLoader>([0, 0]);
 
   const [showShareModal, setShowShareModal] = useState(false);
 
@@ -179,7 +180,7 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
     setProposerPhone('');
     setProposerEmail('');
     setSelectedAddOns([]);
-    setDiscountLoader(0);
+    setDiscountLoader([0, 0]);
     setSelectedPlan('');
   };
 

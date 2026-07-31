@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
+  Animated,
   Pressable,
   StyleSheet,
   ScrollView,
@@ -20,6 +21,29 @@ export interface BottomSheetAction {
   label: string;
   onPress: () => void;
 }
+
+/**
+ * One step of a multi-step sheet. Carries the same header / content / footer a
+ * single-page sheet declares via props.
+ */
+export interface BottomSheetPage {
+  /** Stable identity for the step. */
+  key: string;
+  icon?: React.ReactNode;
+  featuredIconColor?: AccentColor;
+  title?: string;
+  subtitle?: string;
+  content?: React.ReactNode;
+  contentSlot?: boolean;
+  contentMinHeight?: number;
+  primaryAction?: BottomSheetAction;
+  secondaryAction?: BottomSheetAction;
+}
+
+/** How far the outgoing step travels before it's swapped out. */
+const PAGE_SLIDE = 64;
+const PAGE_OUT_MS = 160;
+const PAGE_IN_MS = 200;
 
 export interface BottomSheetProps {
   /** Controls visibility — when false the sheet is unmounted. */
@@ -61,13 +85,29 @@ export interface BottomSheetProps {
   secondaryAction?: BottomSheetAction;
 
   /**
-   * Renders a back control in the sheet's top-left corner. Use when the sheet
-   * is a step the user can retreat from, rather than a dead-end confirmation —
-   * it gives an explicit way back that the backdrop tap alone doesn't advertise.
+   * Renders a back control in the sheet's top-left corner, on every step. Use
+   * when the sheet is something the user can retreat from, rather than a
+   * dead-end confirmation — it gives an explicit way back that the backdrop tap
+   * alone doesn't advertise.
+   *
+   * On a multi-step sheet this fires for whichever step is showing, so the
+   * handler decides: pop to the previous step, or dismiss from the first.
    */
   onBack?: () => void;
   /** Accessible label for the back control. Default 'Back'. */
   backAccessibilityLabel?: string;
+
+  /**
+   * Multi-step sheet. When set, `pages[pageIndex]` supplies the header, content
+   * and footer in place of the single-page props, and moving between steps
+   * glides the old one out and the new one in rather than cutting.
+   *
+   * Use this instead of closing one sheet to open another whenever the second
+   * is a sub-step of the first — the two reads very differently to the user.
+   */
+  pages?: BottomSheetPage[];
+  /** Active step. Increasing it pushes forward; decreasing pops back. */
+  pageIndex?: number;
 
   /** Show the small grab handle at the top. Default true. */
   showHandle?: boolean;
@@ -107,10 +147,77 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   secondaryAction,
   onBack,
   backAccessibilityLabel = 'Back',
+  pages,
+  pageIndex = 0,
   showHandle = true,
   closeOnBackdrop = true,
   style,
 }) => {
+  const paged = !!pages && pages.length > 0;
+
+  // The step currently painted. It trails `pageIndex` until the outgoing
+  // animation finishes, so the swap happens while the content is off to one
+  // side rather than under the user's eyes.
+  const [shownPage, setShownPage] = useState(pageIndex);
+  const slide = useRef(new Animated.Value(0)).current;
+  const fade = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (!paged || pageIndex === shownPage) {
+      return;
+    }
+    const forward = pageIndex > shownPage;
+    Animated.parallel([
+      Animated.timing(slide, {
+        toValue: forward ? -PAGE_SLIDE : PAGE_SLIDE,
+        duration: PAGE_OUT_MS,
+        useNativeDriver: true,
+      }),
+      Animated.timing(fade, { toValue: 0, duration: PAGE_OUT_MS, useNativeDriver: true }),
+    ]).start(({ finished }) => {
+      if (!finished) {
+        return;
+      }
+      setShownPage(pageIndex);
+      // Drop the incoming step in on the far side, then bring it home.
+      slide.setValue(forward ? PAGE_SLIDE : -PAGE_SLIDE);
+      Animated.parallel([
+        Animated.timing(slide, { toValue: 0, duration: PAGE_IN_MS, useNativeDriver: true }),
+        Animated.timing(fade, { toValue: 1, duration: PAGE_IN_MS, useNativeDriver: true }),
+      ]).start();
+    });
+  }, [paged, pageIndex, shownPage, slide, fade]);
+
+  // Re-opening a sheet should start from its first step, not wherever the last
+  // visit left off mid-animation.
+  useEffect(() => {
+    if (!visible) {
+      setShownPage(pageIndex);
+      slide.setValue(0);
+      fade.setValue(1);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
+
+  const page = paged ? pages[Math.min(shownPage, pages.length - 1)] : undefined;
+
+  // A step's own fields win; the single-page props remain the fallback so both
+  // APIs can coexist on one instance.
+  const pIcon = page ? page.icon : icon;
+  const pIconColor = page?.featuredIconColor ?? featuredIconColor;
+  const pTitle = page ? page.title : title;
+  const pSubtitle = page ? page.subtitle : subtitle;
+  const pContent = page ? page.content : children;
+  const pContentSlot = page ? page.contentSlot !== false : contentSlot;
+  const pContentMinHeight = page?.contentMinHeight ?? contentMinHeight;
+  const pPrimary = page ? page.primaryAction : primaryAction;
+  const pSecondary = page ? page.secondaryAction : secondaryAction;
+
+  // Shown on every step, including the first — where it means "leave the
+  // sheet". What it does is the consumer's call, since only they know whether
+  // a given step pops to the previous one or dismisses.
+  const showBack = !!onBack;
+
   return (
     <RNModal
       visible={visible}
@@ -137,7 +244,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
         )}
 
         {/* Absolutely positioned so it never shifts the centred header text. */}
-        {onBack && (
+        {showBack && (
           <Pressable
             style={styles.backControl}
             onPress={onBack}
@@ -149,62 +256,68 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
           </Pressable>
         )}
 
-        {(icon || title || subtitle) && (
+        {/* `overflow: hidden` keeps the gliding step inside the sheet. It sits
+            here rather than on the sheet so the sheet's shadow isn't clipped. */}
+        <View style={styles.pageClip}>
+        <Animated.View style={paged ? { opacity: fade, transform: [{ translateX: slide }] } : undefined}>
+        {(pIcon || pTitle || pSubtitle) && (
           <View style={styles.headerRow}>
-            {icon && (
-              <View style={[styles.iconBadge, { backgroundColor: accent[featuredIconColor].lightBg }]}>
-                {icon}
+            {pIcon && (
+              <View style={[styles.iconBadge, { backgroundColor: accent[pIconColor].lightBg }]}>
+                {pIcon}
               </View>
             )}
-            {(title || subtitle) && (
+            {(pTitle || pSubtitle) && (
               <View style={styles.textGroup}>
-                {!!title && <Text style={styles.title}>{title}</Text>}
-                {!!subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+                {!!pTitle && <Text style={styles.title}>{pTitle}</Text>}
+                {!!pSubtitle && <Text style={styles.subtitle}>{pSubtitle}</Text>}
               </View>
             )}
           </View>
         )}
 
-        {contentSlot && (
+        {pContentSlot && (
           <ScrollView
-            style={[styles.contentScroll, { minHeight: contentMinHeight }]}
+            style={[styles.contentScroll, { minHeight: pContentMinHeight }]}
             contentContainerStyle={styles.contentInner}
             showsVerticalScrollIndicator={false}
           >
-            {children}
+            {pContent}
           </ScrollView>
         )}
 
-        {(primaryAction || secondaryAction) && (
+        {(pPrimary || pSecondary) && (
           <View style={styles.footer}>
-            {primaryAction && (
+            {pPrimary && (
               <Pressable
                 style={({ pressed }) => [
                   styles.btn,
                   styles.btnPrimary,
                   pressed && styles.btnPrimaryPressed,
                 ]}
-                onPress={primaryAction.onPress}
+                onPress={pPrimary.onPress}
                 accessibilityRole="button"
               >
-                <Text style={styles.btnPrimaryText}>{primaryAction.label}</Text>
+                <Text style={styles.btnPrimaryText}>{pPrimary.label}</Text>
               </Pressable>
             )}
-            {secondaryAction && (
+            {pSecondary && (
               <Pressable
                 style={({ pressed }) => [
                   styles.btn,
                   styles.btnSecondary,
                   pressed && styles.btnSecondaryPressed,
                 ]}
-                onPress={secondaryAction.onPress}
+                onPress={pSecondary.onPress}
                 accessibilityRole="button"
               >
-                <Text style={styles.btnSecondaryText}>{secondaryAction.label}</Text>
+                <Text style={styles.btnSecondaryText}>{pSecondary.label}</Text>
               </Pressable>
             )}
           </View>
         )}
+        </Animated.View>
+        </View>
       </View>
     </View>
     </RNModal>
@@ -254,6 +367,8 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: colors.surfaceMuted,
   },
+  // Clips the gliding step. On the sheet itself this would clip the shadow.
+  pageClip: { overflow: 'hidden' },
   backControl: {
     position: 'absolute',
     top: spacing.lg,

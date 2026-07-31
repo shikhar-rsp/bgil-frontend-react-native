@@ -55,6 +55,13 @@ export const lookupVehicle = (registrationNumber: string): VehicleInfo | null =>
     ? VEHICLE_LOOKUP[registrationNumber.toUpperCase()] ?? GENERIC_VEHICLE
     : null;
 
+/**
+ * Browse Categories products that route to the motor flow — and so need a
+ * vehicle type chosen before the flow can mount. Shared by `BusinessScreen`
+ * (which opens the standalone sheet) and `QuickQuotes` (which asks in-sheet).
+ */
+export const MOTOR_PRODUCTS = ['Private Car', 'Two Wheeler', 'Commercial Vehicle', 'Pay as you Consume'];
+
 export const PLAN_TYPE_OPTIONS = [
   { label: 'Own Damage', value: 'od' },
   { label: 'Package Policy', value: 'package-policy' },

@@ -194,8 +194,8 @@ const DashboardScreenInner: React.FC<AuthScreenProps<'Dashboard'>> = ({ navigati
               <>
                 <WalkthroughTarget id="quick-quotes">
                   <QuickQuotes
-                    onNavigateToQuote={(product) => {
-                      setQuoteRequest({ product });
+                    onNavigateToQuote={(product, vehicleType) => {
+                      setQuoteRequest({ product, vehicleType });
                       setSelectedItem('Business');
                     }}
                     onNavigateToRenewals={() => {

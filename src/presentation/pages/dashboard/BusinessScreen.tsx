@@ -11,6 +11,8 @@ import { RenewPolicy } from '../../components/dashboard/business/renewal/RenewPo
 import { IssuedPolicy } from '../../components/dashboard/business/IssuedPolicy';
 import { TwoWheelerInsurance } from '../../components/dashboard/business/motor/TwoWheelerInsurance';
 import { VehicleTypeModal } from '../../components/dashboard/business/motor/VehicleTypeModal';
+/** Motor products route to the Two-Wheeler / Motor flow; others to Health Guard. */
+import { MOTOR_PRODUCTS } from '../../components/dashboard/business/motor/motorData';
 import { WalkthroughTarget } from '../../components/dashboard/walkthrough/WalkthroughContext';
 import type { Policy, Renewal } from '../../components/dashboard/business/businessData';
 
@@ -34,8 +36,6 @@ const TITLES: Record<BizView['kind'], string> = {
   renewal: 'Renew Policy',
 };
 
-/** Motor products route to the Two-Wheeler / Motor flow; others to Health Guard. */
-const MOTOR_PRODUCTS = ['Private Car', 'Two Wheeler', 'Commercial Vehicle', 'Pay as you Consume'];
 
 /** A Quick Quotes tile tap. `product` is a Browse Categories product label;
  *  without one the tile has no flow yet and lands on the product list. */
@@ -43,6 +43,9 @@ export type QuoteRequest = {
   product?: string;
   /** Land on a specific Shared Quotes tab instead of opening a product. */
   tab?: TabKey;
+  /** Already chosen for motor products (Quick Quotes asks in its own sheet),
+   *  so the flow mounts straight away instead of opening the picker again. */
+  vehicleType?: 'registered' | 'new';
 };
 
 interface BusinessScreenProps {
@@ -89,11 +92,13 @@ export const BusinessScreen: React.FC<BusinessScreenProps> = ({
 
   const goLanding = () => setView({ kind: 'landing' });
 
-  const selectProduct = (label: string, fromHome = false) => {
-    if (MOTOR_PRODUCTS.includes(label)) {
-      setPendingMotor({ product: label, fromHome });
-    } else {
+  const selectProduct = (label: string, fromHome = false, vehicleType?: 'registered' | 'new') => {
+    if (!MOTOR_PRODUCTS.includes(label)) {
       setView({ kind: 'healthguard', product: label });
+    } else if (vehicleType) {
+      setView({ kind: 'motor', product: label, vehicleType });
+    } else {
+      setPendingMotor({ product: label, fromHome });
     }
   };
 
@@ -116,7 +121,7 @@ export const BusinessScreen: React.FC<BusinessScreenProps> = ({
       setLandingTab(quoteRequest.tab);
       setView({ kind: 'landing' });
     } else if (quoteRequest.product) {
-      selectProduct(quoteRequest.product, true);
+      selectProduct(quoteRequest.product, true, quoteRequest.vehicleType);
     } else {
       setView({ kind: 'browse' });
     }

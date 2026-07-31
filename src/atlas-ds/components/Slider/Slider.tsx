@@ -17,6 +17,12 @@ export interface SliderProps {
   rightLabel?: string;
   /** Dual-thumb range variant — `value` becomes `[low, high]`. */
   range?: boolean;
+/**
+   * Draws a standing tick at this value — e.g. `0` on a bipolar -50…+50 track,
+   * so the neutral point stays visible as the thumbs move around it. The tick
+   * is taller than the track, so it reads against both the rail and the fill.
+   */
+  marker?: number;
   /** Labels rendered evenly under the track (e.g. ['-50%','0%','+50%']). */
   valueLabels?: string[];
   /** Show min/max under the track. Default true (ignored if `valueLabels` set). */
@@ -34,6 +40,10 @@ const THUMB = 24;
 // vertically centered, so the visual is unchanged) and hitSlop extends the
 // PanResponder grab area a little further past its edges.
 const TOUCH_HEIGHT = 40;
+// Standing tick (see `marker`). Taller than the 8px track so it stays legible
+// whether the fill covers it or not.
+const MARKER_W = 2;
+const MARKER_H = 16;
 const TOUCH_SLOP = { top: 8, bottom: 8, left: 8, right: 8 };
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 
@@ -52,6 +62,7 @@ export const Slider: React.FC<SliderProps> = ({
   label,
   rightLabel,
   range = false,
+  marker,
   valueLabels,
   showDataRange = true,
   disabled = false,
@@ -146,6 +157,9 @@ export const Slider: React.FC<SliderProps> = ({
   const highLeft = highFrac * usable;
   const fillLeft = range ? lowLeft + THUMB / 2 : 0;
   const fillW = range ? (highFrac - lowFrac) * usable : highLeft + THUMB / 2;
+  // Centred on the tick's own width so it sits exactly on its value.
+  const markerLeft =
+    ((clamp(marker ?? min, min, max) - min) / span) * usable + THUMB / 2 - MARKER_W / 2;
 
   return (
     <View style={[styles.container, disabled && styles.disabled, style]}>
@@ -172,6 +186,10 @@ export const Slider: React.FC<SliderProps> = ({
             fill only escaped this by sharing the wrapper's left edge. */}
         <View style={styles.track} pointerEvents="none" />
         <View style={[styles.fill, { left: fillLeft, width: fillW }]} pointerEvents="none" />
+        {/* Over the fill, under the thumbs. */}
+        {marker !== undefined ? (
+          <View style={[styles.marker, { left: markerLeft }]} pointerEvents="none" />
+        ) : null}
         {range ? <View style={[styles.thumb, { left: lowLeft }]} pointerEvents="none" /> : null}
         <View style={[styles.thumb, { left: highLeft }]} pointerEvents="none" />
       </View>
@@ -201,6 +219,13 @@ const styles = StyleSheet.create({
   wrapper: { height: TOUCH_HEIGHT, justifyContent: 'center', position: 'relative' },
   track: { position: 'absolute', left: 0, right: 0, height: 8, borderRadius: 12, backgroundColor: colors.surfaceMuted },
   fill: { position: 'absolute', height: 8, borderRadius: 12, backgroundColor: colors.brand },
+  marker: {
+    position: 'absolute',
+    width: MARKER_W,
+    height: MARKER_H,
+    borderRadius: 1,
+    backgroundColor: colors.textMuted,
+  },
   thumb: {
     position: 'absolute',
     width: THUMB,

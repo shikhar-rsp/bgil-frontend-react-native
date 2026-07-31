@@ -5,7 +5,7 @@ export { DatePicker } from './components/DatePicker';
 export type { DatePickerProps, DatePickerMode } from './components/DatePicker';
 
 export { BottomSheet, BOTTOM_SHEET_HEADER_ICON_SIZE, BOTTOM_SHEET_HEADER_GLYPH_SIZE } from './components/BottomSheet';
-export type { BottomSheetProps, BottomSheetAction } from './components/BottomSheet';
+export type { BottomSheetProps, BottomSheetAction, BottomSheetPage } from './components/BottomSheet';
 
 export { Dropdown, MultiSelectDropdown } from './components/Dropdown';
 export type {
