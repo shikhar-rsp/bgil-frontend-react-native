@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { FilePlus, FileText, type IconProps } from 'phosphor-react-native';
-import { BottomSheet, colors, spacing, radius, typography, fontFamilyForWeight } from '@atlas-ds/react-native';
+import { Modal, colors, spacing, radius, typography, fontFamilyForWeight } from '@atlas-ds/react-native';
 
 type VehicleType = 'registered' | 'new';
 
@@ -16,13 +16,20 @@ const OPTIONS: { type: VehicleType; title: string; sub: string; Icon: React.Comp
   { type: 'new', title: 'New Vehicle (Unregistered)', sub: 'Enter details manually.', Icon: FilePlus, iconBg: '#EA580C', border: '#FED7AA' },
 ];
 
+/**
+ * "Select Vehicle Type" — a centred dialog rather than a bottom sheet.
+ *
+ * A Quick Quotes tile already opens its actions in a sheet, so docking this at
+ * the bottom too stacked two sheets back to back. A centred Modal reads as the
+ * second, distinct step it is.
+ */
 export const VehicleTypeModal: React.FC<VehicleTypeModalProps> = ({ isOpen, onClose, onProceed }) => (
-  <BottomSheet
+  <Modal
     visible={isOpen}
     onClose={onClose}
     title="Select Vehicle Type"
     subtitle="Choose a vehicle type to proceed with quote creation"
-    contentMinHeight={0}
+    secondaryAction={{ label: 'Cancel', onPress: onClose, tone: 'neutral' }}
   >
     <View style={styles.options}>
       {OPTIONS.map((o) => (
@@ -43,11 +50,12 @@ export const VehicleTypeModal: React.FC<VehicleTypeModalProps> = ({ isOpen, onCl
         </Pressable>
       ))}
     </View>
-  </BottomSheet>
+  </Modal>
 );
 
 const styles = StyleSheet.create({
-  options: { gap: spacing.md },
+  // The Modal body centres its children, so stretch to the full 335px surface.
+  options: { alignSelf: 'stretch', gap: spacing.md },
   option: {
     flexDirection: 'row',
     alignItems: 'center',

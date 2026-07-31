@@ -43,8 +43,11 @@ these substitutions consistent:
 - **zod** v4 requires `@babel/plugin-transform-export-namespace-from` in
   `babel.config.js` (before the worklets plugin, which stays last).
 - **Charts:** use **`react-native-gifted-charts`** (recharts is web-only).
-- **Lists/tables:** render as `FlatList` card lists, not multi-column HTML
-  tables. Row action menus use the library `MoreMenu`.
+- **Lists/tables:** the Business record lists use the library **`Table`**, which
+  scrolls horizontally — the design keeps real columns rather than collapsing
+  them onto the phone width, so a growing table scrolls instead of shrinking.
+  Wrap them in `business/lists/RecordTable`, which adds the empty state and the
+  card-edge bleed. Row action menus use the local `common/ActionMenu` (⋮).
 - **Images:** registered statically in
   `src/presentation/components/dashboard/images.ts` (RN `require` needs literals).
 - Watch the **bare-string-in-`<View>`** trap (§ native crash): guard every `&&`

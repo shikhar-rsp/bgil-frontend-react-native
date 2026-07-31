@@ -202,10 +202,6 @@ const DashboardScreenInner: React.FC<AuthScreenProps<'Dashboard'>> = ({ navigati
                       setQuoteRequest({ tab: 'renewals' });
                       setSelectedItem('Business');
                     }}
-                    onNavigateToEndorsements={() => {
-                      setQuoteRequest({ page: 'endorsements' });
-                      setSelectedItem('Business');
-                    }}
                   />
                 </WalkthroughTarget>
                 <WhatsNew />

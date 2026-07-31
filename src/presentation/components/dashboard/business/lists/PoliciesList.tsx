@@ -1,10 +1,9 @@
 import React from 'react';
-import { View, FlatList, StyleSheet } from 'react-native';
-import { DownloadSimple, ShareNetwork, NotePencil } from 'phosphor-react-native';
-import { colors } from '@atlas-ds/react-native';
+import { DownloadSimple, ShareNetwork } from 'phosphor-react-native';
+import { colors, type TableColumn } from '@atlas-ds/react-native';
 import { ActionMenu } from '../../common/ActionMenu';
-import { RecordCard } from './RecordCard';
-import { ListEmptyState, type SearchStatus } from './ListEmptyState';
+import { RecordTable, StatusCell, TextCell } from './RecordTable';
+import { type SearchStatus } from './ListEmptyState';
 import { statusColor, type Policy } from '../businessData';
 
 interface PoliciesListProps {
@@ -16,7 +15,6 @@ interface PoliciesListProps {
   onView: (p: Policy) => void;
   onDownload: (p: Policy) => void;
   onShare: (p: Policy) => void;
-  onEndorsement: (p: Policy) => void;
 }
 
 const ICON = 18;
@@ -29,39 +27,51 @@ export const PoliciesList: React.FC<PoliciesListProps> = ({
   onView,
   onDownload,
   onShare,
-  onEndorsement,
-}) => (
-  <FlatList
-    data={data}
-    keyExtractor={(p) => String(p.id)}
-    scrollEnabled={false}
-    ItemSeparatorComponent={() => <View style={styles.sep} />}
-    ListEmptyComponent={
-      <ListEmptyState status={searchStatus} noun="policies" showCreate={isSourceEmpty} onCreateQuote={onCreateQuote} />
-    }
-    renderItem={({ item }) => (
-      <RecordCard
-        title={item.customer}
-        subtitle={`${item.policyId} · ${item.product}`}
-        amount={`₹ ${item.premium.toLocaleString('en-IN')}`}
-        meta={item.type}
-        status={item.status}
-        statusColor={statusColor(item.status)}
-        onPress={() => onView(item)}
-        menu={
-          <ActionMenu
-            items={[
-              { key: 'download', label: 'Download', icon: <DownloadSimple size={ICON} color={colors.textBody} />, onPress: () => onDownload(item) },
-              { key: 'share', label: 'Share', icon: <ShareNetwork size={ICON} color={colors.textBody} />, onPress: () => onShare(item) },
-              { key: 'endorsement', label: 'Endorsement', icon: <NotePencil size={ICON} color={colors.textBody} />, onPress: () => onEndorsement(item) },
-            ]}
-          />
-        }
-      />
-    )}
-  />
-);
+}) => {
+  const columns: TableColumn<Policy>[] = [
+    { key: 'customer', header: 'Customer', width: 150, render: (p) => <TextCell strong value={p.customer} /> },
+    { key: 'policyId', header: 'Policy ID', width: 130, render: (p) => <TextCell value={p.policyId} /> },
+    { key: 'product', header: 'Product', width: 200, render: (p) => <TextCell value={p.product} /> },
+    {
+      key: 'premium',
+      header: 'Premium',
+      width: 120,
+      align: 'right',
+      render: (p) => <TextCell strong align="right" value={`₹ ${p.premium.toLocaleString('en-IN')}`} />,
+    },
+    { key: 'type', header: 'Plan Type', width: 110, render: (p) => <TextCell value={p.type} /> },
+    { key: 'date', header: 'Date', width: 120, render: (p) => <TextCell value={p.date} /> },
+    {
+      key: 'status',
+      header: 'Status',
+      width: 140,
+      render: (p) => <StatusCell label={p.status} color={statusColor(p.status)} />,
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      width: 88,
+      render: (p) => (
+        <ActionMenu
+          items={[
+            { key: 'download', label: 'Download', icon: <DownloadSimple size={ICON} color={colors.textBody} />, onPress: () => onDownload(p) },
+            { key: 'share', label: 'Share', icon: <ShareNetwork size={ICON} color={colors.textBody} />, onPress: () => onShare(p) },
+          ]}
+        />
+      ),
+    },
+  ];
 
-const styles = StyleSheet.create({
-  sep: { height: 1, backgroundColor: colors.surfaceMuted },
-});
+  return (
+    <RecordTable
+      columns={columns}
+      data={data}
+      rowKey="id"
+      noun="policies"
+      searchStatus={searchStatus}
+      isSourceEmpty={isSourceEmpty}
+      onCreateQuote={onCreateQuote}
+      onRowPress={onView}
+    />
+  );
+};

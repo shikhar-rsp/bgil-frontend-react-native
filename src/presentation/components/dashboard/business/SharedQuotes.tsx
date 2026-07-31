@@ -143,8 +143,6 @@ export interface SharedQuotesProps {
   onRenewPolicy?: (r: Renewal) => void;
   /** Opens the read-only renewal summary for a policy due for renewal. */
   onViewRenewal?: (r: Renewal) => void;
-  /** Opens the endorsements list, scoped to a policy when one is given. */
-  onEndorsement?: (p: Policy) => void;
   /** Selects a tab from outside — e.g. a Quick Quotes tile choosing Renewals. */
   initialTab?: TabKey;
 }
@@ -157,7 +155,6 @@ export const SharedQuotes: React.FC<SharedQuotesProps> = ({
   onEditProposal,
   onRenewPolicy,
   onViewRenewal,
-  onEndorsement,
   initialTab,
 }) => {
   const [activeTab, setActiveTab] = useState<TabKey>(initialTab ?? 'quotes');
@@ -408,7 +405,6 @@ export const SharedQuotes: React.FC<SharedQuotesProps> = ({
           onShare={(p) =>
             setShareTarget({ kind: 'policy', id: p.policyId, customerName: p.customer, policyType: p.product })
           }
-          onEndorsement={(p) => onEndorsement?.(p)}
         />
       ) : (
         <RenewalsList

@@ -164,18 +164,19 @@ export const Leaderboard: React.FC = () => (
       {WINNERS.map((w) => {
         const g = PODIUM_GRADIENTS[w.medal];
         return (
-          <LinearGradient
-            key={w.rank}
-            useAngle
-            angle={g.angle}
-            colors={g.colors as unknown as string[]}
-            locations={g.locations as unknown as number[]}
-            style={[styles.podiumCard, w.rank === 1 && styles.podiumCardWinner]}
-          >
+          // Background-only gradient — on iOS it paints over its own children.
+          <View key={w.rank} style={[styles.podiumCard, w.rank === 1 && styles.podiumCardWinner]}>
+            <LinearGradient
+              useAngle
+              angle={g.angle}
+              colors={g.colors as unknown as string[]}
+              locations={g.locations as unknown as number[]}
+              style={StyleSheet.absoluteFill}
+            />
             <Image source={dashboardImages[w.medal]} style={styles.medal} resizeMode="contain" />
             <Text style={styles.podiumName}>{w.name}</Text>
             <Text style={styles.podiumScore}>Score: {w.score}</Text>
-          </LinearGradient>
+          </View>
         );
       })}
     </View>
@@ -378,6 +379,8 @@ const styles = StyleSheet.create({
     borderColor: colors.borderSubtle,
     borderRadius: radius.lg,
     padding: spacing.md,
+    // Rounds off the absolutely-filled gradient behind the content.
+    overflow: 'hidden',
   },
   podiumCardWinner: { height: 132 },
   medal: { width: 36, height: 36 },

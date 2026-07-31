@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { colors, radius, spacing, typography } from '../../theme';
 
 // ---------------------------------------------------------------------------
@@ -47,6 +47,11 @@ export interface TableProps<T = any> {
   headerVariant?: 'grey' | 'white';
   /** Show row dividers under each row. Default true. */
   showRowDividers?: boolean;
+  /**
+   * Makes each row tappable. Cells that handle their own presses (an actions
+   * menu, a link) still win, since their touch target sits above the row's.
+   */
+  onRowPress?: (row: T, rowIndex: number) => void;
   /** Style override on the outer container. */
   style?: object;
 }
@@ -77,6 +82,7 @@ export function Table<T = any>({
   rowKey,
   headerVariant = 'grey',
   showRowDividers = true,
+  onRowPress,
   style,
 }: TableProps<T>) {
   const getRowKey = (row: T, i: number): string | number =>
@@ -111,25 +117,36 @@ export function Table<T = any>({
           </View>
 
           {/* ---- Body rows ---- */}
-          {data.map((row, rowIdx) => (
-            <View
-              key={getRowKey(row, rowIdx)}
-              style={[styles.row, showRowDividers && styles.rowDivider]}
-            >
-              {columns.map((col) => (
-                <View
-                  key={col.key}
-                  style={[
-                    styles.cell,
-                    { width: col.width ?? 160 },
-                    col.align === 'right' && styles.cellRight,
-                  ]}
-                >
-                  {renderCellContent(col, row, rowIdx)}
-                </View>
-              ))}
-            </View>
-          ))}
+          {data.map((row, rowIdx) => {
+            const cells = columns.map((col) => (
+              <View
+                key={col.key}
+                style={[
+                  styles.cell,
+                  { width: col.width ?? 160 },
+                  col.align === 'right' && styles.cellRight,
+                ]}
+              >
+                {renderCellContent(col, row, rowIdx)}
+              </View>
+            ));
+            const rowStyle = [styles.row, showRowDividers && styles.rowDivider];
+
+            return onRowPress ? (
+              <Pressable
+                key={getRowKey(row, rowIdx)}
+                style={({ pressed }) => [...rowStyle, pressed && styles.rowPressed]}
+                onPress={() => onRowPress(row, rowIdx)}
+                accessibilityRole="button"
+              >
+                {cells}
+              </Pressable>
+            ) : (
+              <View key={getRowKey(row, rowIdx)} style={rowStyle}>
+                {cells}
+              </View>
+            );
+          })}
         </View>
       </ScrollView>
     </View>
@@ -296,6 +313,10 @@ const styles = StyleSheet.create({
   rowDivider: {
     borderBottomWidth: 1,
     borderBottomColor: colors.borderSubtle,
+  },
+  // Only reachable when `onRowPress` is set.
+  rowPressed: {
+    backgroundColor: colors.surfaceSubtle,
   },
   cell: {
     flexDirection: 'row',

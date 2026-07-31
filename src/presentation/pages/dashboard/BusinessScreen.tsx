@@ -8,7 +8,6 @@ import { BrowseCategories } from '../../components/dashboard/business/BrowseCate
 import { HealthGuard } from '../../components/dashboard/business/health/HealthGuard';
 import { ConvertProposal } from '../../components/dashboard/business/proposal/ConvertProposal';
 import { RenewPolicy } from '../../components/dashboard/business/renewal/RenewPolicy';
-import { EndorsementsPage } from '../../components/dashboard/business/endorsement/EndorsementsPage';
 import { IssuedPolicy } from '../../components/dashboard/business/IssuedPolicy';
 import { TwoWheelerInsurance } from '../../components/dashboard/business/motor/TwoWheelerInsurance';
 import { VehicleTypeModal } from '../../components/dashboard/business/motor/VehicleTypeModal';
@@ -23,9 +22,7 @@ type BizView =
   | { kind: 'convert'; customer: string }
   | { kind: 'policy'; policy: Policy }
   /** `view` opens the read-only renewal summary; `flow` opens the wizard. */
-  | { kind: 'renewal'; renewal: Renewal; mode: 'view' | 'flow' }
-  /** `search` pre-fills the search box (set when opened from a policy row). */
-  | { kind: 'endorsements'; search?: string };
+  | { kind: 'renewal'; renewal: Renewal; mode: 'view' | 'flow' };
 
 const TITLES: Record<BizView['kind'], string> = {
   landing: 'My Business',
@@ -35,7 +32,6 @@ const TITLES: Record<BizView['kind'], string> = {
   convert: 'Convert to Proposal',
   policy: 'Policy Details',
   renewal: 'Renew Policy',
-  endorsements: 'Endorsements',
 };
 
 /** Motor products route to the Two-Wheeler / Motor flow; others to Health Guard. */
@@ -47,8 +43,6 @@ export type QuoteRequest = {
   product?: string;
   /** Land on a specific Shared Quotes tab instead of opening a product. */
   tab?: TabKey;
-  /** Open a standalone Business page instead of a product or a tab. */
-  page?: 'endorsements';
 };
 
 interface BusinessScreenProps {
@@ -103,9 +97,7 @@ export const BusinessScreen: React.FC<BusinessScreenProps> = ({
     if (!quoteRequest) {
       return;
     }
-    if (quoteRequest.page === 'endorsements') {
-      setView({ kind: 'endorsements' });
-    } else if (quoteRequest.tab) {
+    if (quoteRequest.tab) {
       setLandingTab(quoteRequest.tab);
       setView({ kind: 'landing' });
     } else if (quoteRequest.product) {
@@ -121,7 +113,7 @@ export const BusinessScreen: React.FC<BusinessScreenProps> = ({
     <View style={styles.flex}>
       {/* Landing, browse and the quote/proposal wizards have no top header —
           the policy and renewal screens do, since they open from a list row. */}
-      {view.kind === 'policy' || view.kind === 'renewal' || view.kind === 'endorsements' ? (
+      {view.kind === 'policy' || view.kind === 'renewal' ? (
         <View style={styles.header}>
           <Pressable onPress={goLanding} hitSlop={8} accessibilityRole="button" accessibilityLabel="Back" style={styles.back}>
             <CaretLeft size={18} color={colors.textBody} weight="bold" />
@@ -145,9 +137,6 @@ export const BusinessScreen: React.FC<BusinessScreenProps> = ({
               onViewPolicy={(p) => setView({ kind: 'policy', policy: p })}
               onRenewPolicy={(r) => setView({ kind: 'renewal', renewal: r, mode: 'flow' })}
               onViewRenewal={(r) => setView({ kind: 'renewal', renewal: r, mode: 'view' })}
-              // Web's policy-row endorsement action is a stub; opening the
-              // endorsements list filtered to that policy is the useful read.
-              onEndorsement={(p) => setView({ kind: 'endorsements', search: p.policyId })}
               onCreateQuote={() => setView({ kind: 'browse' })}
             />
           </ScrollView>
@@ -191,8 +180,6 @@ export const BusinessScreen: React.FC<BusinessScreenProps> = ({
           // mounted, so nothing the agent entered is lost.
           onRenewFlowStart={() => setView({ kind: 'renewal', renewal: view.renewal, mode: 'flow' })}
         />
-      ) : view.kind === 'endorsements' ? (
-        <EndorsementsPage initialSearch={view.search} />
       ) : (
         <IssuedPolicy policy={view.policy} onClose={goLanding} />
       )}

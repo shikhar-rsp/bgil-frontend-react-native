@@ -13,14 +13,17 @@ interface PolicyFeaturesModalProps {
 
 const FeatureCard: React.FC<{ title: string; items: string[] }> = ({ title, items }) => (
   <View style={styles.card}>
-    <LinearGradient
-      colors={['#EFF6FF', '#DBEAFE']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 0 }}
-      style={styles.cardHeader}
-    >
+    {/* Background-only gradient (see DashboardTopBar): on iOS the native
+        gradient view paints over its own children, which clipped the title. */}
+    <View style={styles.cardHeader}>
+      <LinearGradient
+        colors={['#EFF6FF', '#DBEAFE']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={StyleSheet.absoluteFill}
+      />
       <Text style={styles.cardTitle}>{title}</Text>
-    </LinearGradient>
+    </View>
     <View style={styles.cardBody}>
       {items.map((item) => (
         <View key={item} style={styles.row}>

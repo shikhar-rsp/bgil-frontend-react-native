@@ -164,11 +164,16 @@ export const VehicleIdentificationStep: React.FC<VehicleIdentificationStepProps>
               onClose={() => setShowToast(false)}
             />
           ) : null} */}
-          <LinearGradient
-            colors={['#FFFFFF', '#FFF7ED']}
+          {/* A plain View owns the border, radius and `overflow: hidden`: on iOS
+              the native gradient view drops the clip and paints over its own
+              children, so the oversized background art escaped the card. The
+              gradient is a background-only layer behind the content. */}
+          <View
             style={styles.foundCard}
             onLayout={(e) => setFoundCardHeight(e.nativeEvent.layout.height)}
           >
+            <LinearGradient colors={['#FFFFFF', '#FFF7ED']} style={StyleSheet.absoluteFill} />
+
             {foundCardHeight > 0 ? (
               <Image source={dashboardImages.vehicleBack} style={[styles.foundCardArt, { height: foundCardHeight }]} resizeMode="contain" />
             ) : null}
@@ -190,7 +195,7 @@ export const VehicleIdentificationStep: React.FC<VehicleIdentificationStepProps>
               <Detail style={styles.col} label="Registration Location:" value={vehicle.location} />
               <Detail style={styles.col} label="Registration Date:" value={vehicle.regDate} />
             </View>
-          </LinearGradient>
+          </View>
         </View>
       ) : vehicleType === 'new' ? (
         <View style={styles.card}>

@@ -1,10 +1,9 @@
 import React from 'react';
-import { View, FlatList, StyleSheet } from 'react-native';
 import { Copy, Trash, PencilSimple, FileText } from 'phosphor-react-native';
-import { colors } from '@atlas-ds/react-native';
+import { colors, type TableColumn } from '@atlas-ds/react-native';
 import { ActionMenu } from '../../common/ActionMenu';
-import { RecordCard } from './RecordCard';
-import { ListEmptyState, type SearchStatus } from './ListEmptyState';
+import { RecordTable, StatusCell, TextCell } from './RecordTable';
+import { type SearchStatus } from './ListEmptyState';
 import { statusColor, type Quote } from '../businessData';
 
 interface QuotesListProps {
@@ -30,39 +29,56 @@ export const QuotesList: React.FC<QuotesListProps> = ({
   onDelete,
   onEdit,
   onConvert,
-}) => (
-  <FlatList
-    data={data}
-    keyExtractor={(q) => String(q.id)}
-    scrollEnabled={false}
-    ItemSeparatorComponent={() => <View style={styles.sep} />}
-    ListEmptyComponent={
-      <ListEmptyState status={searchStatus} noun="quotes" showCreate={isSourceEmpty} onCreateQuote={onCreateQuote} />
-    }
-    renderItem={({ item }) => (
-      <RecordCard
-        title={item.customer}
-        subtitle={`${item.quoteId} · ${item.product}`}
-        note={item.copiedFrom ? `Copy of ${item.copiedFrom}` : undefined}
-        amount={`₹ ${item.premium.toLocaleString('en-IN')}`}
-        meta={item.date}
-        status={item.status}
-        statusColor={statusColor(item.status)}
-        menu={
-          <ActionMenu
-            items={[
-              { key: 'duplicate', label: 'Duplicate', icon: <Copy size={ICON} color={colors.textBody} />, onPress: () => onDuplicate(item) },
-              { key: 'delete', label: 'Delete', icon: <Trash size={ICON} color={colors.textBody} />, onPress: () => onDelete(item) },
-              { key: 'edit', label: 'Edit Quote', icon: <PencilSimple size={ICON} color={colors.textBody} />, onPress: () => onEdit(item) },
-              { key: 'convert', label: 'Convert to Proposal', icon: <FileText size={ICON} color={colors.textBody} />, onPress: () => onConvert(item) },
-            ]}
-          />
-        }
-      />
-    )}
-  />
-);
+}) => {
+  const columns: TableColumn<Quote>[] = [
+    { key: 'customer', header: 'Customer', width: 150, render: (q) => <TextCell strong value={q.customer} /> },
+    {
+      key: 'quoteId',
+      header: 'Quote ID',
+      width: 150,
+      render: (q) => <TextCell value={q.quoteId} note={q.copiedFrom ? `Copy of ${q.copiedFrom}` : undefined} />,
+    },
+    { key: 'product', header: 'Product', width: 200, render: (q) => <TextCell value={q.product} /> },
+    {
+      key: 'premium',
+      header: 'Premium',
+      width: 120,
+      align: 'right',
+      render: (q) => <TextCell strong align="right" value={`₹ ${q.premium.toLocaleString('en-IN')}`} />,
+    },
+    { key: 'date', header: 'Date', width: 120, render: (q) => <TextCell value={q.date} /> },
+    {
+      key: 'status',
+      header: 'Status',
+      width: 130,
+      render: (q) => <StatusCell label={q.status} color={statusColor(q.status)} />,
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      width: 88,
+      render: (q) => (
+        <ActionMenu
+          items={[
+            { key: 'duplicate', label: 'Duplicate', icon: <Copy size={ICON} color={colors.textBody} />, onPress: () => onDuplicate(q) },
+            { key: 'delete', label: 'Delete', icon: <Trash size={ICON} color={colors.textBody} />, onPress: () => onDelete(q) },
+            { key: 'edit', label: 'Edit Quote', icon: <PencilSimple size={ICON} color={colors.textBody} />, onPress: () => onEdit(q) },
+            { key: 'convert', label: 'Convert to Proposal', icon: <FileText size={ICON} color={colors.textBody} />, onPress: () => onConvert(q) },
+          ]}
+        />
+      ),
+    },
+  ];
 
-const styles = StyleSheet.create({
-  sep: { height: 1, backgroundColor: colors.surfaceMuted },
-});
+  return (
+    <RecordTable
+      columns={columns}
+      data={data}
+      rowKey="id"
+      noun="quotes"
+      searchStatus={searchStatus}
+      isSourceEmpty={isSourceEmpty}
+      onCreateQuote={onCreateQuote}
+    />
+  );
+};

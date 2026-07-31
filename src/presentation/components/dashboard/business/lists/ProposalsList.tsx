@@ -1,10 +1,9 @@
 import React from 'react';
-import { View, FlatList, StyleSheet } from 'react-native';
 import { Trash, PencilSimple } from 'phosphor-react-native';
-import { colors } from '@atlas-ds/react-native';
+import { colors, type TableColumn } from '@atlas-ds/react-native';
 import { ActionMenu } from '../../common/ActionMenu';
-import { RecordCard } from './RecordCard';
-import { ListEmptyState, type SearchStatus } from './ListEmptyState';
+import { RecordTable, StatusCell, TextCell } from './RecordTable';
+import { type SearchStatus } from './ListEmptyState';
 import { statusColor, type Proposal } from '../businessData';
 
 interface ProposalsListProps {
@@ -25,36 +24,55 @@ export const ProposalsList: React.FC<ProposalsListProps> = ({
   onCreateQuote,
   onDelete,
   onEdit,
-}) => (
-  <FlatList
-    data={data}
-    keyExtractor={(p) => String(p.id)}
-    scrollEnabled={false}
-    ItemSeparatorComponent={() => <View style={styles.sep} />}
-    ListEmptyComponent={
-      <ListEmptyState status={searchStatus} noun="proposals" showCreate={isSourceEmpty} onCreateQuote={onCreateQuote} />
-    }
-    renderItem={({ item }) => (
-      <RecordCard
-        title={item.customer}
-        subtitle={`${item.proposalId} · ${item.product}`}
-        amount={`₹ ${item.premium.toLocaleString('en-IN')}`}
-        meta={item.businessType === 'new' ? 'New' : 'Portability'}
-        status={item.status}
-        statusColor={statusColor(item.status)}
-        menu={
-          <ActionMenu
-            items={[
-              { key: 'delete', label: 'Delete', icon: <Trash size={ICON} color={colors.textBody} />, onPress: () => onDelete(item) },
-              { key: 'edit', label: 'Edit Proposal', icon: <PencilSimple size={ICON} color={colors.textBody} />, onPress: () => onEdit(item) },
-            ]}
-          />
-        }
-      />
-    )}
-  />
-);
+}) => {
+  const columns: TableColumn<Proposal>[] = [
+    { key: 'customer', header: 'Customer', width: 150, render: (p) => <TextCell strong value={p.customer} /> },
+    { key: 'proposalId', header: 'Proposal ID', width: 130, render: (p) => <TextCell value={p.proposalId} /> },
+    { key: 'product', header: 'Product', width: 200, render: (p) => <TextCell value={p.product} /> },
+    {
+      key: 'premium',
+      header: 'Premium',
+      width: 120,
+      align: 'right',
+      render: (p) => <TextCell strong align="right" value={`₹ ${p.premium.toLocaleString('en-IN')}`} />,
+    },
+    {
+      key: 'businessType',
+      header: 'Business Type',
+      width: 130,
+      render: (p) => <TextCell value={p.businessType === 'new' ? 'New' : 'Portability'} />,
+    },
+    { key: 'date', header: 'Date', width: 120, render: (p) => <TextCell value={p.date} /> },
+    {
+      key: 'status',
+      header: 'Status',
+      width: 160,
+      render: (p) => <StatusCell label={p.status} color={statusColor(p.status)} />,
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      width: 88,
+      render: (p) => (
+        <ActionMenu
+          items={[
+            { key: 'delete', label: 'Delete', icon: <Trash size={ICON} color={colors.textBody} />, onPress: () => onDelete(p) },
+            { key: 'edit', label: 'Edit Proposal', icon: <PencilSimple size={ICON} color={colors.textBody} />, onPress: () => onEdit(p) },
+          ]}
+        />
+      ),
+    },
+  ];
 
-const styles = StyleSheet.create({
-  sep: { height: 1, backgroundColor: colors.surfaceMuted },
-});
+  return (
+    <RecordTable
+      columns={columns}
+      data={data}
+      rowKey="id"
+      noun="proposals"
+      searchStatus={searchStatus}
+      isSourceEmpty={isSourceEmpty}
+      onCreateQuote={onCreateQuote}
+    />
+  );
+};

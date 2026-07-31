@@ -1,10 +1,9 @@
 import React from 'react';
-import { View, FlatList, StyleSheet } from 'react-native';
 import { ArrowsClockwise, ShareNetwork, Eye, Phone } from 'phosphor-react-native';
-import { colors } from '@atlas-ds/react-native';
+import { colors, type TableColumn } from '@atlas-ds/react-native';
 import { ActionMenu } from '../../common/ActionMenu';
-import { RecordCard } from './RecordCard';
-import { ListEmptyState, type SearchStatus } from './ListEmptyState';
+import { RecordTable, StatusCell, TextCell } from './RecordTable';
+import { type SearchStatus } from './ListEmptyState';
 import { statusColor, expiringWithinColor, type Renewal } from '../businessData';
 
 interface RenewalsListProps {
@@ -27,38 +26,59 @@ export const RenewalsList: React.FC<RenewalsListProps> = ({
   onShareNotice,
   onViewPolicy,
   onCallCustomer,
-}) => (
-  <FlatList
-    data={data}
-    keyExtractor={(r) => String(r.id)}
-    scrollEnabled={false}
-    ItemSeparatorComponent={() => <View style={styles.sep} />}
-    ListEmptyComponent={<ListEmptyState status={searchStatus} noun="renewals" showCreate={isSourceEmpty} />}
-    renderItem={({ item }) => (
-      <RecordCard
-        title={item.customer}
-        subtitle={`${item.renewalPolicyId} · ${item.productCode}`}
-        amount={`₹ ${item.renewalPremium.toLocaleString('en-IN')}`}
-        meta={`Expires ${item.expiryDate}`}
-        tag={item.expiringWithin}
-        tagColor={expiringWithinColor(item.expiringWithin)}
-        status={item.status}
-        statusColor={statusColor(item.status)}
-        menu={
-          <ActionMenu
-            items={[
-              { key: 'renew', label: 'Renew Policy', icon: <ArrowsClockwise size={ICON} color={colors.textBody} />, onPress: () => onRenew(item) },
-              { key: 'share', label: 'Share Renewal Notice', icon: <ShareNetwork size={ICON} color={colors.textBody} />, onPress: () => onShareNotice(item) },
-              { key: 'view', label: 'View Policy', icon: <Eye size={ICON} color={colors.textBody} />, onPress: () => onViewPolicy(item) },
-              { key: 'call', label: 'Call Customer', icon: <Phone size={ICON} color={colors.textBody} />, onPress: () => onCallCustomer(item) },
-            ]}
-          />
-        }
-      />
-    )}
-  />
-);
+}) => {
+  const columns: TableColumn<Renewal>[] = [
+    { key: 'customer', header: 'Customer', width: 150, render: (r) => <TextCell strong value={r.customer} /> },
+    { key: 'renewalPolicyId', header: 'Renewal Policy ID', width: 150, render: (r) => <TextCell value={r.renewalPolicyId} /> },
+    { key: 'productCode', header: 'Product', width: 200, render: (r) => <TextCell value={r.productCode} /> },
+    {
+      key: 'renewalPremium',
+      header: 'Renewal Premium',
+      width: 150,
+      align: 'right',
+      render: (r) => <TextCell strong align="right" value={`₹ ${r.renewalPremium.toLocaleString('en-IN')}`} />,
+    },
+    // Renewal expiry carries a 4-digit year, so it needs more room than the
+    // DD/MM/YY dates on the other tabs.
+    { key: 'expiryDate', header: 'Expiry Date', width: 140, render: (r) => <TextCell value={r.expiryDate} /> },
+    {
+      key: 'expiringWithin',
+      header: 'Expiring Within',
+      width: 130,
+      render: (r) => <StatusCell label={r.expiringWithin} color={expiringWithinColor(r.expiringWithin)} />,
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      width: 130,
+      render: (r) => <StatusCell label={r.status} color={statusColor(r.status)} />,
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      width: 88,
+      render: (r) => (
+        <ActionMenu
+          items={[
+            { key: 'renew', label: 'Renew Policy', icon: <ArrowsClockwise size={ICON} color={colors.textBody} />, onPress: () => onRenew(r) },
+            { key: 'share', label: 'Share Renewal Notice', icon: <ShareNetwork size={ICON} color={colors.textBody} />, onPress: () => onShareNotice(r) },
+            { key: 'view', label: 'View Policy', icon: <Eye size={ICON} color={colors.textBody} />, onPress: () => onViewPolicy(r) },
+            { key: 'call', label: 'Call Customer', icon: <Phone size={ICON} color={colors.textBody} />, onPress: () => onCallCustomer(r) },
+          ]}
+        />
+      ),
+    },
+  ];
 
-const styles = StyleSheet.create({
-  sep: { height: 1, backgroundColor: colors.surfaceMuted },
-});
+  return (
+    <RecordTable
+      columns={columns}
+      data={data}
+      rowKey="id"
+      noun="renewals"
+      searchStatus={searchStatus}
+      isSourceEmpty={isSourceEmpty}
+      onRowPress={onViewPolicy}
+    />
+  );
+};

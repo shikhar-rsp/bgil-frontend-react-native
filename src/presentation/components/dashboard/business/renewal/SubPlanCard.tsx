@@ -33,12 +33,14 @@ export const SubPlanCard: React.FC<SubPlanCardProps> = ({ subPlan, onSelect }) =
             selected && { backgroundColor: plan.selectedBg },
           ]}
         >
-          <LinearGradient
-            colors={plan.headerGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.planHeader}
-          >
+          {/* Background-only gradient — on iOS it paints over its own children. */}
+          <View style={styles.planHeader}>
+            <LinearGradient
+              colors={plan.headerGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
             <View style={styles.planHeaderTop}>
               <View style={[styles.iconBox, { backgroundColor: plan.iconBg }]}>
                 <plan.Icon size={20} color="#FFFFFF" />
@@ -49,7 +51,7 @@ export const SubPlanCard: React.FC<SubPlanCardProps> = ({ subPlan, onSelect }) =
               <Text style={styles.planTitle}>{plan.title}</Text>
               <Badge label={plan.badge} variant="solid" size="sm" color={plan.badgeColor} />
             </View>
-          </LinearGradient>
+          </View>
 
           <View style={styles.benefits}>
             <Text style={styles.benefitsTitle}>What you get</Text>
@@ -76,7 +78,8 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
     backgroundColor: colors.surface,
   },
-  planHeader: { borderRadius: radius.lg, padding: spacing.md, gap: spacing.sm },
+  // `overflow` rounds off the absolutely-filled gradient behind the content.
+  planHeader: { borderRadius: radius.lg, padding: spacing.md, gap: spacing.sm, overflow: 'hidden' },
   planHeaderTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
   iconBox: { width: 32, height: 32, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
   planTitleRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: spacing.sm },

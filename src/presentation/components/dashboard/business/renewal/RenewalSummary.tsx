@@ -133,10 +133,12 @@ export const RenewalSummary: React.FC<RenewalSummaryProps> = ({
 
       <View style={styles.card}>
         <View style={styles.outline}>
-          <LinearGradient colors={['#FFFFFF', '#EFF6FF']} style={styles.titleBar}>
+          {/* Background-only gradient — on iOS it paints over its own children. */}
+          <View style={styles.titleBar}>
+            <LinearGradient colors={['#FFFFFF', '#EFF6FF']} style={StyleSheet.absoluteFill} />
             <Text style={styles.title}>{titleOverride ?? `${productName} – ${planTypeLabel} (${flowLabel})`}</Text>
             {titleBadge}
-          </LinearGradient>
+          </View>
 
           <View style={styles.sections}>
             <Section title="Policy Details" tone="success" badge={policyBadge}>

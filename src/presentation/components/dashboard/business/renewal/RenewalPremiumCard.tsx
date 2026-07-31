@@ -50,12 +50,14 @@ export const RenewalPremiumCard: React.FC<RenewalPremiumCardProps> = ({
           accessibilityLabel="Renewal Premium Details"
           accessibilityState={{ expanded }}
         >
-          <LinearGradient colors={['#EFF6FF', '#DBEAFE']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.header}>
+          {/* Background-only gradient — on iOS it paints over its own children. */}
+          <View style={styles.header}>
+            <LinearGradient colors={['#EFF6FF', '#DBEAFE']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
             <Text style={styles.heading}>Renewal Premium Details</Text>
             <View style={expanded ? styles.caretOpen : undefined}>
               <CaretDown size={18} color={colors.textBody} />
             </View>
-          </LinearGradient>
+          </View>
         </Pressable>
 
         {expanded ? (

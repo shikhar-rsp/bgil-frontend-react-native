@@ -89,10 +89,12 @@ export const AddOnsStep: React.FC<AddOnsStepProps> = ({
       {!isOlderThan15 && !noAddOns ? (
         <View style={styles.packages}>
           <View style={styles.packageCard}>
-            <LinearGradient useAngle angle={104} colors={PLATINUM} locations={GRADIENT_LOCATIONS} style={styles.packageHeader}>
+            {/* Background-only gradient — on iOS it paints over its own children. */}
+            <View style={styles.packageHeader}>
+              <LinearGradient useAngle angle={104} colors={PLATINUM} locations={GRADIENT_LOCATIONS} style={StyleSheet.absoluteFill} />
               <Text style={styles.packageTitle}>Main Packages</Text>
               <Badge variant="solid" size="sm" color="neutral" label={String(countBy('main-'))} />
-            </LinearGradient>
+            </View>
             <View style={styles.packageList}>
               {MAIN_PACKAGES.map((pkg, i) => (
                 <AddOnRow
@@ -107,10 +109,11 @@ export const AddOnsStep: React.FC<AddOnsStepProps> = ({
           </View>
 
           <View style={styles.packageCard}>
-            <LinearGradient useAngle angle={104} colors={PLATINUM} locations={GRADIENT_LOCATIONS} style={styles.packageHeader}>
+            <View style={styles.packageHeader}>
+              <LinearGradient useAngle angle={104} colors={PLATINUM} locations={GRADIENT_LOCATIONS} style={StyleSheet.absoluteFill} />
               <Text style={styles.packageTitle}>Top-up Packages</Text>
               <Badge variant="solid" size="sm" color="neutral" label={String(countBy('topup-'))} />
-            </LinearGradient>
+            </View>
             <View style={styles.packageList}>
               {TOPUP_PACKAGES.map((pkg, i) => (
                 <AddOnRow

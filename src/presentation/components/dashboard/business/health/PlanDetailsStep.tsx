@@ -247,13 +247,15 @@ export const PlanDetailsStep: React.FC<PlanDetailsStepProps> = ({
                 selected && { backgroundColor: sp.tint },
               ]}
             >
-              <LinearGradient
-                useAngle
-                angle={g.angle}
-                colors={g.colors}
-                locations={g.locations}
-                style={styles.subPlanHead}
-              >
+              {/* Background-only gradient — on iOS it paints over its own children. */}
+              <View style={styles.subPlanHead}>
+                <LinearGradient
+                  useAngle
+                  angle={g.angle}
+                  colors={g.colors}
+                  locations={g.locations}
+                  style={StyleSheet.absoluteFill}
+                />
                 <View style={styles.subPlanTop}>
                   <View style={[styles.subPlanIcon, { backgroundColor: sp.iconBg }]}>
                     <SubPlanIcon id={sp.id} />
@@ -265,7 +267,7 @@ export const PlanDetailsStep: React.FC<PlanDetailsStepProps> = ({
                   <Badge variant="solid" size="sm" color={sp.badgeColor} label={sp.badge} />
                 </View>
                 <Text style={styles.subPlanTagline}>Lorem ipsum dolor sit amet</Text>
-              </LinearGradient>
+              </View>
               <View style={styles.benefits}>
                 <Text style={styles.benefitsHeading}>What you get</Text>
                 {sp.benefits.map((b, i) => (
@@ -304,7 +306,8 @@ const styles = StyleSheet.create({
   memberFields: { gap: spacing.md, paddingHorizontal: spacing.md, paddingBottom: spacing.md, paddingTop: spacing.xs },
   subPlans: { gap: spacing.md },
   subPlan: { borderWidth: 1, borderRadius: radius.lg, padding: spacing.md, gap: spacing.md },
-  subPlanHead: { gap: spacing.xs, padding: spacing.md, borderRadius: radius.lg },
+  // `overflow` rounds off the absolutely-filled gradient behind the content.
+  subPlanHead: { gap: spacing.xs, padding: spacing.md, borderRadius: radius.lg, overflow: 'hidden' },
   // Tier glyph left, radio right — the same header row motor's plan cards use.
   subPlanTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
   subPlanIcon: { width: 32, height: 32, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
