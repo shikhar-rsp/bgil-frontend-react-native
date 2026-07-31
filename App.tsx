@@ -33,7 +33,7 @@ import { RMDashboardScreen } from './src/presentation/pages/dashboard/RMDashboar
 import { TraineeScreen } from './src/presentation/pages/dashboard/TraineeScreen';
 import { ProfileScreen } from './src/presentation/pages/dashboard/ProfileScreen';
 import { NotificationsScreen } from './src/presentation/pages/dashboard/NotificationsScreen';
-import { DevNav } from './src/dev/DevNav';
+// import { DevNav } from './src/dev/DevNav';
 
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -107,7 +107,7 @@ export default function App() {
               <Stack.Screen name="Profile" component={ProfileScreen} />
               <Stack.Screen name="Notifications" component={NotificationsScreen} />
             </Stack.Navigator>
-            <DevNav navigationRef={navigationRef} />
+            {/* <DevNav navigationRef={navigationRef} /> */}
           </NavigationContainer>
           <Loader />
         </LoaderProvider>
