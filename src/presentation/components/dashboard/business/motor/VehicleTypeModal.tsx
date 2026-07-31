@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { FilePlus, FileText, type IconProps } from 'phosphor-react-native';
-import { Modal, colors, spacing, radius, typography, fontFamilyForWeight } from '@atlas-ds/react-native';
+import { BottomSheet, colors, spacing, radius, typography, fontFamilyForWeight } from '@atlas-ds/react-native';
 
 type VehicleType = 'registered' | 'new';
 
@@ -17,19 +17,21 @@ const OPTIONS: { type: VehicleType; title: string; sub: string; Icon: React.Comp
 ];
 
 /**
- * "Select Vehicle Type" — a centred dialog rather than a bottom sheet.
+ * "Select Vehicle Type" — the step between picking a motor product and the
+ * quote flow.
  *
- * A Quick Quotes tile already opens its actions in a sheet, so docking this at
- * the bottom too stacked two sheets back to back. A centred Modal reads as the
- * second, distinct step it is.
+ * The back control stands in for the Cancel button a centred dialog would
+ * carry: this sheet is a step the agent can retreat from, not a dead end.
  */
 export const VehicleTypeModal: React.FC<VehicleTypeModalProps> = ({ isOpen, onClose, onProceed }) => (
-  <Modal
+  <BottomSheet
     visible={isOpen}
     onClose={onClose}
+    onBack={onClose}
+    backAccessibilityLabel="Back to products"
     title="Select Vehicle Type"
     subtitle="Choose a vehicle type to proceed with quote creation"
-    secondaryAction={{ label: 'Cancel', onPress: onClose, tone: 'neutral' }}
+    contentMinHeight={0}
   >
     <View style={styles.options}>
       {OPTIONS.map((o) => (
@@ -50,12 +52,11 @@ export const VehicleTypeModal: React.FC<VehicleTypeModalProps> = ({ isOpen, onCl
         </Pressable>
       ))}
     </View>
-  </Modal>
+  </BottomSheet>
 );
 
 const styles = StyleSheet.create({
-  // The Modal body centres its children, so stretch to the full 335px surface.
-  options: { alignSelf: 'stretch', gap: spacing.md },
+  options: { gap: spacing.md },
   option: {
     flexDirection: 'row',
     alignItems: 'center',

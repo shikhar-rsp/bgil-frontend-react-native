@@ -89,6 +89,18 @@ export const Slider: React.FC<SliderProps> = ({
     return clamp(Math.round((lo + ratio * sp) / st) * st, lo, hi);
   };
 
+  /**
+   * Screen-space X of the track's left edge, captured at grant.
+   *
+   * Only `onPanResponderGrant` gets a trustworthy `locationX`. On move the same
+   * field is re-derived per event and can arrive as 0 — including while a
+   * finger is held still — which reads as the far-left of the track and snaps
+   * the value to `min`. Absolute `pageX` has no such ambiguity, so every move
+   * is resolved against this origin instead.
+   */
+  const originX = useRef(0);
+  const valueFromPageX = (pageX: number) => valueFromX(pageX - originX.current);
+
   // Clamp so neither thumb passes the other: the LEFT thumb stays ≤ the right
   // thumb's value, the RIGHT thumb stays ≥ the left thumb's value.
   const apply = (v: number) => {
@@ -102,8 +114,11 @@ export const Slider: React.FC<SliderProps> = ({
     PanResponder.create({
       onStartShouldSetPanResponder: () => !disabledRef.current,
       onMoveShouldSetPanResponder: () => !disabledRef.current,
-      onPanResponderGrant: (e) => onChangeRef.current?.(valueFromX(e.nativeEvent.locationX)),
-      onPanResponderMove: (e) => onChangeRef.current?.(valueFromX(e.nativeEvent.locationX)),
+      onPanResponderGrant: (e) => {
+        originX.current = e.nativeEvent.pageX - e.nativeEvent.locationX;
+        onChangeRef.current?.(valueFromX(e.nativeEvent.locationX));
+      },
+      onPanResponderMove: (e) => onChangeRef.current?.(valueFromPageX(e.nativeEvent.pageX)),
     })
   ).current;
 
@@ -113,12 +128,13 @@ export const Slider: React.FC<SliderProps> = ({
       onStartShouldSetPanResponder: () => !disabledRef.current,
       onMoveShouldSetPanResponder: () => !disabledRef.current,
       onPanResponderGrant: (e) => {
+        originX.current = e.nativeEvent.pageX - e.nativeEvent.locationX;
         const v = valueFromX(e.nativeEvent.locationX);
         const [lo, hi] = valueRef.current as [number, number];
         dragging.current = lo === hi ? (v < lo ? 'low' : 'high') : Math.abs(v - lo) <= Math.abs(v - hi) ? 'low' : 'high';
         apply(v);
       },
-      onPanResponderMove: (e) => apply(valueFromX(e.nativeEvent.locationX)),
+      onPanResponderMove: (e) => apply(valueFromPageX(e.nativeEvent.pageX)),
       onPanResponderRelease: () => (dragging.current = null),
     })
   ).current;
@@ -149,10 +165,15 @@ export const Slider: React.FC<SliderProps> = ({
         }}
         {...(range ? rangePan.panHandlers : singlePan.panHandlers)}
       >
-        <View style={styles.track} />
-        <View style={[styles.fill, { left: fillLeft, width: fillW }]} />
-        {range ? <View style={[styles.thumb, { left: lowLeft }]} /> : null}
-        <View style={[styles.thumb, { left: highLeft }]} />
+        {/* All four are `pointerEvents="none"` so the wrapper is always the
+            touch target. `locationX` is measured against the target, not the
+            responder — with a hit-testable thumb, grabbing the thumb reported
+            0–24 (its own width) and snapped the value to `min`. The track and
+            fill only escaped this by sharing the wrapper's left edge. */}
+        <View style={styles.track} pointerEvents="none" />
+        <View style={[styles.fill, { left: fillLeft, width: fillW }]} pointerEvents="none" />
+        {range ? <View style={[styles.thumb, { left: lowLeft }]} pointerEvents="none" /> : null}
+        <View style={[styles.thumb, { left: highLeft }]} pointerEvents="none" />
       </View>
 
       {valueLabels && valueLabels.length ? (

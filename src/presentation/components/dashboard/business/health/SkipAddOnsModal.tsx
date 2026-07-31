@@ -1,6 +1,10 @@
 import React from 'react';
-import { Text, StyleSheet } from 'react-native';
-import { Modal, colors, spacing, typography } from '@atlas-ds/react-native';
+import { Warning } from 'phosphor-react-native';
+import {
+  BottomSheet,
+  BOTTOM_SHEET_HEADER_GLYPH_SIZE,
+  accent,
+} from '@atlas-ds/react-native';
 
 interface SkipAddOnsModalProps {
   isOpen: boolean;
@@ -8,14 +12,20 @@ interface SkipAddOnsModalProps {
   onSkipAndProceed: () => void;
 }
 
+/**
+ * "Continue without add-ons?" — shown when the agent advances past the add-ons
+ * step having picked none. `contentSlot={false}` collapses the sheet to just
+ * its header and footer; there's no body to reserve 308px for.
+ */
 export const SkipAddOnsModal: React.FC<SkipAddOnsModalProps> = ({ isOpen, onClose, onSkipAndProceed }) => (
-  <Modal
+  <BottomSheet
     visible={isOpen}
     onClose={onClose}
-    iconName="warning"
+    icon={<Warning size={BOTTOM_SHEET_HEADER_GLYPH_SIZE} color={accent.amber.solidBg} />}
+    featuredIconColor="amber"
     title="Continue without add-ons?"
-    subtitle='You have not selected any add-ons. However, they can be selected at the proposal stage as well. Do you want to
-      continue without them?'
+    subtitle="You have not selected any add-ons. However, they can be selected at the proposal stage as well. Do you want to continue without them?"
+    contentSlot={false}
     primaryAction={{
       label: 'Skip and move to next step',
       onPress: () => {
@@ -23,19 +33,6 @@ export const SkipAddOnsModal: React.FC<SkipAddOnsModalProps> = ({ isOpen, onClos
         onClose();
       },
     }}
-    secondaryAction={{ label: 'Go back to select', onPress: onClose, tone: 'neutral' }}
+    secondaryAction={{ label: 'Go back to select', onPress: onClose }}
   />
-    
-  
 );
-
-const styles = StyleSheet.create({
-  body: {
-    fontFamily: typography.fontFamily,
-    fontSize: 14,
-    lineHeight: 20,
-    color: colors.textBody,
-    textAlign: 'center',
-    paddingHorizontal: spacing.xs,
-  },
-});

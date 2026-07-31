@@ -237,6 +237,7 @@ const DashboardScreenInner: React.FC<AuthScreenProps<'Dashboard'>> = ({ navigati
             quoteRequest={quoteRequest}
             onQuoteRequestHandled={() => setQuoteRequest(null)}
             onFullScreenChange={handleFullScreenChange}
+            onExitToHome={() => handleSelectItem('Home')}
           />
         ) : (
           <View style={styles.placeholder}>

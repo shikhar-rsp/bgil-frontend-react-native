@@ -56,6 +56,9 @@ interface BusinessScreenProps {
   /** Reports when a full-screen view (browse / a wizard) is open, so the host
    *  can hide the bottom nav and show a back button. Passes a back handler. */
   onFullScreenChange?: (fullScreen: boolean, onBack: () => void) => void;
+  /** Backing out of a step this tab was deep-linked into (a Quick Quotes tile)
+   *  returns to the dashboard rather than stranding the user on Business. */
+  onExitToHome?: () => void;
 }
 
 /** Business tab — landing (insights + lists + drafts) and the quote/proposal wizards. */
@@ -64,11 +67,14 @@ export const BusinessScreen: React.FC<BusinessScreenProps> = ({
   quoteRequest,
   onQuoteRequestHandled,
   onFullScreenChange,
+  onExitToHome,
 }) => {
   const [view, setView] = useState<BizView>(initialView === 'browse' ? { kind: 'browse' } : { kind: 'landing' });
-  // Motor product awaiting a vehicle-type choice — the sheet opens over the
-  // Browse Categories page, and the flow mounts only once a type is picked.
-  const [pendingMotor, setPendingMotor] = useState<string | null>(null);
+  // Motor product awaiting a vehicle-type choice — the sheet opens over
+  // whatever page launched it, and the flow mounts only once a type is picked.
+  // `fromHome` records that a Quick Quotes tile brought us to this tab, so
+  // backing out of the sheet can return there instead of to Business.
+  const [pendingMotor, setPendingMotor] = useState<{ product: string; fromHome: boolean } | null>(null);
   // Which Shared Quotes tab the landing page should show, when something
   // outside the list asks for one (e.g. a Quick Quotes tile choosing Renewals).
   const [landingTab, setLandingTab] = useState<TabKey | undefined>(undefined);
@@ -83,11 +89,20 @@ export const BusinessScreen: React.FC<BusinessScreenProps> = ({
 
   const goLanding = () => setView({ kind: 'landing' });
 
-  const selectProduct = (label: string) => {
+  const selectProduct = (label: string, fromHome = false) => {
     if (MOTOR_PRODUCTS.includes(label)) {
-      setPendingMotor(label);
+      setPendingMotor({ product: label, fromHome });
     } else {
       setView({ kind: 'healthguard', product: label });
+    }
+  };
+
+  /** Back / backdrop on the vehicle-type sheet — undo the step that opened it. */
+  const dismissMotor = () => {
+    const cameFromHome = pendingMotor?.fromHome;
+    setPendingMotor(null);
+    if (cameFromHome) {
+      onExitToHome?.();
     }
   };
 
@@ -101,7 +116,7 @@ export const BusinessScreen: React.FC<BusinessScreenProps> = ({
       setLandingTab(quoteRequest.tab);
       setView({ kind: 'landing' });
     } else if (quoteRequest.product) {
-      selectProduct(quoteRequest.product);
+      selectProduct(quoteRequest.product, true);
     } else {
       setView({ kind: 'browse' });
     }
@@ -188,10 +203,10 @@ export const BusinessScreen: React.FC<BusinessScreenProps> = ({
           flow mounts, so the page behind stays the product list. */}
       <VehicleTypeModal
         isOpen={pendingMotor !== null}
-        onClose={() => setPendingMotor(null)}
+        onClose={dismissMotor}
         onProceed={(type) => {
           if (pendingMotor) {
-            setView({ kind: 'motor', product: pendingMotor, vehicleType: type });
+            setView({ kind: 'motor', product: pendingMotor.product, vehicleType: type });
           }
           setPendingMotor(null);
         }}

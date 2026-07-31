@@ -7,6 +7,7 @@ import {
   ScrollView,
   Modal as RNModal,
 } from 'react-native';
+import { ArrowLeft } from 'phosphor-react-native';
 import { accent, colors, radius, spacing, typography } from '../../theme';
 import type { AccentColor } from '../../theme';
 
@@ -59,6 +60,15 @@ export interface BottomSheetProps {
   /** Secondary action (outlined brand button). Hides if omitted. */
   secondaryAction?: BottomSheetAction;
 
+  /**
+   * Renders a back control in the sheet's top-left corner. Use when the sheet
+   * is a step the user can retreat from, rather than a dead-end confirmation —
+   * it gives an explicit way back that the backdrop tap alone doesn't advertise.
+   */
+  onBack?: () => void;
+  /** Accessible label for the back control. Default 'Back'. */
+  backAccessibilityLabel?: string;
+
   /** Show the small grab handle at the top. Default true. */
   showHandle?: boolean;
   /** Close when the backdrop is tapped. Default true. */
@@ -95,6 +105,8 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   contentMinHeight = 308,
   primaryAction,
   secondaryAction,
+  onBack,
+  backAccessibilityLabel = 'Back',
   showHandle = true,
   closeOnBackdrop = true,
   style,
@@ -122,6 +134,19 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
           <View style={styles.handleWrap}>
             <View style={styles.handle} />
           </View>
+        )}
+
+        {/* Absolutely positioned so it never shifts the centred header text. */}
+        {onBack && (
+          <Pressable
+            style={styles.backControl}
+            onPress={onBack}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={backAccessibilityLabel}
+          >
+            <ArrowLeft size={20} color={colors.textBody} />
+          </Pressable>
         )}
 
         {(icon || title || subtitle) && (
@@ -228,6 +253,13 @@ const styles = StyleSheet.create({
     height: 4,
     borderRadius: 999,
     backgroundColor: colors.surfaceMuted,
+  },
+  backControl: {
+    position: 'absolute',
+    top: spacing.lg,
+    left: spacing.lg,
+    zIndex: 1,
+    padding: spacing.xs,
   },
   headerRow: {
     alignItems: 'center',
