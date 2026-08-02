@@ -183,10 +183,10 @@ export const QuickQuotes: React.FC<QuickQuotesProps> = ({
       <BottomSheet
         visible={actionsOpen}
         onClose={closeActions}
-        // Back pops to the actions from the vehicle-type step, and leaves the
-        // sheet from the actions themselves.
-        onBack={() => (sheetStep > 0 ? setSheetStep(0) : closeActions())}
-        backAccessibilityLabel={sheetStep > 0 ? 'Back to actions' : 'Close'}
+        // Only rendered from the vehicle-type step on, where it pops back to
+        // the actions — the actions themselves are the first step.
+        onBack={() => setSheetStep(0)}
+        backAccessibilityLabel="Back to actions"
         pageIndex={sheetStep}
         pages={[
           {

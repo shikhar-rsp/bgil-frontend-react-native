@@ -107,7 +107,7 @@ export default function App() {
               <Stack.Screen name="Profile" component={ProfileScreen} />
               <Stack.Screen name="Notifications" component={NotificationsScreen} />
             </Stack.Navigator>
-            {/* <DevNav navigationRef={navigationRef} /> */}
+            {/* <DevNav navigationRef={navigationRef} />  */}
           </NavigationContainer>
           <Loader />
         </LoaderProvider>

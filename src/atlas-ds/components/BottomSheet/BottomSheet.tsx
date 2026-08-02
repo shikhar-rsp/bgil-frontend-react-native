@@ -85,13 +85,13 @@ export interface BottomSheetProps {
   secondaryAction?: BottomSheetAction;
 
   /**
-   * Renders a back control in the sheet's top-left corner, on every step. Use
-   * when the sheet is something the user can retreat from, rather than a
-   * dead-end confirmation — it gives an explicit way back that the backdrop tap
-   * alone doesn't advertise.
+   * Renders a back control in the sheet's top-left corner. Use when the sheet
+   * is something the user can retreat from, rather than a dead-end
+   * confirmation — it gives an explicit way back that the backdrop tap alone
+   * doesn't advertise.
    *
-   * On a multi-step sheet this fires for whichever step is showing, so the
-   * handler decides: pop to the previous step, or dismiss from the first.
+   * On a multi-step sheet the control only appears from the second step on,
+   * where it pops to the previous one. The first step has nothing behind it.
    */
   onBack?: () => void;
   /** Accessible label for the back control. Default 'Back'. */
@@ -213,10 +213,11 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   const pPrimary = page ? page.primaryAction : primaryAction;
   const pSecondary = page ? page.secondaryAction : secondaryAction;
 
-  // Shown on every step, including the first — where it means "leave the
-  // sheet". What it does is the consumer's call, since only they know whether
-  // a given step pops to the previous one or dismisses.
-  const showBack = !!onBack;
+  // Only where there is somewhere to go back TO: a pushed step, or a
+  // single-page sheet whose consumer opted in. The first step of a multi-step
+  // sheet has nothing behind it, so an arrow there would just be a second
+  // close button.
+  const showBack = !!onBack && (!paged || shownPage > 0);
 
   return (
     <RNModal
