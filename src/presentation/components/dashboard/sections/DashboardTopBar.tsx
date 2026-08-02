@@ -72,7 +72,7 @@ export const DashboardTopBar: React.FC<DashboardTopBarProps> = ({
         angle={104}
         colors={gradientColors as string[]}
         locations={GRADIENT_LOCATIONS}
-        style={StyleSheet.absoluteFillObject}
+        style={StyleSheet.absoluteFill}
       />
 
       {/* `translucent` / `backgroundColor` are Android-only. On iOS the gradient

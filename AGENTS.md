@@ -1,6 +1,6 @@
 # Atlas — notes for contributors / agents
 
-Pure **React Native CLI** app (no Expo). React Native **0.81.5** · React **19.1.0**.
+Pure **React Native CLI** app (no Expo). React Native **0.85.3** · React **19.2.3**.
 
 See **README.md** for setup and run instructions.
 

@@ -223,7 +223,9 @@ export const DashboardWalkthrough: React.FC<DashboardWalkthroughProps> = ({
 const styles = StyleSheet.create({
   // Absolute fill over the screen root rather than a Modal, so the overlay
   // shares a coordinate space with the measured targets.
-  root: { ...StyleSheet.absoluteFillObject, zIndex: 50, elevation: 50 },
+  // Spelled out rather than spread: RN 0.85 dropped `absoluteFillObject`, and
+  // `absoluteFill` is a registered style that can't be spread into one.
+  root: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50, elevation: 50 },
   // `box-none` lets taps fall through the slot to the dim layer, while the card
   // itself still receives them.
   cardSlot: { position: 'absolute', left: spacing.md, right: spacing.md, alignItems: 'center' },

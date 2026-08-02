@@ -4,7 +4,7 @@ A **pure React Native CLI** app (no Expo) — the BGIL insurance agent/RM/traine
 app, converted from the original React **web** app to true React Native, built on
 the in-tree **Atlas Design System** (45 native components).
 
-- React Native **0.81.5** · React **19.1.0** · TypeScript
+- React Native **0.85.3** · React **19.2.3** · TypeScript
 - Bootstrapped with **`@react-native-community/cli`** — standard bare workflow,
   the `ios/` and `android/` projects are committed to this repo.
 - **Zero Expo dependency.** Native modules are wired through React Native's

@@ -4,7 +4,8 @@
     "baseUrl": ".",
     "paths": {
       "@atlas-ds/react-native": ["src/atlas-ds"]
-    }
+    },
+    "types": ["jest"]
   },
   "include": ["**/*.ts", "**/*.tsx"],
   "exclude": ["**/node_modules", "**/Pods"]
