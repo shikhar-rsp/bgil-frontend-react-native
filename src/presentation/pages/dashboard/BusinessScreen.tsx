@@ -21,7 +21,7 @@ type BizView =
   | { kind: 'browse' }
   | { kind: 'healthguard'; product: string }
   | { kind: 'motor'; product: string; vehicleType: 'registered' | 'new' }
-  | { kind: 'convert'; customer: string }
+  | { kind: 'convert'; customer: string; product?: string }
   | { kind: 'policy'; policy: Policy }
   /** `view` opens the read-only renewal summary; `flow` opens the wizard. */
   | { kind: 'renewal'; renewal: Renewal; mode: 'view' | 'flow' };
@@ -153,7 +153,7 @@ export const BusinessScreen: React.FC<BusinessScreenProps> = ({
             <SharedQuotes
               initialTab={landingTab}
               onEditQuote={(q) => setView({ kind: 'healthguard', product: q.product })}
-              onConvertToProposal={(q) => setView({ kind: 'convert', customer: q.customer })}
+              onConvertToProposal={(q) => setView({ kind: 'convert', customer: q.customer, product: q.product })}
               onViewPolicy={(p) => setView({ kind: 'policy', policy: p })}
               onRenewPolicy={(r) => setView({ kind: 'renewal', renewal: r, mode: 'flow' })}
               onViewRenewal={(r) => setView({ kind: 'renewal', renewal: r, mode: 'view' })}
@@ -179,17 +179,17 @@ export const BusinessScreen: React.FC<BusinessScreenProps> = ({
         <HealthGuard
           productName={view.product}
           onClose={goLanding}
-          onConvertToProposal={(customer) => setView({ kind: 'convert', customer })}
+          onConvertToProposal={(customer) => setView({ kind: 'convert', customer, product: view.product })}
         />
       ) : view.kind === 'motor' ? (
         <TwoWheelerInsurance
           productName={view.product}
           initialVehicleType={view.vehicleType}
           onClose={goLanding}
-          onConvertToProposal={(customer) => setView({ kind: 'convert', customer })}
+          onConvertToProposal={(customer) => setView({ kind: 'convert', customer, product: view.product })}
         />
       ) : view.kind === 'convert' ? (
-        <ConvertProposal customerName={view.customer} onClose={goLanding} />
+        <ConvertProposal customerName={view.customer} product={view.product} onClose={goLanding} />
       ) : view.kind === 'renewal' ? (
         <RenewPolicy
           record={view.renewal}

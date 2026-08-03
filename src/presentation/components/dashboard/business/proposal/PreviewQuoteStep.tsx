@@ -6,6 +6,11 @@ import type { PlanType } from './proposalData';
 interface PreviewQuoteStepProps {
   customerName: string;
   planType: PlanType;
+  /** Product the quote was raised for — "Health Guard", "2 Wheeler", … */
+  policyType?: string;
+  /** Plan the quote was raised on ("Individual", "Comprehensive", …).
+   *  Falls back to the `planType` label when the product carries no suffix. */
+  planLabel?: string;
 }
 
 const Field: React.FC<{ label: string; value: string; big?: boolean }> = ({ label, value, big }) => (
@@ -24,10 +29,13 @@ const Section: React.FC<{ title: string; accent?: boolean; children: React.React
   </View>
 );
 
-export const PreviewQuoteStep: React.FC<PreviewQuoteStepProps> = ({ customerName, planType }) => (
+export const PreviewQuoteStep: React.FC<PreviewQuoteStepProps> = ({ customerName, planType, policyType, planLabel }) => {
+  const policy = policyType || 'Health Guard';
+  const plan = planLabel || (planType === 'individual' ? 'Individual' : 'Floater');
+  return (
   <View style={styles.card}>
     <View style={styles.banner}>
-      <Text style={styles.bannerTitle}>Quote Preview - {customerName || 'Rajesh Chaurasia'}</Text>
+      <Text style={styles.bannerTitle}>{policy} {plan} - {customerName || 'Rajesh Chaurasia'}</Text>
     </View>
     <Section title="Premium Details" accent>
       <Field label="Base Premium:" value="Rs. 31,000" />
@@ -38,14 +46,14 @@ export const PreviewQuoteStep: React.FC<PreviewQuoteStepProps> = ({ customerName
     </Section>
     <Section title="Quote Details">
       <Field label="Quotation number:" value="28686-8728387" />
-      <Field label="Plan Type:" value={planType === 'individual' ? 'Individual' : 'Floater'} />
+      <Field label="Plan Type:" value={plan} />
       <Field label="Issued on:" value="01/03/2026" />
       <Field label="Valid until:" value="01/04/2026" />
     </Section>
 
     <Section title="Plan Details">
-      <Field label="Policy type:" value="Health Guard" />
-      <Field label="Plan Type:" value={planType === 'individual' ? 'Individual' : 'Floater'} />
+      <Field label="Policy type:" value={policy} />
+      <Field label="Plan Type:" value={plan} />
       <Field label="Valid until:" value="01/04/2026" />
       <Field label="IMD:" value="2 Adults" />
       <Field label="Policy Start date:" value="12/01/2026" />
@@ -62,7 +70,8 @@ export const PreviewQuoteStep: React.FC<PreviewQuoteStepProps> = ({ customerName
       <Field label="Customer ID:" value="1836735653765" />
     </Section>
   </View>
-);
+  );
+};
 
 const styles = StyleSheet.create({
   card: { backgroundColor: colors.surface, borderRadius: radius.xl, padding: spacing.lg, gap: spacing.md, ...shadow.lg },

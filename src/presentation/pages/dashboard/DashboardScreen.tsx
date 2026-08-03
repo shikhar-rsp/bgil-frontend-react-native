@@ -206,7 +206,12 @@ const DashboardScreenInner: React.FC<AuthScreenProps<'Dashboard'>> = ({ navigati
                 </WalkthroughTarget>
                 <WhatsNew />
                 <WalkthroughTarget id="your-toolkit">
-                  <YourToolkit />
+                  <YourToolkit
+                    onNavigateToRenewals={() => {
+                      setQuoteRequest({ tab: 'renewals' });
+                      setSelectedItem('Business');
+                    }}
+                  />
                 </WalkthroughTarget>
                 {/* <AssistantInsights isWalkthroughActive={tourActive} /> */}
               </>

@@ -13,6 +13,15 @@ import {
 } from 'phosphor-react-native';
 import { BottomSheet, Button, colors, spacing, radius, typography, shadow, fontFamilyForWeight } from '@atlas-ds/react-native';
 import { CustomizeModal, type CustomizeOption } from './CustomizeModal';
+import {
+  BrochuresSheet,
+  CalculatorsSheet,
+  CampaignsSheet,
+  LearningSheet,
+  PayInSlipsSheet,
+  QueryTrackerSheet,
+  RenewalCalendarSheet,
+} from './toolkits';
 
 /** Tile accent backgrounds. */
 const TILE_BLUE = '#2563EB';
@@ -39,10 +48,10 @@ const TOOLKIT_OPTIONS: CustomizeOption[] = Object.entries(TOOL_DATA).map(([value
 }));
 
 /**
- * Your Toolkit — a customisable grid of tool shortcuts. The web opened a full
- * side-drawer per tool (~14 of them); those are out of scope for this vertical,
- * so tapping a tool opens a "coming soon" bottom sheet (mirroring the web's own
- * fallback drawer for unimplemented tools).
+ * Your Toolkit — a customisable grid of tool shortcuts. Each tile opens that
+ * tool's sheet (`./toolkits`), which is the phone form of the web's per-tool
+ * side-drawer. A tool with no sheet yet falls back to a "coming soon" sheet,
+ * mirroring the web's own fallback drawer.
  */
 /** Default shortcuts shown on the agent / trainee dashboards. */
 const DEFAULT_TOOLS = ['Brochures', 'Calculators', 'Learning', 'Campaigns', 'Query Tracker'];
@@ -54,18 +63,22 @@ interface YourToolkitProps {
   showManageTile?: boolean;
   /** Override the shortcuts on show (e.g. the RM set, which drops Learning). */
   tools?: string[];
+  /** Lets the Renewal Calendar sheet hand over to the Business → Renewals list. */
+  onNavigateToRenewals?: () => void;
 }
 
 export const YourToolkit: React.FC<YourToolkitProps> = ({
   showCustomise = true,
   showManageTile = true,
   tools = DEFAULT_TOOLS,
+  onNavigateToRenewals,
 }) => {
   const [isCustomizeOpen, setIsCustomizeOpen] = useState(false);
   const [activeTool, setActiveTool] = useState<string | null>(null);
   const [activeTools, setActiveTools] = useState<string[]>(tools);
 
   const visibleTools = activeTools.filter((val) => val && TOOL_DATA[val]);
+  const closeTool = () => setActiveTool(null);
 
   return (
     <View style={styles.card}>
@@ -130,12 +143,34 @@ export const YourToolkit: React.FC<YourToolkitProps> = ({
         limitMessage="Maximum 6 tools can be selected"
       />
 
-      <BottomSheet
-        visible={activeTool !== null}
-        onClose={() => setActiveTool(null)}
-        title={activeTool ?? ''}
-        subtitle={`Content for ${activeTool} is coming soon.`}
-      />
+      {/* One sheet per tool — only the open one mounts, so a tool's filters and
+          scroll position reset between visits, as they do on the web. */}
+      {activeTool === 'Brochures' ? (
+        <BrochuresSheet visible onClose={closeTool} />
+      ) : activeTool === 'Calculators' ? (
+        <CalculatorsSheet visible onClose={closeTool} />
+      ) : activeTool === 'Learning' ? (
+        <LearningSheet visible onClose={closeTool} />
+      ) : activeTool === 'Campaigns' ? (
+        <CampaignsSheet visible onClose={closeTool} />
+      ) : activeTool === 'Query Tracker' ? (
+        <QueryTrackerSheet visible onClose={closeTool} />
+      ) : activeTool === 'Pay-in-Slips' ? (
+        <PayInSlipsSheet visible onClose={closeTool} />
+      ) : activeTool === 'Renewal Calendar' ? (
+        <RenewalCalendarSheet
+          visible
+          onClose={closeTool}
+          onViewAllRenewals={onNavigateToRenewals}
+        />
+      ) : (
+        <BottomSheet
+          visible={activeTool !== null}
+          onClose={closeTool}
+          title={activeTool ?? ''}
+          subtitle={`Content for ${activeTool} is coming soon.`}
+        />
+      )}
     </View>
   );
 };

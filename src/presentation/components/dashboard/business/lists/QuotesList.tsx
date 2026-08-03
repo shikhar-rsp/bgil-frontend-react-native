@@ -51,12 +51,14 @@ export const QuotesList: React.FC<QuotesListProps> = ({
       key: 'status',
       header: 'Status',
       width: 130,
+      align: 'center',
       render: (q) => <StatusCell label={q.status} color={statusColor(q.status)} />,
     },
     {
       key: 'actions',
       header: 'Actions',
       width: 88,
+      align: 'center',
       render: (q) => (
         <ActionMenu
           items={[

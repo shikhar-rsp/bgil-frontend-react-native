@@ -45,18 +45,21 @@ export const RenewalsList: React.FC<RenewalsListProps> = ({
       key: 'expiringWithin',
       header: 'Expiring Within',
       width: 130,
+      align: 'center',
       render: (r) => <StatusCell label={r.expiringWithin} color={expiringWithinColor(r.expiringWithin)} />,
     },
     {
       key: 'status',
       header: 'Status',
       width: 130,
+      align: 'center',
       render: (r) => <StatusCell label={r.status} color={statusColor(r.status)} />,
     },
     {
       key: 'actions',
       header: 'Actions',
       width: 88,
+      align: 'center',
       render: (r) => (
         <ActionMenu
           items={[

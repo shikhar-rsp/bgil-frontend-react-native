@@ -26,8 +26,8 @@ export interface TableColumn<T = any> {
   infoIcon?: React.ReactNode;
   /** Tap handler for the info icon — opens a tooltip / sheet in the consumer. */
   onInfoPress?: () => void;
-  /** Horizontal text alignment. Default `'left'`. */
-  align?: 'left' | 'right';
+  /** Horizontal alignment of the header label and the cell. Default `'left'`. */
+  align?: 'left' | 'right' | 'center';
   /** Field on `row` to use as the primary (Body 2/Medium) text. */
   primaryKey?: keyof T;
   /** Field on `row` to use as the secondary (Body 3/Regular) text below primary. */
@@ -104,6 +104,7 @@ export function Table<T = any>({
                   styles.headerCell,
                   { width: col.width ?? 160 },
                   col.align === 'right' && styles.cellRight,
+                  col.align === 'center' && styles.cellCenter,
                 ]}
               >
                 <Text style={styles.headerLabel} numberOfLines={1}>{col.header}</Text>
@@ -125,6 +126,7 @@ export function Table<T = any>({
                   styles.cell,
                   { width: col.width ?? 160 },
                   col.align === 'right' && styles.cellRight,
+                  col.align === 'center' && styles.cellCenter,
                 ]}
               >
                 {renderCellContent(col, row, rowIdx)}
@@ -326,6 +328,11 @@ const styles = StyleSheet.create({
   },
   cellRight: {
     justifyContent: 'flex-end',
+  },
+  // Badges / icon buttons sit under a centred header rather than hugging the
+  // column's left edge.
+  cellCenter: {
+    justifyContent: 'center',
   },
   // First column: avatar (32×32 circle) + name
   avatarCellRow: {

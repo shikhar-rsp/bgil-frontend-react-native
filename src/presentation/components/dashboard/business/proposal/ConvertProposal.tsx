@@ -16,6 +16,9 @@ import { newMember, newNominee, type BusinessType, type PlanType, type ProposalM
 interface ConvertProposalProps {
   customerName: string;
   planType?: PlanType;
+  /** Product the quote came from — may carry the plan suffix ("Health Guard -
+   *  Individual"); only the policy type before it is shown. */
+  product?: string;
   onClose: () => void;
 }
 
@@ -24,7 +27,13 @@ const emptyPrevPolicy: PreviousPolicyData = { policyNumber: '', insurer: '', sum
 const emptyKyc: KycData = { pan: '', ckyc: '', aadhaar: '', phone: '', email: '', verified: false, kycMethod: '', kycDone: false, confirmMethod: '' };
 const emptyPayment: PaymentData = { mode: '', email: '', receiptNumber: '', accountNumber: '', partyId: '', ifsc: '', branch: '', bank: '' };
 
-export const ConvertProposal: React.FC<ConvertProposalProps> = ({ customerName, planType = 'float', onClose }) => {
+export const ConvertProposal: React.FC<ConvertProposalProps> = ({ customerName, planType = 'float', product, onClose }) => {
+  // "Health Guard - Individual" → policy type + plan label. Products raised
+  // from a quote flow carry no suffix, so the plan falls back to `planType`.
+  const [policyType, planLabel] = (() => {
+    const [type, plan] = (product ?? '').split(' - ');
+    return [type?.trim() || undefined, plan?.trim() || undefined];
+  })();
   const [businessType, setBusinessType] = useState<BusinessType | null>(null);
   const [showTypeModal, setShowTypeModal] = useState(true);
   const [stepIndex, setStepIndex] = useState(0);
@@ -135,7 +144,7 @@ export const ConvertProposal: React.FC<ConvertProposalProps> = ({ customerName, 
         <PolicyHeader policyNumber="PR-28686" customerName={proposer.proposerName || customerName} />
 
         {key === 'preview' ? (
-          <PreviewQuoteStep customerName={proposer.proposerName || customerName} planType={planType} />
+          <PreviewQuoteStep customerName={proposer.proposerName || customerName} planType={planType} policyType={policyType} planLabel={planLabel} />
         ) : key === 'proposer' ? (
           <ProposerDetailsStep data={proposer} update={updateProposer} />
         ) : key === 'members' ? (

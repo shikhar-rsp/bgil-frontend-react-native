@@ -45,12 +45,14 @@ export const PoliciesList: React.FC<PoliciesListProps> = ({
       key: 'status',
       header: 'Status',
       width: 140,
+      align: 'center',
       render: (p) => <StatusCell label={p.status} color={statusColor(p.status)} />,
     },
     {
       key: 'actions',
       header: 'Actions',
       width: 88,
+      align: 'center',
       render: (p) => (
         <ActionMenu
           items={[
