@@ -18,7 +18,11 @@ export interface TagProps {
   disabled?: boolean;
   /** Fired when the tag body is pressed (e.g. toggle selection). */
   onPress?: () => void;
-  /** While unselected, tapping the × icon calls this (e.g. remove from a list). */
+  /**
+   * Tapping the × icon calls this (e.g. remove from a list). Supplying it
+   * replaces the `selected` tick with the ×, so a chosen chip can still be
+   * taken back out; the selected styling is kept either way.
+   */
   onRemove?: () => void;
   style?: object;
 }
@@ -122,7 +126,10 @@ export const Tag: React.FC<TagProps> = ({
         <Text style={[styles.label, textStyle, { color: contentColor }]} numberOfLines={1}>
           {label}
         </Text>
-        {selected ? (
+        {/* `onRemove` outranks `selected`: on a removable chip the tick is
+            redundant — being in the list already says it's selected — and the
+            affordance the user needs is the one that takes it back out. */}
+        {!onRemove && selected ? (
           <TagTickIcon color={contentColor} />
         ) : onRemove ? (
           <Pressable

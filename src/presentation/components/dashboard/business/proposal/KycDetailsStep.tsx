@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Modal, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { PaperPlaneTilt } from 'phosphor-react-native';
-import { Textfield, Button, OtpInput, Toast, ToastGlobal, Card, Radio, Upload, type UploadFile, colors, spacing, radius, typography, shadow, fontFamilyForWeight } from '@atlas-ds/react-native';
+import { Textfield, Button, BottomSheet, OtpInput, Toast, ToastGlobal, Card, Radio, Upload, type UploadFile, colors, spacing, radius, typography, shadow, fontFamilyForWeight } from '@atlas-ds/react-native';
 import { RequiredField, RequiredLabel } from '../RequiredField';
 import { MOCK_OTP } from './proposalData';
 
@@ -253,37 +253,37 @@ export const KycDetailsStep: React.FC<KycDetailsStepProps> = ({ data, update }) 
         ) : null}
       </View>
 
-      <Modal visible={showOtp} transparent animationType="fade" onRequestClose={() => setShowOtp(false)}>
-        <View style={styles.scrim}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Confirm Proposal Through OTP</Text>
-            <Text style={styles.sub}>Please enter the OTP sent to your phone number and email ID.</Text>
-            <Text style={styles.otpLabel}>Enter 6 - digit OTP</Text>
-            <OtpInput value={otp} onChange={(v) => { setOtp(v); setOtpError(null); }} length={6} error={otpError ?? undefined} />
-            <Text style={styles.otpHelper}>OTP valid for 4:58 secs</Text>
-            <View style={styles.modalActions}>
-              <Button label="Cancel" variant="secondaryGray" onPress={() => setShowOtp(false)} style={styles.modalBtn} />
-              <Button label="Confirm OTP" disabled={otp.length !== 6} onPress={verify} style={styles.modalBtn} />
-            </View>
-          </View>
+      <BottomSheet
+        visible={showOtp}
+        onClose={() => setShowOtp(false)}
+        title="Confirm Proposal Through OTP"
+        subtitle="Please enter the OTP sent to your phone number and email ID."
+        contentMinHeight={0}
+        primaryAction={{ label: 'Confirm OTP', onPress: verify, disabled: otp.length !== 6 }}
+        secondaryAction={{ label: 'Cancel', onPress: () => setShowOtp(false) }}
+      >
+        <View style={styles.otpBlock}>
+          <Text style={styles.otpLabel}>Enter 6 - digit OTP</Text>
+          <OtpInput value={otp} onChange={(v) => { setOtp(v); setOtpError(null); }} length={6} error={otpError ?? undefined} />
+          <Text style={styles.otpHelper}>OTP valid for 4:58 secs</Text>
         </View>
-      </Modal>
+      </BottomSheet>
 
-      <Modal visible={showEkycOtp} transparent animationType="fade" onRequestClose={() => setShowEkycOtp(false)}>
-        <View style={styles.scrim}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Enter OTP to complete EKYC</Text>
-            <Text style={styles.sub}>OTP has been sent on registered mobile number</Text>
-            <Text style={styles.otpLabel}>Enter 6-digit OTP</Text>
-            <OtpInput value={ekycOtp} onChange={(v) => { setEkycOtp(v); setEkycOtpError(null); }} length={6} error={ekycOtpError ?? undefined} />
-            <Text style={styles.otpHelper}>OTP is sent to number linked with Aadhaar</Text>
-            <View style={styles.modalActions}>
-              <Button label="Cancel" variant="secondaryGray" onPress={() => setShowEkycOtp(false)} style={styles.modalBtn} />
-              <Button label="Confirm OTP" disabled={ekycOtp.length !== 6} onPress={verifyEkyc} style={styles.modalBtn} />
-            </View>
-          </View>
+      <BottomSheet
+        visible={showEkycOtp}
+        onClose={() => setShowEkycOtp(false)}
+        title="Enter OTP to complete EKYC"
+        subtitle="OTP has been sent on registered mobile number"
+        contentMinHeight={0}
+        primaryAction={{ label: 'Confirm OTP', onPress: verifyEkyc, disabled: ekycOtp.length !== 6 }}
+        secondaryAction={{ label: 'Cancel', onPress: () => setShowEkycOtp(false) }}
+      >
+        <View style={styles.otpBlock}>
+          <Text style={styles.otpLabel}>Enter 6-digit OTP</Text>
+          <OtpInput value={ekycOtp} onChange={(v) => { setEkycOtp(v); setEkycOtpError(null); }} length={6} error={ekycOtpError ?? undefined} />
+          <Text style={styles.otpHelper}>OTP is sent to number linked with Aadhaar</Text>
         </View>
-      </Modal>
+      </BottomSheet>
     </View>
   );
 };
@@ -297,13 +297,11 @@ const styles = StyleSheet.create({
   kycOption: { alignSelf: 'stretch' },
   kycOptionInner: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexShrink: 1 },
   kycOptionLabel: { fontFamily: typography.fontFamily, fontSize: 15, color: colors.textHeading, flexShrink: 1 },
-  otpLabel: { fontFamily: typography.fontFamily, fontSize: 14, color: colors.textBody, marginTop: spacing.sm },
+  // The sheet supplies the title, subtitle and footer, so only the OTP field
+  // and its two captions live in the content slot.
+  otpBlock: { gap: spacing.sm },
+  otpLabel: { fontFamily: typography.fontFamily, fontSize: 14, color: colors.textBody },
   otpHelper: { fontFamily: typography.fontFamily, fontSize: 12, color: colors.textMuted },
   verified: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   verifiedText: { fontFamily: typography.fontFamily, fontSize: 14, fontWeight: '500', color: colors.success },
-  scrim: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
-  modalCard: { width: '100%', maxWidth: 420, backgroundColor: colors.surface, borderRadius: radius.xl, padding: spacing.xl, gap: spacing.md },
-  modalTitle: { fontFamily: typography.fontFamily, fontSize: 18, fontWeight: '600', color: colors.textHeading },
-  modalActions: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.sm },
-  modalBtn: { flex: 1 },
 });

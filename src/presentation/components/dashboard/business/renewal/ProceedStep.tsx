@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import type { Icon } from 'phosphor-react-native';
 import { Radio, colors, spacing, radius, typography, shadow, fontFamilyForWeight } from '@atlas-ds/react-native';
@@ -23,6 +23,13 @@ interface ProceedStepProps {
   paymentLinkMethod: PaymentLinkMethod | '';
   onSelectPaymentLink: (value: PaymentLinkMethod) => void;
   onDownloadPolicy: () => void;
+  /**
+   * Fired once the follow-up options appear, with their offset inside the
+   * host's scroll content, so it can bring them into view. Choosing a path
+   * reveals a second question below the fold — without this the agent has no
+   * cue that anything more is being asked of them.
+   */
+  onRevealFollowUp?: (offsetY: number) => void;
 }
 
 /** A tappable option row: icon tile, label (with optional description), radio. */
@@ -66,11 +73,32 @@ export const ProceedStep: React.FC<ProceedStepProps> = ({
   paymentLinkMethod,
   onSelectPaymentLink,
   onDownloadPolicy,
+  onRevealFollowUp,
 }) => {
   const editOptions = proceedOption === 'migration' ? MIGRATION_EDIT_OPTIONS : RENEWAL_EDIT_OPTIONS;
 
+  // This step's own offset within the scroll content. `onLayout` reports a
+  // position relative to the parent, so adding the two gives the follow-up
+  // card's offset in the scroll view without measuring against it.
+  const wrapY = useRef(0);
+  // The path we've already scrolled for, so picking an option *within* the
+  // follow-up card doesn't yank the view back on every re-layout.
+  const scrolledFor = useRef<ProceedOption | null>(null);
+
+  if (!proceedOption) {
+    scrolledFor.current = null;
+  }
+
+  const handleFollowUpLayout = (y: number) => {
+    if (!proceedOption || scrolledFor.current === proceedOption) {
+      return;
+    }
+    scrolledFor.current = proceedOption;
+    onRevealFollowUp?.(wrapY.current + y);
+  };
+
   return (
-    <View style={styles.wrap}>
+    <View style={styles.wrap} onLayout={(e) => { wrapY.current = e.nativeEvent.layout.y; }}>
       <CurrentPolicyCard record={record} editable onDownload={onDownloadPolicy} />
 
       <View style={styles.card}>
@@ -89,7 +117,7 @@ export const ProceedStep: React.FC<ProceedStepProps> = ({
       </View>
 
       {proceedOption === 'quick' ? (
-        <View style={styles.card}>
+        <View style={styles.card} onLayout={(e) => handleFollowUpLayout(e.nativeEvent.layout.y)}>
           <Text style={styles.subHeading}>How would you like to send the payment link?</Text>
           {PAYMENT_LINK_OPTIONS.map((opt) => (
             <OptionRow
@@ -103,7 +131,7 @@ export const ProceedStep: React.FC<ProceedStepProps> = ({
           ))}
         </View>
       ) : proceedOption ? (
-        <View style={styles.card}>
+        <View style={styles.card} onLayout={(e) => handleFollowUpLayout(e.nativeEvent.layout.y)}>
           <Text style={styles.subHeading}>What would you like to edit?</Text>
           {editOptions.map((opt) => (
             <OptionRow

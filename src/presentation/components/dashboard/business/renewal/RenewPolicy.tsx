@@ -175,6 +175,8 @@ export const RenewPolicy: React.FC<RenewPolicyProps> = ({ record, mode = 'flow',
   const [memberLimitWarning, setMemberLimitWarning] = useState<RenewalPlanType | null>(null);
   const [showAddonsBanner, setShowAddonsBanner] = useState(true);
   const [addedMemberName, setAddedMemberName] = useState<string | null>(null);
+  // Lets a step bring newly-revealed content into view (see ProceedStep).
+  const scrollRef = useRef<ScrollView>(null);
   const newMemberIdRef = useRef(0);
 
   /* -------------------------------- nominee ------------------------------ */
@@ -922,6 +924,11 @@ export const RenewPolicy: React.FC<RenewPolicyProps> = ({ record, mode = 'flow',
         return (
           <ProceedStep
             record={record}
+            // Leave a little of the card above in frame, so it reads as the
+            // page scrolling rather than jumping to a new screen.
+            onRevealFollowUp={(y) =>
+              scrollRef.current?.scrollTo({ y: Math.max(0, y - spacing.xl), animated: true })
+            }
             proceedOption={proceedOption}
             onSelectProceed={(value) => {
               resetStepperProgress();
@@ -1200,7 +1207,7 @@ export const RenewPolicy: React.FC<RenewPolicyProps> = ({ record, mode = 'flow',
 
   return (
     <View style={styles.flex}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {showStepper && stepperSteps.length > 0 ? (
           <View style={styles.stepperCard}>
             {/* 10 steps can't share a phone's width — scroll them instead of

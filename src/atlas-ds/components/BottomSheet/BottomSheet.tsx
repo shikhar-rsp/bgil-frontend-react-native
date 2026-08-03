@@ -20,6 +20,8 @@ export const BOTTOM_SHEET_HEADER_GLYPH_SIZE = 20;
 export interface BottomSheetAction {
   label: string;
   onPress: () => void;
+  /** Greys the button and blocks presses — e.g. an incomplete OTP. */
+  disabled?: boolean;
 }
 
 /**
@@ -109,6 +111,12 @@ export interface BottomSheetProps {
   /** Active step. Increasing it pushes forward; decreasing pops back. */
   pageIndex?: number;
 
+  /**
+   * Ref to the content slot's scroll view, so a consumer can bring newly
+   * revealed content into view (e.g. `scrollToEnd` after expanding a section).
+   */
+  contentRef?: React.Ref<ScrollView>;
+
   /** Show the small grab handle at the top. Default true. */
   showHandle?: boolean;
   /** Close when the backdrop is tapped. Default true. */
@@ -149,6 +157,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   backAccessibilityLabel = 'Back',
   pages,
   pageIndex = 0,
+  contentRef,
   showHandle = true,
   closeOnBackdrop = true,
   style,
@@ -260,7 +269,12 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
         {/* `overflow: hidden` keeps the gliding step inside the sheet. It sits
             here rather than on the sheet so the sheet's shadow isn't clipped. */}
         <View style={styles.pageClip}>
-        <Animated.View style={paged ? { opacity: fade, transform: [{ translateX: slide }] } : undefined}>
+        <Animated.View
+          style={[
+            styles.pageInner,
+            paged ? { opacity: fade, transform: [{ translateX: slide }] } : null,
+          ]}
+        >
         {(pIcon || pTitle || pSubtitle) && (
           <View style={styles.headerRow}>
             {pIcon && (
@@ -279,9 +293,13 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
 
         {pContentSlot && (
           <ScrollView
+            ref={contentRef}
             style={[styles.contentScroll, { minHeight: pContentMinHeight }]}
             contentContainerStyle={styles.contentInner}
             showsVerticalScrollIndicator={false}
+            // Sheets carrying inputs would otherwise spend the first tap
+            // dismissing the keyboard instead of hitting the control.
+            keyboardShouldPersistTaps="handled"
           >
             {pContent}
           </ScrollView>
@@ -294,12 +312,17 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
                 style={({ pressed }) => [
                   styles.btn,
                   styles.btnPrimary,
-                  pressed && styles.btnPrimaryPressed,
+                  pressed && !pPrimary.disabled && styles.btnPrimaryPressed,
+                  pPrimary.disabled && styles.btnDisabled,
                 ]}
                 onPress={pPrimary.onPress}
+                disabled={pPrimary.disabled}
                 accessibilityRole="button"
+                accessibilityState={{ disabled: !!pPrimary.disabled }}
               >
-                <Text style={styles.btnPrimaryText}>{pPrimary.label}</Text>
+                <Text style={[styles.btnPrimaryText, pPrimary.disabled && styles.btnTextDisabled]}>
+                  {pPrimary.label}
+                </Text>
               </Pressable>
             )}
             {pSecondary && (
@@ -307,12 +330,17 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
                 style={({ pressed }) => [
                   styles.btn,
                   styles.btnSecondary,
-                  pressed && styles.btnSecondaryPressed,
+                  pressed && !pSecondary.disabled && styles.btnSecondaryPressed,
+                  pSecondary.disabled && styles.btnDisabled,
                 ]}
                 onPress={pSecondary.onPress}
+                disabled={pSecondary.disabled}
                 accessibilityRole="button"
+                accessibilityState={{ disabled: !!pSecondary.disabled }}
               >
-                <Text style={styles.btnSecondaryText}>{pSecondary.label}</Text>
+                <Text style={[styles.btnSecondaryText, pSecondary.disabled && styles.btnTextDisabled]}>
+                  {pSecondary.label}
+                </Text>
               </Pressable>
             )}
           </View>
@@ -369,7 +397,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceMuted,
   },
   // Clips the gliding step. On the sheet itself this would clip the shadow.
-  pageClip: { overflow: 'hidden' },
+  //
+  // Both this and `pageInner` must be allowed to shrink: they sit between the
+  // sheet's `maxHeight` and the content ScrollView's `flexShrink`, and a rigid
+  // link anywhere in that chain lets tall content push the footer out of view.
+  pageClip: { flexShrink: 1, overflow: 'hidden' },
+  pageInner: { flexShrink: 1 },
   backControl: {
     position: 'absolute',
     top: spacing.lg,
@@ -469,5 +502,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     color: colors.brandPressed,
+  },
+  // Applied over either variant, so it has to override both the brand fill and
+  // the outlined border.
+  btnDisabled: {
+    backgroundColor: colors.surfaceMuted,
+    borderColor: colors.borderSubtle,
+  },
+  btnTextDisabled: {
+    color: colors.textDisabled,
   },
 });

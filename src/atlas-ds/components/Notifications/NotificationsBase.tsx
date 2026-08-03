@@ -170,8 +170,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
   },
-  // Header — column, gap 12, top padding only (no left/right padding so the
-  // header row and tabs sit flush to the container edge). 1px bottom border.
+  // Header — column, gap 12, top padding only. Horizontal padding lives on the
+  // header row instead, so the tabs strip below can still scroll edge to edge.
   header: {
     paddingTop: spacing.lg,         // 16
     gap: spacing.md,                // 12
@@ -179,10 +179,16 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.borderSubtle, // #E2E8F0
   },
   // Header row — back | title | mark-as-read. Title takes remaining space.
+  //
+  // Padding is asymmetric on purpose, so both ends land optically 16 from the
+  // edge and line up with the content below: the back button carries its own
+  // 8px (`iconBtn`), while "Mark as read" is bare text and needs the full 16.
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
+    paddingLeft: spacing.sm,   // 8 + the icon button's 8 = 16
+    paddingRight: spacing.lg,  // 16
   },
   iconBtn: {
     padding: spacing.sm,           // 8

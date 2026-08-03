@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Heartbeat, DownloadSimple } from 'phosphor-react-native';
-import { Button, colors, spacing, radius, typography, shadow, fontFamilyForWeight } from '@atlas-ds/react-native';
+import { Button, colors, spacing, radius, shadow, fontFamilyForWeight } from '@atlas-ds/react-native';
 
 interface PolicyHeaderProps {
   policyNumber: string;
@@ -26,9 +26,15 @@ export const PolicyHeader: React.FC<PolicyHeaderProps> = ({ policyNumber, custom
 );
 
 const styles = StyleSheet.create({
-  card: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: spacing.md, padding: spacing.lg, borderRadius: radius.xl, backgroundColor: colors.surface, ...shadow.lg },
-  left: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, flexShrink: 1 },
+  // Stacked, not a wrapping row: the web header put the title and its actions
+  // on one line, which on a phone squeezed the title into an ellipsis while
+  // the actions wrapped underneath anyway. As a column the title gets the full
+  // width and the actions read as one group.
+  card: { gap: spacing.md, padding: spacing.lg, borderRadius: radius.xl, backgroundColor: colors.surface, ...shadow.lg },
+  left: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   iconBox: { width: 40, height: 40, borderRadius: radius.lg, backgroundColor: '#FDF2F8', alignItems: 'center', justifyContent: 'center' },
-  title: { fontFamily: fontFamilyForWeight('500'), fontSize: 18, fontWeight: '500', color: colors.textHeading, flexShrink: 1 },
-  actions: { width: '100%',flexDirection: 'row', alignItems: 'center', justifyContent:'space-between', gap: spacing.md },
+  title: { flex: 1, fontFamily: fontFamilyForWeight('500'), fontSize: 18, fontWeight: '500', color: colors.textHeading },
+  // `space-between` stranded these at opposite card edges. Grouped left with a
+  // normal gap, wrapping only if the labels genuinely don't fit.
+  actions: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: spacing.md },
 });

@@ -4,7 +4,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import { Plus, Trash, PencilSimple } from 'phosphor-react-native';
 import { Accordion, Textfield, Dropdown, DatePicker, Button, Card, Tag, colors, spacing, radius, typography, shadow, fontFamilyForWeight } from '@atlas-ds/react-native';
 import { RequiredField } from '../RequiredField';
-import { PEDDetailsModal, pedTagLabels } from './PEDDetailsModal';
+import { PEDDetailsModal, pedTags, removePedTag } from './PEDDetailsModal';
 import { MEMBER_RELATIONSHIPS, formatIndianCurrency, numericOnly, type ProposalMember } from './proposalData';
 
 interface MemberDetailsStepProps {
@@ -60,7 +60,7 @@ export const MemberDetailsStep: React.FC<MemberDetailsStepProps> = ({ members, u
           </RequiredField>
           {(() => {
             const hasPedSelection = m.hasPed === 'yes';
-            const tags = pedTagLabels(m.peds);
+            const tags = pedTags(m.peds);
             const textBlock = (
               <View style={styles.pedTextCol}>
                 <Text style={styles.pedTitle}>Pre-existing Diseases</Text>
@@ -110,8 +110,16 @@ export const MemberDetailsStep: React.FC<MemberDetailsStepProps> = ({ members, u
                       </View>
                       {tags.length > 0 ? (
                         <View style={styles.pedTags}>
-                          {tags.map((label) => (
-                            <Tag key={label} size="sm" selected label={label} />
+                          {tags.map((tag) => (
+                            <Tag
+                              key={tag.label}
+                              size="sm"
+                              selected
+                              label={tag.label}
+                              onRemove={() =>
+                                m.peds && updateMember(m.id, 'peds', removePedTag(m.peds, tag))
+                              }
+                            />
                           ))}
                         </View>
                       ) : null}

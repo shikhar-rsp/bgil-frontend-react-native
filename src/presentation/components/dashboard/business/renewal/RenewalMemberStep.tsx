@@ -19,7 +19,7 @@ import {
   fontFamilyForWeight,
 } from '@atlas-ds/react-native';
 import { RequiredField } from '../RequiredField';
-import { PEDDetailsModal, pedTagLabels } from '../proposal/PEDDetailsModal';
+import { PEDDetailsModal, pedTags, removePedTag } from '../proposal/PEDDetailsModal';
 import { CurrentPolicyCard } from './CurrentPolicyCard';
 import type { Renewal } from '../businessData';
 import {
@@ -97,7 +97,7 @@ const MemberFields: React.FC<{
 }> = ({ id, data, showIdentity, disableSumInsured, update, onOpenPed }) => {
   const [feet, inches] = splitHeight(data?.height ?? '');
   const hasPed = data?.hasPed === 'yes';
-  const tags = pedTagLabels(data?.peds);
+  const tags = pedTags(data?.peds);
 
   const setHeight = (nextFeet: string, nextInches: string) => update(id, 'height', `${nextFeet}:${nextInches}`);
 
@@ -211,8 +211,14 @@ const MemberFields: React.FC<{
               />
               {tags.length > 0 ? (
                 <View style={styles.pedTags}>
-                  {tags.map((label) => (
-                    <Tag key={label} size="sm" selected label={label} />
+                  {tags.map((tag) => (
+                    <Tag
+                      key={tag.label}
+                      size="sm"
+                      selected
+                      label={tag.label}
+                      onRemove={() => data?.peds && update(id, 'peds', removePedTag(data.peds, tag))}
+                    />
                   ))}
                 </View>
               ) : null}

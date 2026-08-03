@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, Pressable, ScrollView, Dimensions, StyleSheet } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import {
   Heartbeat,
   Hospital,
@@ -13,7 +13,7 @@ import {
   type IconProps,
 } from 'phosphor-react-native';
 import {
-  Modal,
+  BottomSheet,
   Button,
   Checkbox,
   Textfield,
@@ -26,10 +26,6 @@ import {
   typography,
 } from '@atlas-ds/react-native';
 import type { PedData } from './proposalData';
-
-// Cap the scroll area to a fraction of the screen so the sheet fits, but leave
-// enough room that a focused field's ring isn't clipped at the edge.
-const SCROLL_MAX_HEIGHT = Math.round(Dimensions.get('window').height * 0.6);
 
 interface PEDDetailsModalProps {
   isOpen: boolean;
@@ -57,16 +53,32 @@ const PED_CONDITIONS: { label: string; Icon: React.ComponentType<IconProps>; col
  * parenthetical qualifier is dropped (e.g. "Vaccination Status (Covid-19
  * Vaccination)" → "Vaccination Status") to keep the card tags short.
  */
-export const pedTagLabels = (peds?: PedData): string[] =>
+/**
+ * A PED chip on the member card, carrying what it maps back to so it can be
+ * removed: an index into the fixed list, or `null` for a custom condition.
+ */
+export type PedTag = { label: string; index: number | null };
+
+export const pedTags = (peds?: PedData): PedTag[] =>
   peds
     ? [
         ...peds.selectedPeds
-          .map((i) => PED_CONDITIONS[i]?.label)
-          .filter((l): l is string => !!l)
-          .map((l) => l.replace(/\s*\(.*\)\s*$/, '').trim()),
-        ...peds.customConditions,
+          .map((i) => ({ index: i as number | null, label: PED_CONDITIONS[i]?.label }))
+          .filter((t): t is PedTag => !!t.label)
+          .map((t) => ({ index: t.index, label: t.label.replace(/\s*\(.*\)\s*$/, '').trim() })),
+        ...peds.customConditions.map((label) => ({ index: null, label })),
       ]
     : [];
+
+/** Drop one chip from a member's PEDs, taking its detail text with it. */
+export const removePedTag = (peds: PedData, tag: PedTag): PedData => {
+  if (tag.index === null) {
+    return { ...peds, customConditions: peds.customConditions.filter((c) => c !== tag.label) };
+  }
+  const details = { ...peds.details };
+  delete details[tag.index];
+  return { ...peds, selectedPeds: peds.selectedPeds.filter((i) => i !== tag.index), details };
+};
 
 export const PEDDetailsModal: React.FC<PEDDetailsModalProps> = ({ isOpen, onClose, onConfirm, memberName, initialData }) => {
   const [selectedPeds, setSelectedPeds] = useState<number[]>([]);
@@ -76,11 +88,18 @@ export const PEDDetailsModal: React.FC<PEDDetailsModalProps> = ({ isOpen, onClos
   const [customInput, setCustomInput] = useState('');
   const [showWarning, setShowWarning] = useState(true);
 
+  // "Add more" reveals the input below the fold, so the sheet is scrolled to it
+  // — otherwise the button appears to do nothing. Guarded so that adding a
+  // condition (which grows the block) doesn't yank the view again.
+  const contentRef = useRef<ScrollView>(null);
+  const scrolledToCustom = useRef(false);
+
   // Re-seed from the member's saved conditions every time it opens.
   useEffect(() => {
     if (!isOpen) {
       return;
     }
+    scrolledToCustom.current = false;
     setSelectedPeds(initialData?.selectedPeds ?? []);
     setPedDetails(initialData?.details ?? {});
     setCustomConditions(initialData?.customConditions ?? []);
@@ -116,22 +135,16 @@ export const PEDDetailsModal: React.FC<PEDDetailsModalProps> = ({ isOpen, onClos
     setCustomConditions((prev) => prev.filter((c) => c !== value));
 
   return (
-    <Modal
+    <BottomSheet
       visible={isOpen}
       onClose={onClose}
       title="Select Pre-existing Conditions"
       subtitle={`for ${memberName}`}
-      style={styles.surface}
+      contentRef={contentRef}
       primaryAction={{ label: 'Confirm', onPress: () => onConfirm?.({ selectedPeds, details: pedDetails, customConditions }) }}
       secondaryAction={{ label: 'Cancel', onPress: onClose }}
     >
       <View style={styles.content}>
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.scrollInner}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
           {/* Truthful-disclosure warning */}
           {showWarning ? (
             <ToastGlobal
@@ -201,7 +214,18 @@ export const PEDDetailsModal: React.FC<PEDDetailsModalProps> = ({ isOpen, onClos
 
           {/* Not in the list — add a custom condition */}
           {showCustomInput ? (
-            <View style={styles.customBlock}>
+            <View
+              style={styles.customBlock}
+              onLayout={() => {
+                if (scrolledToCustom.current) {
+                  return;
+                }
+                scrolledToCustom.current = true;
+                // The block is the last thing in the sheet, so the end of the
+                // scroll IS the typing area — no offset maths needed.
+                contentRef.current?.scrollToEnd({ animated: true });
+              }}
+            >
               <Text style={styles.customLabel}>Not in the list? Add it</Text>
               <View style={styles.customInputRow}>
                 <View style={styles.customInputField}>
@@ -230,20 +254,16 @@ export const PEDDetailsModal: React.FC<PEDDetailsModalProps> = ({ isOpen, onClos
               ) : null}
             </View>
           ) : null}
-        </ScrollView>
       </View>
-    </Modal>
+    </BottomSheet>
   );
 };
 
 const styles = StyleSheet.create({
-  // Widen the DS Modal's fixed 335px surface for the dense condition list.
-  // The modal root already pads the sides, so fill that width (not a % of it).
-  surface: { width: '100%', },
-  content: { gap: spacing.md, width: '100%', },
-  scroll: { maxHeight: SCROLL_MAX_HEIGHT },
-  // Vertical padding keeps a focused field's ring from being clipped at the edge.
-  scrollInner: { gap: spacing.md, paddingVertical: spacing.xs },
+  // The sheet's own content slot scrolls and caps at 90% of the screen, so the
+  // long condition list no longer needs a fixed-height scroller of its own —
+  // which is what clipped "Add more" out of a centred dialog.
+  content: { gap: spacing.md, width: '100%', paddingVertical: spacing.xs },
   countRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   countLeft: { flexDirection: 'row', alignItems: 'center' },
   countText: { fontFamily: typography.fontFamily, fontSize: 12, color: colors.textBody },
