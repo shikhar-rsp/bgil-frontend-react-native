@@ -140,6 +140,8 @@ export const ProfileScreen: React.FC<AuthScreenProps<'Profile'>> = ({ navigation
                   ? restartTour
                   : row.key === 'profile'
                   ? openMyProfile
+                  : row.key === 'settings'
+                  ? () => navigation.navigate('Settings')
                   : () => undefined
               }
             >

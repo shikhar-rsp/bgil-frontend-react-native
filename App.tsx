@@ -33,6 +33,7 @@ import { RMDashboardScreen } from './src/presentation/pages/dashboard/RMDashboar
 import { TraineeScreen } from './src/presentation/pages/dashboard/TraineeScreen';
 import { ProfileScreen } from './src/presentation/pages/dashboard/ProfileScreen';
 import { MyProfileScreen } from './src/presentation/pages/dashboard/MyProfileScreen';
+import { SettingsScreen } from './src/presentation/pages/dashboard/SettingsScreen';
 import { NotificationsScreen } from './src/presentation/pages/dashboard/NotificationsScreen';
 // import { DevNav } from './src/dev/DevNav';
 
@@ -57,6 +58,7 @@ const linking: LinkingOptions<RootStackParamList> = {
       Trainee: 'trainee',
       Profile: 'profile',
       MyProfile: 'profile/details',
+      Settings: 'settings',
       Notifications: 'notifications',
     },
   },
@@ -108,6 +110,7 @@ export default function App() {
               <Stack.Screen name="Trainee" component={TraineeScreen} />
               <Stack.Screen name="Profile" component={ProfileScreen} />
               <Stack.Screen name="MyProfile" component={MyProfileScreen} />
+              <Stack.Screen name="Settings" component={SettingsScreen} />
               <Stack.Screen name="Notifications" component={NotificationsScreen} />
             </Stack.Navigator>
             {/* <DevNav navigationRef={navigationRef} /> */}

@@ -134,7 +134,12 @@ export const Textfield: React.FC<TextfieldProps> = ({
           />
         )}
         {resolvedTrailingIcon ? (
-          <View style={styles.iconTrailing} pointerEvents="none">
+          // A consumer-supplied icon may be interactive (the show/hide-password
+          // eye), so the slot must let taps reach it — `box-none` keeps the
+          // wrapper itself transparent while its children stay hittable. The
+          // auto-resolved caret/info glyphs are decorative and stay fully
+          // transparent so a tap there still focuses the input.
+          <View style={styles.iconTrailing} pointerEvents={trailingIcon ? 'box-none' : 'none'}>
             {resolvedTrailingIcon}
           </View>
         ) : null}

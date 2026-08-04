@@ -45,6 +45,8 @@ export type RootStackParamList = {
    * `perspective: 'rm'` shows the RM's own identity instead of the agent's.
    */
   MyProfile: { perspective?: 'agent' | 'rm' } | undefined;
+  /** Settings (Module 10) — password management and notification preferences. */
+  Settings: undefined;
 };
 
 export type AuthScreenProps<T extends keyof RootStackParamList> =

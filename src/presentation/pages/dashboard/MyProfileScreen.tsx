@@ -200,6 +200,17 @@ export const MyProfileScreen: React.FC<AuthScreenProps<'MyProfile'>> = ({ naviga
     [customers, shareVirtualId, showToast]
   );
 
+  // Normally this pops back to the profile menu, but the screen can also be the
+  // only route on the stack (deep link, or the dev jumper's stack reset) — then
+  // there is nothing to pop, so fall back to the dashboard as the web does.
+  const handleBack = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+    navigation.navigate(isRm ? 'RMDashboard' : 'Dashboard');
+  }, [navigation, isRm]);
+
   // The RM's own profile reuses the agent record with the RM identity on top,
   // matching the web build.
   const summaryProfile =
@@ -214,13 +225,13 @@ export const MyProfileScreen: React.FC<AuthScreenProps<'MyProfile'>> = ({ naviga
           size="md"
           label="Back"
           leadingIcon={<CaretLeft size={22} color={colors.textBody} />}
-          onPress={() => navigation.goBack()}
+          onPress={handleBack}
         />
         <Text style={styles.headerTitle}>My Profile</Text>
         <View style={styles.headerSpacer} />
       </View>
 
-      <ProfileErrorBoundary onGoBack={() => navigation.goBack()}>
+      <ProfileErrorBoundary onGoBack={handleBack}>
         <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
           {profile && summaryProfile ? (
             <>
