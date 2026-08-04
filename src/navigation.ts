@@ -40,6 +40,11 @@ export type RootStackParamList = {
     userId: string;
     userInitials: string;
   };
+  /**
+   * "My Profile" (Module 10) — the detail screen behind Profile → View Profile.
+   * `perspective: 'rm'` shows the RM's own identity instead of the agent's.
+   */
+  MyProfile: { perspective?: 'agent' | 'rm' } | undefined;
 };
 
 export type AuthScreenProps<T extends keyof RootStackParamList> =

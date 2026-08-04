@@ -81,6 +81,11 @@ export const ProfileScreen: React.FC<AuthScreenProps<'Profile'>> = ({ navigation
     navigation.goBack();
   };
 
+  // "My Profile" (Module 10). The RM sees their own identity there, not the
+  // agent record the other personas get.
+  const openMyProfile = () =>
+    navigation.navigate('MyProfile', { perspective: persona === 'rm' ? 'rm' : 'agent' });
+
   const pickAgent = (agent: AgentViewTarget) => {
     setSelectedAgent(agent);
     setSheetOpen(false);
@@ -130,7 +135,13 @@ export const ProfileScreen: React.FC<AuthScreenProps<'Profile'>> = ({ navigation
             <AvatarDropdownItem
               key={row.key}
               icon={row.icon}
-              onPress={row.key === 'tour' ? restartTour : () => undefined}
+              onPress={
+                row.key === 'tour'
+                  ? restartTour
+                  : row.key === 'profile'
+                  ? openMyProfile
+                  : () => undefined
+              }
             >
               {row.label}
             </AvatarDropdownItem>
