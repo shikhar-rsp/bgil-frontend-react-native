@@ -1,18 +1,15 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, ScrollView, Dimensions, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { CheckCircle, DownloadSimple, Link, Info } from 'phosphor-react-native';
 import {
   Badge,
   BottomSheet,
   Button,
   Modal,
-  ProgressStepper,
   Toast,
   ToastGlobal,
   colors,
   spacing,
-  radius,
-  shadow,
   typography,
   fontFamilyForWeight,
 } from '@atlas-ds/react-native';
@@ -29,6 +26,8 @@ import { PreviousPolicyView } from './PreviousPolicyView';
 import { RenewalSummary } from './RenewalSummary';
 import { ConfirmChangesSheet, type ConfirmTarget } from './ConfirmChangesSheet';
 import { RenewalPremiumCard } from './RenewalPremiumCard';
+import { WizardStepper } from '../WizardStepper';
+import { useBottomActionInset } from '../../../../hooks/useBottomActionInset';
 import type { Renewal } from '../businessData';
 import {
   ADDON_UNIT_PREMIUM,
@@ -65,13 +64,16 @@ interface RenewPolicyProps {
    */
   mode?: 'view' | 'flow';
   onClose: () => void;
+  /**
+   * Lends the host screen this wizard's step-back. The footer carries no Back
+   * button — the screen's top bar is the only back control — so it has to walk
+   * the steps here rather than dropping straight out of the flow.
+   */
+  onRegisterBack?: (handler: (() => void) | null) => void;
   /** Fired when the read-only view hands over to the edit flow, so the host can
    *  retitle the screen from "Policy Details" to "Renew Policy". */
   onRenewFlowStart?: () => void;
 }
-
-const STEP_WIDTH = 120;
-const SCREEN_WIDTH = Dimensions.get('window').width;
 
 const emptyProposer = (customerName: string): ProposerData => ({
   proposerName: customerName,
@@ -129,7 +131,11 @@ const emptyPayment: PaymentData = {
  *     web's Cancel did.
  *   • Modals are `BottomSheet`s, matching the rest of this app.
  */
-export const RenewPolicy: React.FC<RenewPolicyProps> = ({ record, mode = 'flow', onClose, onRenewFlowStart }) => {
+export const RenewPolicy: React.FC<RenewPolicyProps> = ({ record, mode = 'flow', onClose, onRegisterBack, onRenewFlowStart }) => {
+  // The renewal flow hides the bottom nav, so its footers are the screen's
+  // bottom edge and have to clear the home indicator themselves.
+  const footerPaddingBottom = useBottomActionInset();
+
   /* ---------------------------- flow position ---------------------------- */
   const [currentStep, setCurrentStep] = useState(1);
   const [maxVisitedStep, setMaxVisitedStep] = useState(1);
@@ -742,6 +748,21 @@ export const RenewPolicy: React.FC<RenewPolicyProps> = ({ record, mode = 'flow',
     onClose();
   };
 
+  // The wizard footer carries no Back button, so the screen's top bar borrows
+  // this one. Held in a ref and registered once, so advancing a step doesn't
+  // churn the host's handler. The read-only view registers nothing — its top
+  // back should leave for the list, not walk steps the agent never entered.
+  const backRef = useRef(handleBack);
+  backRef.current = handleBack;
+
+  useEffect(() => {
+    if (isViewMode) {
+      return;
+    }
+    onRegisterBack?.(() => backRef.current());
+    return () => onRegisterBack?.(null);
+  }, [isViewMode, onRegisterBack]);
+
   /** Shared by every "Issue another policy" action — resets and leaves the flow. */
   const handleIssueAnother = () => {
     setPaymentLinkSentOpen(false);
@@ -1170,7 +1191,7 @@ export const RenewPolicy: React.FC<RenewPolicyProps> = ({ record, mode = 'flow',
           />
         </ScrollView>
 
-        <View style={styles.footerStack}>
+        <View style={[styles.footerStack, { paddingBottom: footerPaddingBottom }]}>
           <Button
             label="Download full policy"
             variant="secondaryGray"
@@ -1203,29 +1224,21 @@ export const RenewPolicy: React.FC<RenewPolicyProps> = ({ record, mode = 'flow',
   }
 
   const isSummary = currentKey === 'summary';
-  const stepperWidth = Math.max(SCREEN_WIDTH - spacing.lg * 4, stepperSteps.length * STEP_WIDTH);
 
   return (
     <View style={styles.flex}>
       <ScrollView ref={scrollRef} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {showStepper && stepperSteps.length > 0 ? (
-          <View style={styles.stepperCard}>
-            {/* 10 steps can't share a phone's width — scroll them instead of
-                letting every label truncate to nothing. */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <ProgressStepper
-                steps={stepperSteps.map((s) => ({ label: s.label }))}
-                current={stepperSteps.findIndex((s) => s.actualStep === currentStep)}
-                onStepPress={(index) => {
-                  const target = stepperSteps[index];
-                  if (target && target.actualStep <= maxVisitedStep) {
-                    setCurrentStep(target.actualStep);
-                  }
-                }}
-                style={{ width: stepperWidth }}
-              />
-            </ScrollView>
-          </View>
+          <WizardStepper
+            steps={stepperSteps.map((s) => ({ label: s.label }))}
+            current={stepperSteps.findIndex((s) => s.actualStep === currentStep)}
+            onStepPress={(index) => {
+              const target = stepperSteps[index];
+              if (target && target.actualStep <= maxVisitedStep) {
+                setCurrentStep(target.actualStep);
+              }
+            }}
+          />
         ) : null}
 
         {renderStep()}
@@ -1242,7 +1255,7 @@ export const RenewPolicy: React.FC<RenewPolicyProps> = ({ record, mode = 'flow',
       </ScrollView>
 
       {isSummary ? (
-        <View style={styles.footerStack}>
+        <View style={[styles.footerStack, { paddingBottom: footerPaddingBottom }]}>
           <Button label="Share Renewal Notice" variant="secondary" onPress={() => setShareNoticeOpen(true)} fullWidth />
           <View style={styles.footerRow}>
             <Button label="Edit Policy" variant="secondaryGray" onPress={resetStepperProgress} style={styles.footerBtn} />
@@ -1252,13 +1265,13 @@ export const RenewPolicy: React.FC<RenewPolicyProps> = ({ record, mode = 'flow',
           </View>
         </View>
       ) : (
-        <View style={styles.footerRowBar}>
-          <Button label="Back" variant="secondaryGray" onPress={handleBack} style={styles.footerBtn} />
+        // Forward action only — Back lives on the screen's top bar.
+        <View style={[styles.footerRowBar, { paddingBottom: footerPaddingBottom }]}>
           <Button
             label={currentKey === 'payment' ? 'Make Payment' : 'Proceed'}
             disabled={isProceedDisabled}
             onPress={handleProceed}
-            style={styles.footerBtn}
+            fullWidth
           />
         </View>
       )}
@@ -1361,12 +1374,6 @@ const styles = StyleSheet.create({
   content: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl },
   stepStack: { gap: spacing.md },
   bannerStack: { gap: spacing.md },
-  stepperCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.xl,
-    padding: spacing.md,
-    ...shadow.lg,
-  },
   // Full-bleed footer bars, matching QuoteFooter in the quote flows.
   footerRowBar: {
     flexDirection: 'row',

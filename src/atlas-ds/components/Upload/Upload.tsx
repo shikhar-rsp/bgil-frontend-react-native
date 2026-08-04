@@ -6,7 +6,7 @@ import {
   StyleSheet,
   Platform,
 } from 'react-native';
-import { UploadSimple } from 'phosphor-react-native';
+import { Trash, UploadSimple } from 'phosphor-react-native';
 import { colors, radius, spacing, typography } from '../../theme';
 
 const UPLOAD_ICON_SIZE = 20;
@@ -249,7 +249,7 @@ export const Upload: React.FC<UploadProps> = ({
           </View>
           {onFileRemove && (
             <Pressable onPress={onFileRemove} hitSlop={8} accessibilityRole="button" accessibilityLabel="Remove file">
-              {trashIcon ?? <TrashGlyph color={colors.textBody} />}
+              {trashIcon ?? <Trash size={20} color={colors.textBody} />}
             </Pressable>
           )}
         </View>
@@ -259,21 +259,14 @@ export const Upload: React.FC<UploadProps> = ({
 };
 
 // ---------------------------------------------------------------------------
-// Inline glyphs — PDF badge + trash (upload uses Phosphor via `uploadIcon`).
+// Inline glyphs — the PDF badge is a lettered chip rather than an icon, so it
+// stays hand-drawn. Everything else here uses Phosphor.
 // ---------------------------------------------------------------------------
 
 /** PDF file icon — small rounded rectangle in slate-blue. */
 const PdfGlyph: React.FC<{ color: string }> = ({ color }) => (
   <View style={[glyphs.pdf, { borderColor: color }]} accessibilityElementsHidden>
     <Text style={[glyphs.pdfLabel, { color }]}>PDF</Text>
-  </View>
-);
-
-/** Trash can icon — outline body + lid line. */
-const TrashGlyph: React.FC<{ color: string }> = ({ color }) => (
-  <View style={glyphs.trashWrap} accessibilityElementsHidden>
-    <View style={[glyphs.trashLid, { backgroundColor: color }]} />
-    <View style={[glyphs.trashBody, { borderColor: color }]} />
   </View>
 );
 
@@ -412,25 +405,5 @@ const glyphs = StyleSheet.create({
     fontSize: 8,
     lineHeight: 10,
     fontWeight: '700',
-  },
-  // Trash can
-  trashWrap: {
-    width: 20,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  trashLid: {
-    width: 12,
-    height: 1.6,
-    borderRadius: 0.5,
-    marginTop: 1,
-  },
-  trashBody: {
-    width: 9,
-    height: 10,
-    borderWidth: 1.6,
-    borderRadius: 1,
-    marginTop: 1,
   },
 });

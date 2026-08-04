@@ -82,10 +82,13 @@ export const TextCell: React.FC<{
   value: string;
   strong?: boolean;
   note?: string;
-  /** Must mirror the column's own `align` — see the note on `styles.right`. */
-  align?: 'left' | 'right';
-}> = ({ value, strong, note, align }) => {
-  const alignment = align === 'right' && styles.right;
+  /**
+   * Defaults to `center`, matching every column in these tables. Must mirror
+   * the column's own `align` — see the note on `styles.alignment`.
+   */
+  align?: 'left' | 'center' | 'right';
+}> = ({ value, strong, note, align = 'center' }) => {
+  const alignment = styles[align];
   return (
     <View style={styles.cell}>
       <Text style={[strong ? styles.strong : styles.text, alignment]} numberOfLines={1}>
@@ -100,13 +103,26 @@ export const TextCell: React.FC<{
   );
 };
 
-/** Status pill — same badge treatment the card rows used. */
+/**
+ * Status pill — same badge treatment the card rows used.
+ *
+ * The wrapper is load-bearing: `Badge` sets `alignSelf: 'flex-start'` so it
+ * doesn't stretch in a column, but in the table's row-direction cell that same
+ * rule pins it to the *top* and overrides the cell's `alignItems: 'center'`,
+ * leaving the pill sitting a few pixels above the row's text. Nesting it in a
+ * view that hugs its height makes the rule a no-op and lets the cell centre it.
+ */
 export const StatusCell: React.FC<{ label: string; color: AccentColor }> = ({ label, color }) => (
-  <Badge variant="light" size="sm" color={color} label={label} />
+  <View style={styles.badgeCell}>
+    <Badge variant="light" size="sm" color={color} label={label} />
+  </View>
 );
 
 const styles = StyleSheet.create({
   cell: { flex: 1, justifyContent: 'center' },
+  // Deliberately no `flex: 1`: the cell centres its content horizontally with
+  // `justifyContent`, which a full-width child would leave nothing to push.
+  badgeCell: { justifyContent: 'center' },
   text: { fontFamily: typography.fontFamily, ...typography.body2, color: colors.textBody },
   strong: {
     fontFamily: fontFamilyForWeight('500'),
@@ -117,7 +133,9 @@ const styles = StyleSheet.create({
   note: { fontFamily: typography.fontFamily, ...typography.body3, color: colors.textMuted },
   // The cell wrapper is `flex: 1`, so it already fills the column and the
   // column's own `justifyContent` has nothing left to push. Align the text
-  // itself instead, or a right-aligned header won't match its values.
+  // itself instead, or a centred header won't match its values.
+  left: { textAlign: 'left' },
+  center: { textAlign: 'center' },
   right: { textAlign: 'right' },
   bleed: {
     marginHorizontal: -CARD_PADDING,

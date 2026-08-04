@@ -19,8 +19,8 @@ export const PolicyHeader: React.FC<PolicyHeaderProps> = ({ policyNumber, custom
       <Text style={styles.title} numberOfLines={1}>{policyNumber} - {customerName}</Text>
     </View>
     <View style={styles.actions}>
-      <Button label="Download Quote" variant="link" size="sm" leadingIcon={<DownloadSimple size={16} color={colors.brand} />} onPress={onDownloadQuote} />
-      <Button label="View Quote Details" variant="secondaryGray" size="sm" onPress={onViewDetails} />
+      <Button label="Download Quote" variant="link" size="sm" leadingIcon={<DownloadSimple size={16} color={colors.brand} />} onPress={onDownloadQuote} fullWidth />
+      <Button label="View Quote Details" variant="secondaryGray" size="sm" onPress={onViewDetails} fullWidth />
     </View>
   </View>
 );
@@ -34,7 +34,13 @@ const styles = StyleSheet.create({
   left: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   iconBox: { width: 40, height: 40, borderRadius: radius.lg, backgroundColor: '#FDF2F8', alignItems: 'center', justifyContent: 'center' },
   title: { flex: 1, fontFamily: fontFamilyForWeight('500'), fontSize: 18, fontWeight: '500', color: colors.textHeading },
-  // `space-between` stranded these at opposite card edges. Grouped left with a
-  // normal gap, wrapping only if the labels genuinely don't fit.
-  actions: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: spacing.md },
+  /**
+   * One action per row, each full width.
+   *
+   * These sat side by side and wrapped once the labels outgrew the card, which
+   * left the two buttons on separate lines at different widths and different
+   * alignments — the ragged result depended entirely on the device width.
+   * Stacking is deterministic: it looks the same on every screen.
+   */
+  actions: { gap: spacing.sm },
 });

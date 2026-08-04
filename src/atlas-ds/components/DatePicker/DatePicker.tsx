@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, Modal as RNModal } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CalendarBlank, ArrowRight } from 'phosphor-react-native';
 import { colors, radius, spacing, typography, inputShadowDefault, inputShadowFocus } from '../../theme';
 import { Calendar } from '../Calendar';
@@ -75,6 +76,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   sheetTitle,
   style,
 }) => {
+  const insets = useSafeAreaInsets();
   const [open, setOpen] = useState(false);
   // Range selection is staged inside the sheet and committed on Submit.
   const [tStart, setTStart] = useState<Date | null>(startDate ?? null);
@@ -155,7 +157,12 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       <RNModal visible={open} transparent animationType="slide" onRequestClose={close} statusBarTranslucent>
         <View style={styles.sheetRoot} pointerEvents="box-none">
           <Pressable style={styles.backdrop} onPress={close} accessibilityLabel="Dismiss date picker" />
-          <View style={styles.sheet} pointerEvents="auto">
+          {/* Docked to the screen edge, so the Submit row would otherwise sit
+              under the home indicator — see the note in `useBottomActionInset`. */}
+          <View
+            style={[styles.sheet, { paddingBottom: insets.bottom + spacing.xl }]}
+            pointerEvents="auto"
+          >
             <View style={styles.handleWrap}>
               <View style={styles.handle} />
             </View>
@@ -246,7 +253,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xl,
+    // paddingBottom is applied inline — the design's 24px plus the safe-area inset.
   },
   handleWrap: { alignItems: 'center', paddingVertical: spacing.sm },
   handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.borderSubtle },

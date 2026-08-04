@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { colors, spacing, radius, fontFamilyForWeight, shadow } from '@atlas-ds/react-native';
 import { MotorHeader, motorPolicyTitle } from './MotorHeader';
@@ -23,6 +23,12 @@ type VehicleType = 'registered' | 'new' | null;
 
 interface TwoWheelerInsuranceProps {
   onClose: () => void;
+  /**
+   * Lends the host screen this wizard's step-back. The footer carries no Back
+   * button — the screen's top bar is the only back control — so it has to walk
+   * the steps here rather than dropping straight out of the flow.
+   */
+  onRegisterBack?: (handler: (() => void) | null) => void;
   onConvertToProposal: (customer: string) => void;
   /** Chosen before the flow mounts (from the Browse Categories sheet). */
   initialVehicleType?: 'registered' | 'new';
@@ -36,7 +42,7 @@ interface TwoWheelerInsuranceProps {
  * plan details → IDV → suggested plans → add-ons → discount/loader → suggestions
  * → proposer) with a premium side panel; step 3 is the preview.
  */
-export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClose, onConvertToProposal, initialVehicleType, productName }) => {
+export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClose, onRegisterBack, onConvertToProposal, initialVehicleType, productName }) => {
   // The type is normally picked on the Browse Categories screen before this
   // flow mounts; the sheet only reappears after a Reset.
   const isNewInit = initialVehicleType === 'new';
@@ -45,6 +51,22 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
   const [registrationNumber, setRegistrationNumber] = useState('');
   const [currentStep, setCurrentStep] = useState(1);
   const [showFeatures, setShowFeatures] = useState(false);
+
+  // Registered once and reading the step from a ref, so advancing the wizard
+  // doesn't churn the host's handler on every step.
+  const stepRef = useRef(currentStep);
+  stepRef.current = currentStep;
+
+  useEffect(() => {
+    onRegisterBack?.(() => {
+      if (stepRef.current > 1) {
+        setCurrentStep(stepRef.current - 1);
+        return;
+      }
+      onClose();
+    });
+    return () => onRegisterBack?.(null);
+  }, [onRegisterBack, onClose]);
 
   const [selectedPlanType, setSelectedPlanType] = useState('');
   const [selectedCustomerType, setSelectedCustomerType] = useState('');
@@ -298,7 +320,6 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
           previewStep={6}
           previewQuoteStep={5}
           isProceedDisabled={!canProceed}
-          onBack={() => (currentStep === 1 ? onClose() : setCurrentStep(currentStep - 1))}
           onProceed={() => setCurrentStep(Math.min(currentStep + 1, 6))}
           onShareQuote={() => setShowShareModal(true)}
           onConvertToProposal={() => onConvertToProposal(proposerName || 'Rakesh Kumar')}

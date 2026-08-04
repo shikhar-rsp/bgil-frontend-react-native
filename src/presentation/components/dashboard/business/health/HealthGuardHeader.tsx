@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Heartbeat, DownloadSimple } from 'phosphor-react-native';
-import { Button, colors, spacing, radius, typography, shadow, fontFamilyForWeight } from '@atlas-ds/react-native';
+import { Button, colors, spacing, radius, shadow, fontFamilyForWeight } from '@atlas-ds/react-native';
 
 interface HealthGuardHeaderProps {
   productName: string;
@@ -22,14 +22,15 @@ export const HealthGuardHeader: React.FC<HealthGuardHeaderProps> = ({
       <Text style={styles.title}>{productName || 'Health Guard Policy'}</Text>
     </View>
     <View style={styles.actions}>
-      <Button label="View features" variant="secondaryGray" size="sm" onPress={onViewFeatures} />
       <Button
         label="Brochure"
         variant="link"
         size="sm"
         leadingIcon={<DownloadSimple size={16} color={colors.brand} />}
         onPress={onDownloadBrochure}
+        fullWidth
       />
+      <Button label="View features" variant="secondaryGray" size="sm" onPress={onViewFeatures} fullWidth />
     </View>
   </View>
 );
@@ -39,5 +40,6 @@ const styles = StyleSheet.create({
   left: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   iconBox: { width: 40, height: 40, borderRadius: radius.lg, backgroundColor: '#FDF2F8', alignItems: 'center', justifyContent: 'center' },
   title: { fontFamily: fontFamilyForWeight('500'), fontSize: 18, fontWeight: '500', color: colors.textHeading, flexShrink: 1 },
-  actions: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
+  // One action per row, each full width — see the note in PolicyHeader.
+  actions: { width: '100%', gap: spacing.sm },
 });

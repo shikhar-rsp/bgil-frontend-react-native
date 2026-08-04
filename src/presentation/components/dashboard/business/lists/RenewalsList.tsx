@@ -28,19 +28,19 @@ export const RenewalsList: React.FC<RenewalsListProps> = ({
   onCallCustomer,
 }) => {
   const columns: TableColumn<Renewal>[] = [
-    { key: 'customer', header: 'Customer', width: 150, render: (r) => <TextCell strong value={r.customer} /> },
-    { key: 'renewalPolicyId', header: 'Renewal Policy ID', width: 150, render: (r) => <TextCell value={r.renewalPolicyId} /> },
-    { key: 'productCode', header: 'Product', width: 200, render: (r) => <TextCell value={r.productCode} /> },
+    { key: 'customer', header: 'Customer', width: 150, align: 'center', render: (r) => <TextCell strong value={r.customer} /> },
+    { key: 'renewalPolicyId', header: 'Renewal Policy ID', width: 150, align: 'center', render: (r) => <TextCell value={r.renewalPolicyId} /> },
+    { key: 'productCode', header: 'Product', width: 200, align: 'center', render: (r) => <TextCell value={r.productCode} /> },
     {
       key: 'renewalPremium',
       header: 'Renewal Premium',
       width: 150,
-      align: 'right',
-      render: (r) => <TextCell strong align="right" value={`₹ ${r.renewalPremium.toLocaleString('en-IN')}`} />,
+      align: 'center',
+      render: (r) => <TextCell strong value={`₹ ${r.renewalPremium.toLocaleString('en-IN')}`} />,
     },
     // Renewal expiry carries a 4-digit year, so it needs more room than the
     // DD/MM/YY dates on the other tabs.
-    { key: 'expiryDate', header: 'Expiry Date', width: 140, render: (r) => <TextCell value={r.expiryDate} /> },
+    { key: 'expiryDate', header: 'Expiry Date', width: 140, align: 'center', render: (r) => <TextCell value={r.expiryDate} /> },
     {
       key: 'expiringWithin',
       header: 'Expiring Within',

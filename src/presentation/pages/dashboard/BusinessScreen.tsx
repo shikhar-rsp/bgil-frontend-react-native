@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
-import { Plus, CaretLeft } from 'phosphor-react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { Plus } from 'phosphor-react-native';
 import { Button, colors, spacing, typography, shadow } from '@atlas-ds/react-native';
 import { BusinessInsights } from '../../components/dashboard/business/BusinessInsights';
 import { SharedQuotes, type TabKey } from '../../components/dashboard/business/SharedQuotes';
@@ -82,15 +82,38 @@ export const BusinessScreen: React.FC<BusinessScreenProps> = ({
   // outside the list asks for one (e.g. a Quick Quotes tile choosing Renewals).
   const [landingTab, setLandingTab] = useState<TabKey | undefined>(undefined);
 
+  /**
+   * The mounted wizard's own back handler. The quote flows have no Back button
+   * of their own, so the screen's single top back control has to walk their
+   * steps; without a wizard mounted it just leaves for the landing page.
+   */
+  const flowBackRef = useRef<(() => void) | null>(null);
+
   // Everything except the landing page is full-screen (no bottom nav). Keyed on
   // `view.kind` only — including the callback would re-run this on every render
-  // of the parent and loop.
+  // of the parent and loop. The back handler reads the ref when pressed rather
+  // than closing over it, so it stays correct as the wizard advances.
   useEffect(() => {
-    onFullScreenChange?.(view.kind !== 'landing', () => setView({ kind: 'landing' }));
+    onFullScreenChange?.(view.kind !== 'landing', () => goBack());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view.kind]);
 
-  const goLanding = () => setView({ kind: 'landing' });
+  const goLanding = useCallback(() => setView({ kind: 'landing' }), []);
+
+  /** Passed to the quote wizards so they can lend the top bar their step-back. */
+  const registerFlowBack = useCallback((handler: (() => void) | null) => {
+    flowBackRef.current = handler;
+  }, []);
+
+  /** What every back control on this screen does — the mounted wizard's
+   *  step-back when there is one, otherwise leave for the landing page. */
+  const goBack = useCallback(() => {
+    if (flowBackRef.current) {
+      flowBackRef.current();
+      return;
+    }
+    setView({ kind: 'landing' });
+  }, []);
 
   const selectProduct = (label: string, fromHome = false, vehicleType?: 'registered' | 'new') => {
     if (!MOTOR_PRODUCTS.includes(label)) {
@@ -132,12 +155,12 @@ export const BusinessScreen: React.FC<BusinessScreenProps> = ({
   return (
     <View style={styles.flex}>
       {/* Landing, browse and the quote/proposal wizards have no top header —
-          the policy and renewal screens do, since they open from a list row. */}
+          the policy and renewal screens do, since they open from a list row.
+          Title only: the dashboard's top bar already shows a back control
+          whenever one of these full-screen views is open, and a second arrow
+          directly beneath it read as two different destinations. */}
       {view.kind === 'policy' || view.kind === 'renewal' ? (
         <View style={styles.header}>
-          <Pressable onPress={goLanding} hitSlop={8} accessibilityRole="button" accessibilityLabel="Back" style={styles.back}>
-            <CaretLeft size={18} color={colors.textBody} weight="bold" />
-          </Pressable>
           <Text style={styles.title}>
             {view.kind === 'renewal' && view.mode === 'view' ? 'Policy Details' : TITLES[view.kind]}
           </Text>
@@ -179,6 +202,7 @@ export const BusinessScreen: React.FC<BusinessScreenProps> = ({
         <HealthGuard
           productName={view.product}
           onClose={goLanding}
+          onRegisterBack={registerFlowBack}
           onConvertToProposal={(customer) => setView({ kind: 'convert', customer, product: view.product })}
         />
       ) : view.kind === 'motor' ? (
@@ -186,22 +210,29 @@ export const BusinessScreen: React.FC<BusinessScreenProps> = ({
           productName={view.product}
           initialVehicleType={view.vehicleType}
           onClose={goLanding}
+          onRegisterBack={registerFlowBack}
           onConvertToProposal={(customer) => setView({ kind: 'convert', customer, product: view.product })}
         />
       ) : view.kind === 'convert' ? (
-        <ConvertProposal customerName={view.customer} product={view.product} onClose={goLanding} />
+        <ConvertProposal
+          customerName={view.customer}
+          product={view.product}
+          onClose={goLanding}
+          onRegisterBack={registerFlowBack}
+        />
       ) : view.kind === 'renewal' ? (
         <RenewPolicy
           record={view.renewal}
           mode={view.mode}
           onClose={goLanding}
+          onRegisterBack={registerFlowBack}
           // "Renew Policy" in the read-only view hands over to the wizard; flip
           // the view's mode so the header retitles with it. RenewPolicy stays
           // mounted, so nothing the agent entered is lost.
           onRenewFlowStart={() => setView({ kind: 'renewal', renewal: view.renewal, mode: 'flow' })}
         />
       ) : (
-        <IssuedPolicy policy={view.policy} onClose={goLanding} />
+        <IssuedPolicy policy={view.policy} />
       )}
 
       {/* Vehicle-type chooser — opens over Browse Categories before the motor
@@ -231,7 +262,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     ...shadow.lg,
   },
-  back: { padding: spacing.xs },
   title: { flex: 1, fontFamily: typography.fontFamily, fontSize: 22, fontWeight: '600', color: colors.textHeading },
   content: { padding: spacing.lg, gap: spacing.lg },
   fab: { position: 'absolute', right: spacing.lg, bottom: spacing.lg, zIndex: 10 },

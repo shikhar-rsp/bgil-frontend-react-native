@@ -31,22 +31,23 @@ export const QuotesList: React.FC<QuotesListProps> = ({
   onConvert,
 }) => {
   const columns: TableColumn<Quote>[] = [
-    { key: 'customer', header: 'Customer', width: 150, render: (q) => <TextCell strong value={q.customer} /> },
+    { key: 'customer', header: 'Customer', width: 150, align: 'center', render: (q) => <TextCell strong value={q.customer} /> },
     {
       key: 'quoteId',
       header: 'Quote ID',
       width: 150,
+      align: 'center',
       render: (q) => <TextCell value={q.quoteId} note={q.copiedFrom ? `Copy of ${q.copiedFrom}` : undefined} />,
     },
-    { key: 'product', header: 'Product', width: 200, render: (q) => <TextCell value={q.product} /> },
+    { key: 'product', header: 'Product', width: 200, align: 'center', render: (q) => <TextCell value={q.product} /> },
     {
       key: 'premium',
       header: 'Premium',
       width: 120,
-      align: 'right',
-      render: (q) => <TextCell strong align="right" value={`₹ ${q.premium.toLocaleString('en-IN')}`} />,
+      align: 'center',
+      render: (q) => <TextCell strong value={`₹ ${q.premium.toLocaleString('en-IN')}`} />,
     },
-    { key: 'date', header: 'Date', width: 120, render: (q) => <TextCell value={q.date} /> },
+    { key: 'date', header: 'Date', width: 120, align: 'center', render: (q) => <TextCell value={q.date} /> },
     {
       key: 'status',
       header: 'Status',

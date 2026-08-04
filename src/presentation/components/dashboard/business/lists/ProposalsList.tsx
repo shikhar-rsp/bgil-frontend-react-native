@@ -26,23 +26,24 @@ export const ProposalsList: React.FC<ProposalsListProps> = ({
   onEdit,
 }) => {
   const columns: TableColumn<Proposal>[] = [
-    { key: 'customer', header: 'Customer', width: 150, render: (p) => <TextCell strong value={p.customer} /> },
-    { key: 'proposalId', header: 'Proposal ID', width: 130, render: (p) => <TextCell value={p.proposalId} /> },
-    { key: 'product', header: 'Product', width: 200, render: (p) => <TextCell value={p.product} /> },
+    { key: 'customer', header: 'Customer', width: 150, align: 'center', render: (p) => <TextCell strong value={p.customer} /> },
+    { key: 'proposalId', header: 'Proposal ID', width: 130, align: 'center', render: (p) => <TextCell value={p.proposalId} /> },
+    { key: 'product', header: 'Product', width: 200, align: 'center', render: (p) => <TextCell value={p.product} /> },
     {
       key: 'premium',
       header: 'Premium',
       width: 120,
-      align: 'right',
-      render: (p) => <TextCell strong align="right" value={`₹ ${p.premium.toLocaleString('en-IN')}`} />,
+      align: 'center',
+      render: (p) => <TextCell strong value={`₹ ${p.premium.toLocaleString('en-IN')}`} />,
     },
     {
       key: 'businessType',
       header: 'Business Type',
       width: 130,
+      align: 'center',
       render: (p) => <TextCell value={p.businessType === 'new' ? 'New' : 'Portability'} />,
     },
-    { key: 'date', header: 'Date', width: 120, render: (p) => <TextCell value={p.date} /> },
+    { key: 'date', header: 'Date', width: 120, align: 'center', render: (p) => <TextCell value={p.date} /> },
     {
       key: 'status',
       header: 'Status',

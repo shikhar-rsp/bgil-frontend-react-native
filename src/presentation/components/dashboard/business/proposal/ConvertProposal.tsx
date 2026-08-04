@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
 import { CheckCircle, Confetti, ArrowsLeftRight, Link } from 'phosphor-react-native';
 import { Button, BottomSheet, Toast, colors, spacing, radius, typography, fontFamilyForWeight } from '@atlas-ds/react-native';
@@ -12,6 +12,8 @@ import { PreviousPolicyStep, type PreviousPolicyData } from './PreviousPolicySte
 import { KycDetailsStep, type KycData } from './KycDetailsStep';
 import { PaymentStep, type PaymentData } from './PaymentStep';
 import { newMember, newNominee, type BusinessType, type PlanType, type ProposalMember, type Nominee } from './proposalData';
+import { WizardStepper } from '../WizardStepper';
+import { useBottomActionInset } from '../../../../hooks/useBottomActionInset';
 
 interface ConvertProposalProps {
   customerName: string;
@@ -20,14 +22,33 @@ interface ConvertProposalProps {
    *  Individual"); only the policy type before it is shown. */
   product?: string;
   onClose: () => void;
+  /**
+   * Lends the host screen this wizard's step-back. The footer carries no Back
+   * button — the screen's top bar is the only back control — so it has to walk
+   * the steps here rather than dropping straight out of the flow.
+   */
+  onRegisterBack?: (handler: (() => void) | null) => void;
 }
 
-const emptyProposer: ProposerData = { proposerName: '', proposerDOB: null, annualIncome: '', contactNo: '', emailId: '', address: '', pincode: '', city: '', area: '', state: '', gender: '', nationality: '', maritalStatus: '', occupation: '' };
+/** Stepper labels, keyed by the step ids in `stepKeys`. */
+const STEP_LABELS: Record<string, string> = {
+  preview: 'Preview Quote',
+  proposer: 'Proposer Details',
+  members: 'Member Details',
+  addons: 'Add-ons',
+  nominee: 'Nominee Details',
+  previous: 'Previous Policy',
+  kyc: 'KYC Details',
+  payment: 'Payment',
+};
+
+const emptyProposer: ProposerData ={ proposerName: '', proposerDOB: null, annualIncome: '', contactNo: '', emailId: '', address: '', pincode: '', city: '', area: '', state: '', gender: '', nationality: '', maritalStatus: '', occupation: '' };
 const emptyPrevPolicy: PreviousPolicyData = { policyNumber: '', insurer: '', sumInsured: '', startDate: null, endDate: null, cumulativeBonus: '' };
 const emptyKyc: KycData = { pan: '', ckyc: '', aadhaar: '', phone: '', email: '', verified: false, kycMethod: '', kycDone: false, confirmMethod: '' };
 const emptyPayment: PaymentData = { mode: '', email: '', receiptNumber: '', accountNumber: '', partyId: '', ifsc: '', branch: '', bank: '' };
 
-export const ConvertProposal: React.FC<ConvertProposalProps> = ({ customerName, planType = 'float', product, onClose }) => {
+export const ConvertProposal: React.FC<ConvertProposalProps> = ({ customerName, planType = 'float', product, onClose, onRegisterBack }) => {
+  const footerPaddingBottom = useBottomActionInset();
   // "Health Guard - Individual" → policy type + plan label. Products raised
   // from a quote flow carry no suffix, so the plan falls back to `planType`.
   const [policyType, planLabel] = (() => {
@@ -37,6 +58,9 @@ export const ConvertProposal: React.FC<ConvertProposalProps> = ({ customerName, 
   const [businessType, setBusinessType] = useState<BusinessType | null>(null);
   const [showTypeModal, setShowTypeModal] = useState(true);
   const [stepIndex, setStepIndex] = useState(0);
+  // Furthest step reached — the stepper only lets the agent jump back to steps
+  // they have already filled in, never skip ahead past validation.
+  const [maxVisitedStep, setMaxVisitedStep] = useState(0);
   const [issued, setIssued] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
 
@@ -91,41 +115,32 @@ export const ConvertProposal: React.FC<ConvertProposalProps> = ({ customerName, 
   const isLast = stepIndex === stepKeys.length - 1;
   const goNext = () => (isLast ? setIssued(true) : setStepIndex((s) => s + 1));
 
-  // Reset just the current step's fields back to their empty defaults.
-  const resetStep = () => {
-    switch (key) {
-      case 'proposer':
-        setProposer({ ...emptyProposer, proposerName: customerName });
-        break;
-      case 'members':
-        setMembers([newMember('m-1')]);
-        break;
-      case 'addons':
-        setWantsAddOns('yes');
-        setSelectedAddOns([]);
-        break;
-      case 'nominee':
-        setNominees({});
-        break;
-      case 'previous':
-        setPrevPolicy(emptyPrevPolicy);
-        break;
-      case 'kyc':
-        setKyc(emptyKyc);
-        break;
-      case 'payment':
-        setPayment(emptyPayment);
-        break;
-      default:
-        break;
-    }
-  };
+  useEffect(() => {
+    setMaxVisitedStep((furthest) => Math.max(furthest, stepIndex));
+  }, [stepIndex]);
+
+  // Registered once and reading the step from a ref, so advancing the wizard
+  // doesn't churn the host's handler on every step.
+  const stepRef = useRef(stepIndex);
+  stepRef.current = stepIndex;
+
+  useEffect(() => {
+    onRegisterBack?.(() => {
+      if (stepRef.current > 0) {
+        setStepIndex(stepRef.current - 1);
+        return;
+      }
+      onClose();
+    });
+    return () => onRegisterBack?.(null);
+  }, [onRegisterBack, onClose]);
 
   // "Issue another policy" — reset the flow to a fresh proposal.
   const handleIssueAnother = () => {
     setIssued(false);
     setLinkCopied(false);
     setStepIndex(0);
+    setMaxVisitedStep(0);
     setBusinessType(null);
     setShowTypeModal(true);
     setProposer({ ...emptyProposer, proposerName: customerName });
@@ -142,6 +157,17 @@ export const ConvertProposal: React.FC<ConvertProposalProps> = ({ customerName, 
     <View style={styles.flex}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <PolicyHeader policyNumber="PR-28686" customerName={proposer.proposerName || customerName} />
+
+        {/* Only steps already reached are tappable, matching the renewal flow. */}
+        <WizardStepper
+          steps={stepKeys.map((k) => ({ label: STEP_LABELS[k] ?? k }))}
+          current={stepIndex}
+          onStepPress={(index) => {
+            if (index <= maxVisitedStep) {
+              setStepIndex(index);
+            }
+          }}
+        />
 
         {key === 'preview' ? (
           <PreviewQuoteStep customerName={proposer.proposerName || customerName} planType={planType} policyType={policyType} planLabel={planLabel} />
@@ -171,23 +197,17 @@ export const ConvertProposal: React.FC<ConvertProposalProps> = ({ customerName, 
         )}
       </ScrollView>
 
-      <View style={styles.footer}>
+      {/* This flow hides the bottom nav, so the bar is the screen's bottom edge.
+          It carries forward actions only: Back lives on the screen's top bar,
+          and PolicyHeader above already offers Download Quote. */}
+      <View style={[styles.footer, { paddingBottom: footerPaddingBottom }]}>
         {key === 'preview' ? (
           <>
-            <Button label="Download Quote" variant="secondaryGray" size="sm" onPress={() => {}} />
-            <View style={styles.right}>
-              <Button label="Share" variant="secondary" size="sm" onPress={() => {}} />
-              <Button label="Convert" size="sm" onPress={goNext} />
-            </View>
+            <Button label="Share" variant="secondary" onPress={() => {}} style={styles.footerBtn} />
+            <Button label="Convert" onPress={goNext} style={styles.footerBtn} />
           </>
         ) : (
-          <>
-            <Button label="Reset form" variant="secondaryGray" size="sm" onPress={resetStep} />
-            <View style={styles.right}>
-              <Button label="Back" variant="secondary" size="sm" onPress={() => setStepIndex((s) => Math.max(0, s - 1))} />
-              <Button label={isLast ? 'Issue Policy' : 'Proceed'} size="sm"  onPress={goNext} />
-            </View>
-          </>
+          <Button label={isLast ? 'Issue Policy' : 'Proceed'} onPress={goNext} fullWidth />
         )}
       </View>
 
@@ -256,8 +276,9 @@ export const ConvertProposal: React.FC<ConvertProposalProps> = ({ customerName, 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.surfaceSubtle },
   content: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl },
-  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, padding: spacing.lg, backgroundColor: colors.surface },
-  right: { flexDirection: 'row', gap: spacing.sm },
+  footer: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.lg, backgroundColor: colors.surface },
+  // `stretch` overrides Button's own `alignSelf: 'flex-start'`.
+  footerBtn: { flex: 1, alignSelf: 'stretch' },
   typeOptions: { gap: spacing.md },
   // Tap-to-proceed row: icon left, text right (mirrors the motor vehicle-type sheet).
   typeOption: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderWidth: 1, borderColor: colors.borderSubtle, borderRadius: radius.lg, padding: spacing.md, backgroundColor: colors.surface },

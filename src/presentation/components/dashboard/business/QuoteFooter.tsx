@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Button, colors, spacing } from '@atlas-ds/react-native';
+import { useBottomActionInset } from '../../../hooks/useBottomActionInset';
 
 interface QuoteFooterProps {
   currentStep: number;
@@ -9,7 +10,6 @@ interface QuoteFooterProps {
   /** The step whose primary action opens the preview. */
   previewQuoteStep: number;
   isProceedDisabled?: boolean;
-  onBack?: () => void;
   onProceed?: () => void;
   onShareQuote?: () => void;
   onConvertToProposal?: () => void;
@@ -17,39 +17,41 @@ interface QuoteFooterProps {
 
 /**
  * Shared quote/proposal wizard footer — a flat, full-bleed bar. Steps before the
- * preview show Back + (Submit | Preview Quote); the preview step shows Share
- * Quote on its own row, then Back + Convert to Proposal.
+ * preview show a single forward action (Submit | Preview Quote); the preview
+ * step shows Share Quote and Convert to Proposal.
+ *
+ * There is deliberately no Back control here. The screen's top bar already
+ * carries one, and it walks the wizard's steps — see `onRegisterBack` on the
+ * health and motor flows.
  */
 export const QuoteFooter: React.FC<QuoteFooterProps> = ({
   currentStep,
   previewStep,
   previewQuoteStep,
   isProceedDisabled,
-  onBack,
   onProceed,
   onShareQuote,
   onConvertToProposal,
 }) => {
+  // The wizards hide the bottom nav, so this bar is the screen's bottom edge.
+  const paddingBottom = useBottomActionInset();
+
   if (currentStep === previewStep) {
     return (
-      <View style={styles.previewBar}>
+      <View style={[styles.previewBar, { paddingBottom }]}>
         <Button label="Share Quote" onPress={onShareQuote} fullWidth />
-        <View style={styles.row}>
-          <Button label="Back" variant="secondaryGray" onPress={onBack} style={styles.btn} />
-          <Button label="Convert to Proposal" variant="secondary" onPress={onConvertToProposal} style={styles.btn} />
-        </View>
+        <Button label="Convert to Proposal" variant="secondary" onPress={onConvertToProposal} fullWidth />
       </View>
     );
   }
 
   return (
-    <View style={styles.bar}>
-      <Button label="Back" variant="secondaryGray" onPress={onBack} style={styles.btn} />
+    <View style={[styles.bar, { paddingBottom }]}>
       <Button
         label={currentStep === previewQuoteStep ? 'Preview Quote' : 'Submit'}
         disabled={isProceedDisabled}
         onPress={onProceed}
-        style={styles.btn}
+        fullWidth
       />
     </View>
   );
@@ -57,8 +59,6 @@ export const QuoteFooter: React.FC<QuoteFooterProps> = ({
 
 const styles = StyleSheet.create({
   bar: {
-    flexDirection: 'row',
-    gap: spacing.md,
     backgroundColor: colors.surface,
     padding: spacing.lg,
   },
@@ -67,7 +67,4 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     padding: spacing.lg,
   },
-  row: { flexDirection: 'row', gap: spacing.md },
-  // `stretch` overrides Button's own `alignSelf: 'flex-start'`.
-  btn: { flex: 1, alignSelf: 'stretch' },
 });

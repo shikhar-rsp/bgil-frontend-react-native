@@ -8,6 +8,7 @@ import {
   ScrollView,
   Modal as RNModal,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft } from 'phosphor-react-native';
 import { accent, colors, radius, spacing, typography } from '../../theme';
 import type { AccentColor } from '../../theme';
@@ -164,6 +165,12 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
 }) => {
   const paged = !!pages && pages.length > 0;
 
+  // The sheet docks to the screen edge, so its footer lands in the space iOS
+  // reserves for the home indicator and the display's rounded corners clip.
+  // Add the inset to the design's own bottom padding rather than replacing it,
+  // so the gap under the buttons reads the same on every device.
+  const insets = useSafeAreaInsets();
+
   // The step currently painted. It trails `pageIndex` until the outgoing
   // animation finishes, so the swap happens while the content is off to one
   // side rather than under the user's eyes.
@@ -246,7 +253,10 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
       />
 
       {/* The sheet itself. */}
-      <View style={[styles.sheet, style]} pointerEvents="auto">
+      <View
+        style={[styles.sheet, { paddingBottom: insets.bottom + spacing.sm }, style]}
+        pointerEvents="auto"
+      >
         {showHandle && (
           <View style={styles.handleWrap}>
             <View style={styles.handle} />
@@ -306,25 +316,9 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
         )}
 
         {(pPrimary || pSecondary) && (
+          // Secondary first so the dismissive action sits on the left and the
+          // confirming one on the right, which is where a user reaches for it.
           <View style={styles.footer}>
-            {pPrimary && (
-              <Pressable
-                style={({ pressed }) => [
-                  styles.btn,
-                  styles.btnPrimary,
-                  pressed && !pPrimary.disabled && styles.btnPrimaryPressed,
-                  pPrimary.disabled && styles.btnDisabled,
-                ]}
-                onPress={pPrimary.onPress}
-                disabled={pPrimary.disabled}
-                accessibilityRole="button"
-                accessibilityState={{ disabled: !!pPrimary.disabled }}
-              >
-                <Text style={[styles.btnPrimaryText, pPrimary.disabled && styles.btnTextDisabled]}>
-                  {pPrimary.label}
-                </Text>
-              </Pressable>
-            )}
             {pSecondary && (
               <Pressable
                 style={({ pressed }) => [
@@ -340,6 +334,24 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
               >
                 <Text style={[styles.btnSecondaryText, pSecondary.disabled && styles.btnTextDisabled]}>
                   {pSecondary.label}
+                </Text>
+              </Pressable>
+            )}
+            {pPrimary && (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.btn,
+                  styles.btnPrimary,
+                  pressed && !pPrimary.disabled && styles.btnPrimaryPressed,
+                  pPrimary.disabled && styles.btnDisabled,
+                ]}
+                onPress={pPrimary.onPress}
+                disabled={pPrimary.disabled}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: !!pPrimary.disabled }}
+              >
+                <Text style={[styles.btnPrimaryText, pPrimary.disabled && styles.btnTextDisabled]}>
+                  {pPrimary.label}
                 </Text>
               </Pressable>
             )}
@@ -376,7 +388,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    paddingBottom: spacing.sm, // 8
+    // paddingBottom is applied inline — the design's 8px plus the safe-area inset.
     maxHeight: '90%',
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
@@ -458,9 +470,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg, // 16
     paddingVertical: spacing.sm,   // 8
   },
-  // Footer per Figma: row layout, primary LEFT + secondary RIGHT, padding
-  // 16 × 20, gap 16 between buttons. Each button gets `flex: 1` below so
-  // they share the row width equally.
+  // Footer per Figma: row layout, padding 16 × 20, gap 16 between buttons.
+  // Each button gets `flex: 1` below so they share the row width equally.
+  // Order is secondary then primary — see the note at the render site.
   footer: {
     flexDirection: 'row',
     paddingHorizontal: 20,
@@ -471,6 +483,9 @@ const styles = StyleSheet.create({
   // (after subtracting padding + gap). Padding 8 × 16, radius 8.
   btn: {
     flex: 1,
+    // 8px of padding alone leaves a 36px control. `minHeight` lifts it to the
+    // 44px minimum touch target without changing the padding the design specifies.
+    minHeight: 44,
     paddingVertical: spacing.sm,    // 8
     paddingHorizontal: spacing.lg,  // 16
     borderRadius: radius.lg,        // 8

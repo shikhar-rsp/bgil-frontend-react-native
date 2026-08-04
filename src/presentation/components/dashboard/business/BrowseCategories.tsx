@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, Image, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { colors, spacing, radius, typography, fontFamilyForWeight } from '@atlas-ds/react-native';
 import { dashboardImages } from '../images';
+import { useBottomActionInset } from '../../../hooks/useBottomActionInset';
 
 type Item = { label: string; icon: keyof typeof dashboardImages };
 
@@ -32,8 +33,16 @@ interface BrowseCategoriesProps {
   onSelectProduct: (label: string) => void;
 }
 
-export const BrowseCategories: React.FC<BrowseCategoriesProps> = ({ onSelectProduct }) => (
-  <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+export const BrowseCategories: React.FC<BrowseCategoriesProps> = ({ onSelectProduct }) => {
+  // Opens with the bottom nav hidden, so the last product tile would otherwise
+  // end up under the home indicator.
+  const paddingBottom = useBottomActionInset();
+
+  return (
+  <ScrollView
+    contentContainerStyle={[styles.content, { paddingBottom }]}
+    showsVerticalScrollIndicator={false}
+  >
     {/* Everything lives in one "Create a quote" card, agent art top-right. */}
     <View style={styles.card}>
       <Image source={dashboardImages.agent3} style={styles.headerArt} resizeMode="contain" />
@@ -51,7 +60,8 @@ export const BrowseCategories: React.FC<BrowseCategoriesProps> = ({ onSelectProd
       ))}
     </View>
   </ScrollView>
-);
+  );
+};
 
 const ProductTile: React.FC<{ item: Item; onPress: () => void }> = ({ item, onPress }) => (
   <Pressable style={styles.tile} onPress={onPress} accessibilityRole="button">

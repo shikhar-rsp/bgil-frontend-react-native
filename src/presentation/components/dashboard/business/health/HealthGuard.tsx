@@ -28,6 +28,12 @@ const TENURE_YEARS: Record<string, number> = { '1y': 1, '2y': 2, '3y': 3 };
 interface HealthGuardProps {
   productName: string;
   onClose: () => void;
+  /**
+   * Lends the host screen this wizard's step-back. The footer carries no Back
+   * button — the screen's top bar is the only back control — so it has to walk
+   * the steps here rather than dropping straight out of the flow.
+   */
+  onRegisterBack?: (handler: (() => void) | null) => void;
   onConvertToProposal: (customer: string) => void;
 }
 
@@ -36,8 +42,29 @@ interface HealthGuardProps {
  * Plan Details (plan type, members, per-member sum insured, sub-plans) →
  * Proposer KYC → per-member Add-ons → Preview & Share.
  */
-export const HealthGuard: React.FC<HealthGuardProps> = ({ productName, onClose, onConvertToProposal }) => {
+export const HealthGuard: React.FC<HealthGuardProps> = ({
+  productName,
+  onClose,
+  onRegisterBack,
+  onConvertToProposal,
+}) => {
   const [currentStep, setCurrentStep] = useState(1);
+
+  // Registered once and reading the step from a ref, so advancing the wizard
+  // doesn't churn the host's handler on every step.
+  const stepRef = useRef(currentStep);
+  stepRef.current = currentStep;
+
+  useEffect(() => {
+    onRegisterBack?.(() => {
+      if (stepRef.current > 1) {
+        setCurrentStep(stepRef.current - 1);
+        return;
+      }
+      onClose();
+    });
+    return () => onRegisterBack?.(null);
+  }, [onRegisterBack, onClose]);
 
   // Preselect the product the flow was entered with (Browse Categories tile).
   const [selectedPlan, setSelectedPlan] = useState(() => planValueForProduct(productName));
@@ -247,7 +274,6 @@ export const HealthGuard: React.FC<HealthGuardProps> = ({ productName, onClose, 
           previewStep={6}
           previewQuoteStep={5}
           isProceedDisabled={!canProceed}
-          onBack={() => (currentStep > 1 ? setCurrentStep(currentStep - 1) : onClose())}
           onProceed={goNext}
           onShareQuote={() => setShowShare(true)}
           onConvertToProposal={() => onConvertToProposal(proposerName || 'Customer')}

@@ -22,7 +22,7 @@ const AddOnGrid: React.FC<{ selected: string[]; onToggle: (id: string) => void }
     {ADD_ON_ITEMS.map((item) => {
       const isSel = selected.includes(item);
       return (
-        <Card key={item} selected={isSel} style={styles.gridItem}>
+        <Card key={item} selected={isSel}>
           <Checkbox size="sm" checked={isSel} onChange={() => onToggle(item)} label={item} />
         </Card>
       );
@@ -148,7 +148,9 @@ const styles = StyleSheet.create({
   wantsLabel: { fontFamily: typography.fontFamily, fontSize: 13, color: colors.textHeading, flexShrink: 1 },
   floater: { gap: spacing.md },
   floaterHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', rowGap: spacing.md, columnGap: spacing.sm },
-  // Card supplies border / radius / padding / selected styling; just size it.
-  gridItem: { width: '47%', flexGrow: 1 },
+  // One card per row. Two columns left ~47% of a phone's width per card, which
+  // the longer add-on names wrapped over several lines — so neighbouring cards
+  // ended up different heights and the column edges no longer lined up. Full
+  // width keeps every label on one line and every card the same size.
+  grid: { gap: spacing.md },
 });

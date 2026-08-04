@@ -1,8 +1,22 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { Wallet, Link, HandCoins, Money, Receipt } from 'phosphor-react-native';
 import { Textfield, Radio, colors, spacing, radius, typography, shadow, fontFamilyForWeight } from '@atlas-ds/react-native';
 import { RequiredField } from '../RequiredField';
 import { PAYMENT_MODES, type PaymentMode } from './proposalData';
+
+/**
+ * Glyph per payment mode, matching the web step's lucide set:
+ * Wallet / Link2 / HandCoins / BadgeIndianRupee / ReceiptText.
+ * Kept here rather than in `proposalData` so that stays free of view imports.
+ */
+const MODE_ICONS: Record<PaymentMode, React.FC<{ size: number; color: string }>> = {
+  'agent-float': Wallet,
+  'online-link': Link,
+  'customer-float': HandCoins,
+  cheque: Money,
+  voucher: Receipt,
+};
 
 export type PaymentData = {
   mode: PaymentMode | '';
@@ -25,19 +39,29 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({ data, update }) => (
     <View style={styles.card}>
       <Text style={styles.heading}>Payment</Text>
       <Text style={styles.label}>Select payment mode <Text style={styles.asterisk}>*</Text></Text>
+      {/* Web lays these out as five icon tiles in a row; a phone has room for
+          one per row, so the tile becomes a leading badge with the radio
+          trailing. */}
       <View style={styles.modes}>
-        {PAYMENT_MODES.map((m) => (
-          <Pressable
-            key={m.value}
-            style={[styles.mode, data.mode === m.value && styles.modeSel]}
-            onPress={() => update('mode', m.value)}
-            accessibilityRole="radio"
-            accessibilityState={{ selected: data.mode === m.value }}
-          >
-            <Radio selected={data.mode === m.value} onPress={() => update('mode', m.value)} />
-            <Text style={styles.modeLabel}>{m.label}</Text>
-          </Pressable>
-        ))}
+        {PAYMENT_MODES.map((m) => {
+          const Icon = MODE_ICONS[m.value];
+          const selected = data.mode === m.value;
+          return (
+            <Pressable
+              key={m.value}
+              style={[styles.mode, selected && styles.modeSel]}
+              onPress={() => update('mode', m.value)}
+              accessibilityRole="radio"
+              accessibilityState={{ selected }}
+            >
+              <View style={styles.modeIcon}>
+                <Icon size={20} color={colors.textOnBrand} />
+              </View>
+              <Text style={styles.modeLabel}>{m.label}</Text>
+              <Radio selected={selected} onPress={() => update('mode', m.value)} />
+            </Pressable>
+          );
+        })}
       </View>
     </View>
 
@@ -87,7 +111,10 @@ const styles = StyleSheet.create({
   label: { fontFamily: typography.fontFamily, fontSize: 14, color: colors.textBody },
   asterisk: { color: colors.dangerText },
   modes: { gap: spacing.sm },
-  mode: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderWidth: 1, borderColor: colors.borderSubtle, borderRadius: radius.lg, padding: spacing.md },
+  mode: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderWidth: 1, borderColor: colors.borderSubtle, borderRadius: radius.lg, padding: spacing.md },
   modeSel: { borderColor: '#3B82F6', backgroundColor: '#EFF6FF' },
-  modeLabel: { fontFamily: typography.fontFamily, fontSize: 15, color: colors.textHeading },
+  // Web: 40×40 #2563EB square, 8px radius, white glyph.
+  modeIcon: { width: 40, height: 40, borderRadius: radius.lg, backgroundColor: '#2563EB', alignItems: 'center', justifyContent: 'center' },
+  // `flex: 1` pushes the radio to the row's trailing edge.
+  modeLabel: { flex: 1, fontFamily: typography.fontFamily, fontSize: 15, color: colors.textHeading },
 });

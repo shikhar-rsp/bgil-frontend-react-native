@@ -2,16 +2,29 @@ import React from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { DownloadSimple, CheckCircle } from 'phosphor-react-native';
 import { Button, Badge, colors, spacing, radius, typography } from '@atlas-ds/react-native';
+import { useBottomActionInset } from '../../../hooks/useBottomActionInset';
 import type { Policy } from './businessData';
 
 interface IssuedPolicyProps {
   policy: Policy;
-  onClose: () => void;
 }
 
-/** Issued-policy detail view. */
-export const IssuedPolicy: React.FC<IssuedPolicyProps> = ({ policy, onClose }) => (
-  <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+/**
+ * Issued-policy detail view.
+ *
+ * No back control of its own: this view always opens with the Business header
+ * above it, which already carries one.
+ */
+export const IssuedPolicy: React.FC<IssuedPolicyProps> = ({ policy }) => {
+  // Nothing is docked below this scroll view, so its own content has to clear
+  // the home indicator.
+  const paddingBottom = useBottomActionInset();
+
+  return (
+  <ScrollView
+    contentContainerStyle={[styles.content, { paddingBottom }]}
+    showsVerticalScrollIndicator={false}
+  >
     <View style={styles.banner}>
       <CheckCircle size={24} color={colors.success} weight="fill" />
       <Text style={styles.bannerTitle}>{policy.product} – {policy.type}</Text>
@@ -43,10 +56,10 @@ export const IssuedPolicy: React.FC<IssuedPolicyProps> = ({ policy, onClose }) =
         onPress={() => undefined}
         fullWidth
       />
-      <Button label="Back" variant="secondaryGray" onPress={onClose} fullWidth />
     </View>
   </ScrollView>
-);
+  );
+};
 
 const Detail: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <View style={styles.detail}>
