@@ -73,6 +73,9 @@ interface RenewPolicyProps {
   /** Fired when the read-only view hands over to the edit flow, so the host can
    *  retitle the screen from "Policy Details" to "Renew Policy". */
   onRenewFlowStart?: () => void;
+  /** Opened from a renewal task's "View": Back on the read-only view exits to the
+   *  Tasks tab instead of leaving for the renewals list. */
+  onExit?: () => void;
 }
 
 /**
@@ -139,7 +142,7 @@ const emptyPayment: PaymentData = {
  *     web's Cancel did.
  *   • Modals are `BottomSheet`s, matching the rest of this app.
  */
-export const RenewPolicy: React.FC<RenewPolicyProps> = ({ record, mode = 'flow', onClose, onRegisterBack, onRenewFlowStart }) => {
+export const RenewPolicy: React.FC<RenewPolicyProps> = ({ record, mode = 'flow', onClose, onRegisterBack, onRenewFlowStart, onExit }) => {
   // The renewal flow hides the bottom nav, so its footers are the screen's
   // bottom edge and have to clear the home indicator themselves.
   const footerPaddingBottom = useBottomActionInset();
@@ -765,11 +768,17 @@ export const RenewPolicy: React.FC<RenewPolicyProps> = ({ record, mode = 'flow',
 
   useEffect(() => {
     if (isViewMode) {
+      // From a task's "View", Back leaves for the Tasks tab; otherwise the read-
+      // only view registers nothing and the top back returns to the list.
+      if (onExit) {
+        onRegisterBack?.(() => onExit());
+        return () => onRegisterBack?.(null);
+      }
       return;
     }
     onRegisterBack?.(() => backRef.current());
     return () => onRegisterBack?.(null);
-  }, [isViewMode, onRegisterBack]);
+  }, [isViewMode, onRegisterBack, onExit]);
 
   /** Shared by every "Issue another policy" action — resets and leaves the flow. */
   const handleIssueAnother = () => {

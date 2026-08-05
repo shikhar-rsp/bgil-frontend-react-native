@@ -14,17 +14,19 @@ import { VehicleTypeModal } from '../../components/dashboard/business/motor/Vehi
 /** Motor products route to the Two-Wheeler / Motor flow; others to Health Guard. */
 import { MOTOR_PRODUCTS } from '../../components/dashboard/business/motor/motorData';
 import { WalkthroughTarget } from '../../components/dashboard/walkthrough/WalkthroughContext';
+import { RENEWALS } from '../../components/dashboard/business/businessData';
 import type { Policy, Renewal } from '../../components/dashboard/business/businessData';
 
 type BizView =
   | { kind: 'landing' }
   | { kind: 'browse' }
-  | { kind: 'healthguard'; product: string }
-  | { kind: 'motor'; product: string; vehicleType: 'registered' | 'new' }
+  | { kind: 'healthguard'; product: string; initialStep?: number; customer?: string }
+  | { kind: 'motor'; product: string; vehicleType: 'registered' | 'new'; initialStep?: number; customer?: string }
   | { kind: 'convert'; customer: string; product?: string }
   | { kind: 'policy'; policy: Policy }
-  /** `view` opens the read-only renewal summary; `flow` opens the wizard. */
-  | { kind: 'renewal'; renewal: Renewal; mode: 'view' | 'flow' };
+  /** `view` opens the read-only renewal summary; `flow` opens the wizard.
+   *  `fromTask` means it was opened by a renewal task's "View" (Back → Tasks). */
+  | { kind: 'renewal'; renewal: Renewal; mode: 'view' | 'flow'; fromTask?: boolean };
 
 const TITLES: Record<BizView['kind'], string> = {
   landing: 'My Business',
@@ -46,6 +48,12 @@ export type QuoteRequest = {
   /** Already chosen for motor products (Quick Quotes asks in its own sheet),
    *  so the flow mounts straight away instead of opening the picker again. */
   vehicleType?: 'registered' | 'new';
+  /** Open a health product at this step (e.g. 6 = Preview) with a seeded quote. */
+  initialStep?: number;
+  /** Customer to pre-fill as the proposer (used by a task's "View"). */
+  customer?: string;
+  /** A renewal task's "View": open the expiring-policy screen for this customer. */
+  renewalPolicy?: { customer: string };
 };
 
 interface BusinessScreenProps {
@@ -62,6 +70,8 @@ interface BusinessScreenProps {
   /** Backing out of a step this tab was deep-linked into (a Quick Quotes tile)
    *  returns to the dashboard rather than stranding the user on Business. */
   onExitToHome?: () => void;
+  /** Backing out of a quote opened from a task's "View" returns to the Tasks tab. */
+  onExitToTasks?: () => void;
 }
 
 /** Business tab — landing (insights + lists + drafts) and the quote/proposal wizards. */
@@ -71,6 +81,7 @@ export const BusinessScreen: React.FC<BusinessScreenProps> = ({
   onQuoteRequestHandled,
   onFullScreenChange,
   onExitToHome,
+  onExitToTasks,
 }) => {
   const [view, setView] = useState<BizView>(initialView === 'browse' ? { kind: 'browse' } : { kind: 'landing' });
   // Motor product awaiting a vehicle-type choice — the sheet opens over
@@ -99,6 +110,13 @@ export const BusinessScreen: React.FC<BusinessScreenProps> = ({
   }, [view.kind]);
 
   const goLanding = useCallback(() => setView({ kind: 'landing' }), []);
+
+  // Back out of a quote opened from a task's "View": reset this tab to its landing
+  // page and hand control back to the Tasks tab.
+  const exitTask = useCallback(() => {
+    setView({ kind: 'landing' });
+    onExitToTasks?.();
+  }, [onExitToTasks]);
 
   /** Passed to the quote wizards so they can lend the top bar their step-back. */
   const registerFlowBack = useCallback((handler: (() => void) | null) => {
@@ -140,11 +158,37 @@ export const BusinessScreen: React.FC<BusinessScreenProps> = ({
     if (!quoteRequest) {
       return;
     }
-    if (quoteRequest.tab) {
+    if (quoteRequest.renewalPolicy) {
+      // A renewal task's "View" opens the existing read-only Policy Details preview
+      // for the customer's renewal (falling back to the first record).
+      const wanted = quoteRequest.renewalPolicy.customer;
+      const record = RENEWALS.find((r) => r.customer === wanted) ?? RENEWALS[0];
+      setView({ kind: 'renewal', renewal: record, mode: 'view', fromTask: true });
+    } else if (quoteRequest.tab) {
       setLandingTab(quoteRequest.tab);
       setView({ kind: 'landing' });
     } else if (quoteRequest.product) {
-      selectProduct(quoteRequest.product, true, quoteRequest.vehicleType);
+      // A task's "View" opens the quote straight at its Preview step.
+      if (quoteRequest.initialStep) {
+        if (MOTOR_PRODUCTS.includes(quoteRequest.product)) {
+          setView({
+            kind: 'motor',
+            product: quoteRequest.product,
+            vehicleType: quoteRequest.vehicleType ?? 'registered',
+            initialStep: quoteRequest.initialStep,
+            customer: quoteRequest.customer,
+          });
+        } else {
+          setView({
+            kind: 'healthguard',
+            product: quoteRequest.product,
+            initialStep: quoteRequest.initialStep,
+            customer: quoteRequest.customer,
+          });
+        }
+      } else {
+        selectProduct(quoteRequest.product, true, quoteRequest.vehicleType);
+      }
     } else {
       setView({ kind: 'browse' });
     }
@@ -201,6 +245,9 @@ export const BusinessScreen: React.FC<BusinessScreenProps> = ({
       ) : view.kind === 'healthguard' ? (
         <HealthGuard
           productName={view.product}
+          initialStep={view.initialStep}
+          initialCustomer={view.customer}
+          onExit={exitTask}
           onClose={goLanding}
           onRegisterBack={registerFlowBack}
           onConvertToProposal={(customer) => setView({ kind: 'convert', customer, product: view.product })}
@@ -209,6 +256,9 @@ export const BusinessScreen: React.FC<BusinessScreenProps> = ({
         <TwoWheelerInsurance
           productName={view.product}
           initialVehicleType={view.vehicleType}
+          initialStep={view.initialStep}
+          initialCustomer={view.customer}
+          onExit={exitTask}
           onClose={goLanding}
           onRegisterBack={registerFlowBack}
           onConvertToProposal={(customer) => setView({ kind: 'convert', customer, product: view.product })}
@@ -226,6 +276,7 @@ export const BusinessScreen: React.FC<BusinessScreenProps> = ({
           mode={view.mode}
           onClose={goLanding}
           onRegisterBack={registerFlowBack}
+          onExit={view.fromTask ? exitTask : undefined}
           // "Renew Policy" in the read-only view hands over to the wizard; flip
           // the view's mode so the header retitles with it. RenewPolicy stays
           // mounted, so nothing the agent entered is lost.

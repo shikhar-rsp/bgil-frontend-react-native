@@ -1,33 +1,59 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { DownloadSimple, CheckCircle } from 'phosphor-react-native';
-import { Button, Badge, colors, spacing, radius, typography } from '@atlas-ds/react-native';
+import { Button, Badge, Toast, colors, spacing, radius, typography } from '@atlas-ds/react-native';
 import { useBottomActionInset } from '../../../hooks/useBottomActionInset';
 import type { Policy } from './businessData';
 
 interface IssuedPolicyProps {
   policy: Policy;
+  /** Opened from a renewal task's "View": show the expiring banner + badge. */
+  expiringSoon?: boolean;
+  /** Task-View: lends the screen a Back handler that exits to the Tasks tab. */
+  onRegisterBack?: (handler: (() => void) | null) => void;
+  onExit?: () => void;
 }
 
 /**
  * Issued-policy detail view.
  *
  * No back control of its own: this view always opens with the Business header
- * above it, which already carries one.
+ * above it, which already carries one — except in the renewal task-View, where
+ * Back exits to the Tasks tab.
  */
-export const IssuedPolicy: React.FC<IssuedPolicyProps> = ({ policy }) => {
+export const IssuedPolicy: React.FC<IssuedPolicyProps> = ({ policy, expiringSoon, onRegisterBack, onExit }) => {
   // Nothing is docked below this scroll view, so its own content has to clear
   // the home indicator.
   const paddingBottom = useBottomActionInset();
+  const [showExpiring, setShowExpiring] = useState(!!expiringSoon);
+
+  useEffect(() => {
+    if (!expiringSoon || !onExit) {
+      return;
+    }
+    onRegisterBack?.(() => onExit());
+    return () => onRegisterBack?.(null);
+  }, [expiringSoon, onExit, onRegisterBack]);
 
   return (
   <ScrollView
     contentContainerStyle={[styles.content, { paddingBottom }]}
     showsVerticalScrollIndicator={false}
   >
+    {expiringSoon && showExpiring ? (
+      <Toast
+        variant="error"
+        layout="stacked"
+        title="Policy is expiring in 7 days! Renew it soon"
+        message={`Policy ID 1973937 for ${policy.customer} is expiring soon. Follow up with the customer or send a quick renewal notice ASAP!`}
+        onClose={() => setShowExpiring(false)}
+      />
+    ) : null}
+
     <View style={styles.banner}>
-      <CheckCircle size={24} color={colors.success} weight="fill" />
+      {expiringSoon ? null : <CheckCircle size={24} color={colors.success} weight="fill" />}
       <Text style={styles.bannerTitle}>{policy.product} – {policy.type}</Text>
+      {expiringSoon ? <Badge variant="light" size="sm" color="red" label="Expiring soon" /> : null}
     </View>
 
     <View style={styles.section}>
@@ -46,7 +72,12 @@ export const IssuedPolicy: React.FC<IssuedPolicyProps> = ({ policy }) => {
 
     <View style={styles.statusRow}>
       <Text style={styles.statusLabel}>Status</Text>
-      <Badge variant="light" size="sm" color="lime" label={policy.status} />
+      <Badge
+        variant="light"
+        size="sm"
+        color={expiringSoon ? 'red' : 'lime'}
+        label={expiringSoon ? 'Expiring soon' : policy.status}
+      />
     </View>
 
     <View style={styles.actions}>
