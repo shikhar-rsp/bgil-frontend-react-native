@@ -89,8 +89,15 @@ export const typography = {
  * Only three Rubik faces are bundled (400/500/700), so weights round the way
  * CSS font-matching would: 500 → Medium, and anything above 500 (e.g. semibold
  * 600) rounds up to Bold since there is no face between Medium and Bold.
+ *
+ * Web is the exception and returns the plain family. There the faces arrive
+ * from a Google Fonts stylesheet that registers all three weights under the
+ * single family "Rubik", so naming a face directly ("Rubik-Bold") matches no
+ * `@font-face` rule and silently drops to the system sans. Browsers pick the
+ * face from `fontWeight` on their own, which is exactly what we want.
  */
 export const fontFamilyForWeight = (weight?: string | number): string => {
+  if (Platform.OS === 'web') return typography.fontFamily;
   const w = typeof weight === 'string' ? parseInt(weight, 10) || 400 : weight ?? 400;
   if (w > 500) return 'Rubik-Bold';
   if (w >= 500) return 'Rubik-Medium';

@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft } from 'phosphor-react-native';
-import { accent, colors, radius, spacing, typography } from '../../theme';
+import { accent, colors, fontFamilyForWeight, radius, spacing, typography } from '../../theme';
 import type { AccentColor } from '../../theme';
 
 /** Outer size of the featured-icon badge in the header (Figma 9013:3460). */
@@ -443,8 +443,11 @@ const styles = StyleSheet.create({
   textGroup: {
     alignSelf: 'stretch',
   },
+  // Figma calls for SemiBold. Only Regular/Medium/Bold are bundled, so the
+  // helper rounds 600 up to Bold — naming the face is what makes the title
+  // render heavy at all on Android, which can't synthesise it from `Rubik`.
   title: {
-    fontFamily: typography.fontFamily,
+    fontFamily: fontFamilyForWeight('600'),
     fontSize: 20,
     lineHeight: 24,
     fontWeight: '600',

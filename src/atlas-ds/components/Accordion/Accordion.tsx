@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { CaretUp, CaretDown } from 'phosphor-react-native';
-import { colors, typography } from '../../theme';
+import { colors, fontFamilyForWeight, typography } from '../../theme';
 import { Badge, type BadgeProps } from '../Badge';
 
 export interface AccordionProps {
@@ -158,7 +158,9 @@ const styles = StyleSheet.create({
     color: colors.textHeading,
     flex: 1,
   },
-  labelOpen: { fontWeight: '500' },
+  // `fontWeight` alone leaves this Regular on Android, which can't synthesise
+  // Medium from `Rubik` — the open/closed weight change simply wouldn't show.
+  labelOpen: { fontFamily: fontFamilyForWeight('500'), fontWeight: '500' },
   labelDisabled: { color: colors.textDisabled }, // #CBD5E1
 
   badgeIconContainer: { flexDirection: 'row', alignItems: 'center', gap: 8 },

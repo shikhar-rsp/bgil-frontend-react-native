@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Text, Pressable, StyleSheet, type PressableStateCallbackType } from 'react-native';
 import { colors, radius, spacing, typography, noFocusOutline } from '../../theme';
+import { BadgeDot, type BadgeDotColor } from '../BadgeDot';
 import { TagCloseIcon, TagTickIcon } from './icons';
 
 export type TagSize = 'sm' | 'md';
@@ -24,6 +25,22 @@ export interface TagProps {
    * taken back out; the selected styling is kept either way.
    */
   onRemove?: () => void;
+  /**
+   * Renders a leading `BadgeDot` before the label, so a chip can carry a status
+   * colour of its own (e.g. a filter pill for "Active" or "Lapsed"). Omit for
+   * no dot — the default.
+   */
+  dot?: BadgeDotColor;
+  /**
+   * Show the trailing indicator — the ✓ when selected, the × otherwise.
+   * Default true.
+   *
+   * Set false for a plain pill that carries nothing but its label and optional
+   * `dot`: a filter chip whose selection already reads from the border and
+   * fill doesn't need a tick repeating it. Note this hides the × as well, so a
+   * chip that relies on `onRemove` loses its remove affordance.
+   */
+  showIndicator?: boolean;
   style?: object;
 }
 
@@ -88,6 +105,8 @@ export const Tag: React.FC<TagProps> = ({
   disabled = false,
   onPress,
   onRemove,
+  dot,
+  showIndicator = true,
   style,
 }) => {
   const [focused, setFocused] = useState(false);
@@ -123,13 +142,14 @@ export const Tag: React.FC<TagProps> = ({
     const contentColor = visual.textColor;
     return (
       <>
+        {dot ? <BadgeDot size="sm" color={dot} style={styles.dot} /> : null}
         <Text style={[styles.label, textStyle, { color: contentColor }]} numberOfLines={1}>
           {label}
         </Text>
         {/* `onRemove` outranks `selected`: on a removable chip the tick is
             redundant — being in the list already says it's selected — and the
             affordance the user needs is the one that takes it back out. */}
-        {!onRemove && selected ? (
+        {!showIndicator ? null : !onRemove && selected ? (
           <TagTickIcon color={contentColor} />
         ) : onRemove ? (
           <Pressable
@@ -179,5 +199,10 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: typography.fontFamily,
     fontWeight: '400',
+  },
+  // BadgeDot's own row sets `alignSelf: 'flex-start'`, which in this row-
+  // direction parent means top — recentre it against the label.
+  dot: {
+    alignSelf: 'center',
   },
 });
