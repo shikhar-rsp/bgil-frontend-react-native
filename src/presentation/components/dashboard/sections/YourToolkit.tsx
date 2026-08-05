@@ -10,10 +10,22 @@ import {
   GraduationCap,
   Receipt,
   CalendarCheck,
+  Wallet,
+  NotePencil,
+  Target,
+  FirstAidKit,
+  MagnifyingGlassPlus,
+  CreditCard,
 } from 'phosphor-react-native';
 import { BottomSheet, Button, colors, spacing, radius, typography, shadow, fontFamilyForWeight } from '@atlas-ds/react-native';
 import { CustomizeModal, type CustomizeOption } from './CustomizeModal';
 import {
+  AgentFloatSheet,
+  EndorsementSheet,
+  TrackLeadsSheet,
+  InitiateClaimSheet,
+  PreInspectionSheet,
+  PaymentTrackerSheet,
   BrochuresSheet,
   CalculatorsSheet,
   CampaignsSheet,
@@ -40,6 +52,28 @@ const TOOL_DATA: Record<string, ToolInfo> = {
   Learning: { label: 'Learning', icon: iconFor(GraduationCap), bg: TILE_BLUE },
   Campaigns: { label: 'Campaigns', icon: iconFor(Medal), bg: TILE_BLUE },
   'Query Tracker': { label: 'Query Tracker', icon: iconFor(Question), bg: TILE_ORANGE },
+  'Agent Float Replenishment': {
+    label: 'Agent Float Replenishment',
+    icon: iconFor(Wallet),
+    bg: TILE_BLUE,
+  },
+  'Initiate Endorsement': {
+    label: 'Initiate Endorsement',
+    icon: iconFor(NotePencil),
+    bg: TILE_ORANGE,
+  },
+  'Track Leads': { label: 'Track Leads', icon: iconFor(Target), bg: TILE_BLUE },
+  'Initiate Claim': { label: 'Initiate Claim', icon: iconFor(FirstAidKit), bg: TILE_ORANGE },
+  'Pre-Inspection': {
+    label: 'Pre-Inspection',
+    icon: iconFor(MagnifyingGlassPlus),
+    bg: TILE_BLUE,
+  },
+  'Online Payment Tracker': {
+    label: 'Online Payment Tracker',
+    icon: iconFor(CreditCard),
+    bg: TILE_ORANGE,
+  },
 };
 
 const TOOLKIT_OPTIONS: CustomizeOption[] = Object.entries(TOOL_DATA).map(([value, info]) => ({
@@ -163,6 +197,18 @@ export const YourToolkit: React.FC<YourToolkitProps> = ({
           onClose={closeTool}
           onViewAllRenewals={onNavigateToRenewals}
         />
+      ) : activeTool === 'Agent Float Replenishment' ? (
+        <AgentFloatSheet visible onClose={closeTool} />
+      ) : activeTool === 'Initiate Endorsement' ? (
+        <EndorsementSheet visible onClose={closeTool} />
+      ) : activeTool === 'Track Leads' ? (
+        <TrackLeadsSheet visible onClose={closeTool} />
+      ) : activeTool === 'Initiate Claim' ? (
+        <InitiateClaimSheet visible onClose={closeTool} />
+      ) : activeTool === 'Pre-Inspection' ? (
+        <PreInspectionSheet visible onClose={closeTool} />
+      ) : activeTool === 'Online Payment Tracker' ? (
+        <PaymentTrackerSheet visible onClose={closeTool} />
       ) : (
         <BottomSheet
           visible={activeTool !== null}

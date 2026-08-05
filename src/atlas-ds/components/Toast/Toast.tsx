@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { typography } from '../../theme';
+import { fontFamilyForWeight, typography } from '../../theme';
 import {
   InfoIcon,
   XCircleIcon,
@@ -158,7 +158,9 @@ const styles = StyleSheet.create({
   stackedClose: { position: 'absolute', top: 0, right: 0, zIndex: 1 },
 
   iconWrap: { width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },
-  title: { fontFamily: typography.fontFamily, fontSize: 16, lineHeight: 24, fontWeight: '500' },
+  // Naming the face is what makes the title render heavy at all on Android,
+  // which can't synthesise a weight from the base `Rubik` family.
+  title: { fontFamily: fontFamilyForWeight('700'), fontSize: 16, lineHeight: 24, fontWeight: '700' },
   body: { fontFamily: typography.fontFamily, fontSize: 14, lineHeight: 20, fontWeight: '400' },
   close: { width: 20, height: 20, alignItems: 'center', justifyContent: 'center' },
 });

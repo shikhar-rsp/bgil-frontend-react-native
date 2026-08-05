@@ -310,6 +310,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     color: colors.textOnBrand,
+    textAlign: 'center',
   },
   btnSecondary: {
     backgroundColor: colors.surface,
@@ -324,6 +325,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     color: colors.brandPressed,
+    textAlign: 'center',
   },
 
   // ---- Danger (destructive) primary — Figma `70:1522 Color=Danger` ----
@@ -351,5 +353,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     color: colors.textBody, // #475569
+    textAlign: 'center',
   },
 });

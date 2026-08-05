@@ -31,6 +31,7 @@ export const dashboardImages: Record<string, ImageSourcePropType> = {
   queryTracker: require('../../../../assets/images/query-tracker.png'),
   payslip: require('../../../../assets/images/payslip.png'),
   renewalCalendar: require('../../../../assets/images/renewal-calendar.png'),
+  wallet: require('../../../../assets/images/wallet.png'),
   // Trainee
   whatsapp: require('../../../../assets/images/whatsapp.png'),
   mail: require('../../../../assets/images/mail.png'),

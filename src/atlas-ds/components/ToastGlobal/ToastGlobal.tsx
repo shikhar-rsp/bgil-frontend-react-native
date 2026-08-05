@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { colors, radius, spacing, typography } from '../../theme';
+import { colors, fontFamilyForWeight, radius, spacing, typography } from '../../theme';
 import {
   InfoIcon,
   XCircleIcon,
@@ -116,8 +116,10 @@ const styles = StyleSheet.create({
   iconWrap: { width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },
   // Web .toast-content: flex row, gap 4, wrap.
   content: { flex: 1, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 4 },
-  // Figma: title + description are Body 2 (Rubik 14/20) #1E293B; title medium (500).
-  title: { flexShrink: 1, fontFamily: typography.fontFamily, fontSize: 14, lineHeight: 20, fontWeight: '500', color: colors.textHeading },
+  // Figma: title + description are Body 2 (Rubik 14/20) #1E293B. Title is bold
+  // — naming the face is what makes it render heavy at all on Android, which
+  // can't synthesise a weight from the base `Rubik` family.
+  title: { flexShrink: 1, fontFamily: fontFamilyForWeight('700'), fontSize: 14, lineHeight: 20, fontWeight: '700', color: colors.textHeading },
   description: { flexShrink: 1, fontFamily: typography.fontFamily, fontSize: 14, lineHeight: 20, fontWeight: '400', color: colors.textHeading },
   // Web .toast-action: bordered pill, subtle text.
   action: {

@@ -55,6 +55,12 @@ export interface ToolkitSheetProps {
   rangeEnd?: Date | null;
   onDateRangeChange?: (start: Date | null, end: Date | null) => void;
 
+  /**
+   * Block between the toolbar and the section heading — a summary card the
+   * list is *about* (e.g. the float balance above its transactions), as opposed
+   * to `toolbarExtra`, which sits under the heading and belongs to the list.
+   */
+  headerExtra?: React.ReactNode;
   /** Heading above the list, e.g. "Your Recent Queries". */
   sectionTitle?: string;
   /** Long-press copy for the ⓘ beside `sectionTitle`. */
@@ -75,6 +81,13 @@ export interface ToolkitSheetProps {
   /** Heading for the detail step — the list keeps `title`. */
   detailTitle?: string;
   onDetailBack?: () => void;
+  /**
+   * Footer actions while the detail step is showing. Without these the step
+   * renders footer-less, which is right for a read-only detail but not for one
+   * that ends in a decision (e.g. resending a payment link).
+   */
+  detailPrimaryAction?: BottomSheetAction;
+  detailSecondaryAction?: BottomSheetAction;
 
   /** The list itself. */
   children?: React.ReactNode;
@@ -96,6 +109,7 @@ export const ToolkitSheet: React.FC<ToolkitSheetProps> = ({
   rangeStart = null,
   rangeEnd = null,
   onDateRangeChange,
+  headerExtra,
   sectionTitle,
   sectionHint,
   toolbarExtra,
@@ -105,6 +119,8 @@ export const ToolkitSheet: React.FC<ToolkitSheetProps> = ({
   detail,
   detailTitle,
   onDetailBack,
+  detailPrimaryAction,
+  detailSecondaryAction,
   children,
 }) => {
   const [step, setStep] = useState<'list' | 'filter' | 'dates'>('list');
@@ -188,6 +204,8 @@ export const ToolkitSheet: React.FC<ToolkitSheetProps> = ({
         </View>
       ) : null}
 
+      {headerExtra}
+
       {sectionTitle ? (
         <View style={styles.sectionRow}>
           <Text style={styles.sectionTitle}>{sectionTitle}</Text>
@@ -261,6 +279,8 @@ export const ToolkitSheet: React.FC<ToolkitSheetProps> = ({
       // step slides away empty.
       content: detail ?? heldDetail.current,
       contentMinHeight: 420,
+      primaryAction: detailPrimaryAction,
+      secondaryAction: detailSecondaryAction,
     },
   ];
 

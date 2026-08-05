@@ -316,27 +316,10 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
         )}
 
         {(pPrimary || pSecondary) && (
-          // Secondary first so the dismissive action sits on the left and the
-          // confirming one on the right, which is where a user reaches for it.
+          // Primary first: the buttons stack, so "first" now means top rather
+          // than left, and the confirming action is the one that should read
+          // first and sit nearest the thumb.
           <View style={styles.footer}>
-            {pSecondary && (
-              <Pressable
-                style={({ pressed }) => [
-                  styles.btn,
-                  styles.btnSecondary,
-                  pressed && !pSecondary.disabled && styles.btnSecondaryPressed,
-                  pSecondary.disabled && styles.btnDisabled,
-                ]}
-                onPress={pSecondary.onPress}
-                disabled={pSecondary.disabled}
-                accessibilityRole="button"
-                accessibilityState={{ disabled: !!pSecondary.disabled }}
-              >
-                <Text style={[styles.btnSecondaryText, pSecondary.disabled && styles.btnTextDisabled]}>
-                  {pSecondary.label}
-                </Text>
-              </Pressable>
-            )}
             {pPrimary && (
               <Pressable
                 style={({ pressed }) => [
@@ -352,6 +335,24 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
               >
                 <Text style={[styles.btnPrimaryText, pPrimary.disabled && styles.btnTextDisabled]}>
                   {pPrimary.label}
+                </Text>
+              </Pressable>
+            )}
+            {pSecondary && (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.btn,
+                  styles.btnSecondary,
+                  pressed && !pSecondary.disabled && styles.btnSecondaryPressed,
+                  pSecondary.disabled && styles.btnDisabled,
+                ]}
+                onPress={pSecondary.onPress}
+                disabled={pSecondary.disabled}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: !!pSecondary.disabled }}
+              >
+                <Text style={[styles.btnSecondaryText, pSecondary.disabled && styles.btnTextDisabled]}>
+                  {pSecondary.label}
                 </Text>
               </Pressable>
             )}
@@ -473,19 +474,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg, // 16
     paddingVertical: spacing.sm,   // 8
   },
-  // Footer per Figma: row layout, padding 16 × 20, gap 16 between buttons.
-  // Each button gets `flex: 1` below so they share the row width equally.
-  // Order is secondary then primary — see the note at the render site.
+  // Footer: buttons stack in a column, padding 16 × 20, gap 12 — matching the
+  // Modal's footer (Figma `layout_2D3G1R`) rather than the row this used to be.
+  //
+  // Side by side each button only got half the sheet, so a label like "Skip and
+  // move to next step" wrapped to two ragged lines while its neighbour sat on
+  // one. Full width fits those labels outright, and the sheets whose labels are
+  // short pay for it in height only.
   footer: {
-    flexDirection: 'row',
     paddingHorizontal: 20,
     paddingVertical: spacing.lg, // 16
-    gap: spacing.lg,             // 16
+    gap: spacing.md,             // 12
   },
-  // `flex: 1` so each button takes 50% of the footer's available width
-  // (after subtracting padding + gap). Padding 8 × 16, radius 8.
+  // No `flex: 1` here — in a column that would stretch each button to fill the
+  // footer's height instead of sharing its width. The column's default
+  // `alignItems: 'stretch'` already gives them the full width.
   btn: {
-    flex: 1,
     // 8px of padding alone leaves a 36px control. `minHeight` lifts it to the
     // 44px minimum touch target without changing the padding the design specifies.
     minHeight: 44,
@@ -501,11 +505,14 @@ const styles = StyleSheet.create({
   btnPrimaryPressed: {
     backgroundColor: colors.brandPressed,
   },
+  // `textAlign` matters only once a label wraps — `alignItems` centres the
+  // Text box, not the lines inside it, which is what left them ragged.
   btnPrimaryText: {
     fontFamily: typography.fontFamily,
     fontSize: 14,
     lineHeight: 20,
     color: colors.textOnBrand,
+    textAlign: 'center',
   },
   btnSecondary: {
     backgroundColor: colors.surface,
@@ -520,6 +527,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     color: colors.brandPressed,
+    textAlign: 'center',
   },
   // Applied over either variant, so it has to override both the brand fill and
   // the outlined border.

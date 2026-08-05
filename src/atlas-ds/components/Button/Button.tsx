@@ -168,6 +168,8 @@ const styles = StyleSheet.create({
   // (e.g. two flex:1 buttons sharing a row) instead of overflowing it.
   content: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
   icon: { width: 18, height: 18, alignItems: 'center', justifyContent: 'center' },
-  label: { fontFamily: typography.fontFamily, fontWeight: '500', lineHeight: 20, flexShrink: 1 },
+  // `textAlign` only bites once a label wraps: `alignItems` centres the Text
+  // box, not the lines within it, which left multi-line labels ragged-left.
+  label: { fontFamily: typography.fontFamily, fontWeight: '500', lineHeight: 20, flexShrink: 1, textAlign: 'center' },
   linkText: { textDecorationLine: 'underline' },
 });
