@@ -8,11 +8,11 @@ import { PlanDetailsStep } from './PlanDetailsStep';
 import { AddOnsStep } from './AddOnsStep';
 import { SuggestedPlans } from './SuggestedPlans';
 import { DiscountLoaderCard, type DiscountLoader } from './DiscountLoaderCard';
-import { Suggestions } from './Suggestions';
 import { ProposerDetails } from './ProposerDetails';
 import { MotorSideContainer } from './MotorSideContainer';
 import { PreviewStep } from './PreviewStep';
 import { QuoteFooter } from '../QuoteFooter';
+import { WizardStepper } from '../WizardStepper';
 import { ShareQuoteModal } from './ShareQuoteModal';
 import { PolicyFeaturesModal } from '../PolicyFeaturesModal';
 import { MOTOR_POLICY_FEATURES } from '../policyFeaturesData';
@@ -42,6 +42,16 @@ interface TwoWheelerInsuranceProps {
  * plan details → IDV → suggested plans → add-ons → discount/loader → suggestions
  * → proposer) with a premium side panel; step 3 is the preview.
  */
+/** Stepper labels, one per `currentStep`. */
+const STEPS = [
+  { label: 'Vehicle' },
+  { label: 'Plan' },
+  { label: 'IDV' },
+  { label: 'Add-ons' },
+  { label: 'Premium' },
+  { label: 'Preview' },
+];
+
 export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClose, onRegisterBack, onConvertToProposal, initialVehicleType, productName }) => {
   // The type is normally picked on the Browse Categories screen before this
   // flow mounts; the sheet only reappears after a Reset.
@@ -51,6 +61,13 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
   const [registrationNumber, setRegistrationNumber] = useState('');
   const [currentStep, setCurrentStep] = useState(1);
   const [showFeatures, setShowFeatures] = useState(false);
+  // Furthest step reached — the stepper only lets the agent jump back to steps
+  // they have already filled in, never skip ahead past validation.
+  const [maxVisitedStep, setMaxVisitedStep] = useState(1);
+
+  useEffect(() => {
+    setMaxVisitedStep((furthest) => Math.max(furthest, currentStep));
+  }, [currentStep]);
 
   // Registered once and reading the step from a ref, so advancing the wizard
   // doesn't churn the host's handler on every step.
@@ -233,6 +250,20 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
   return (
     <View style={styles.flex}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Hidden on the preview step, which is a result rather than a stage —
+            same rule the product header below follows. */}
+        {currentStep !== 6 ? (
+          <WizardStepper
+            steps={STEPS}
+            current={currentStep - 1}
+            onStepPress={(index) => {
+              if (index + 1 <= maxVisitedStep) {
+                setCurrentStep(index + 1);
+              }
+            }}
+          />
+        ) : null}
+
         {currentStep !== 6 ? (
           <MotorHeader productName={productName} onViewFeatures={() => setShowFeatures(true)} />
         ) : null}
@@ -296,7 +327,6 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
               setProposerEmail={setProposerEmail}
             />
             <DiscountLoaderCard value={discountLoader} setValue={setDiscountLoader} />
-            {/* <Suggestions /> */}
           </>
         ) : currentStep === 5 ? (
           <MotorSideContainer

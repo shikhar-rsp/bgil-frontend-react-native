@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { View, ScrollView, StyleSheet } from 'react-native';
 import { ToastGlobal, colors, spacing, radius, typography } from '@atlas-ds/react-native';
 import { QuoteFooter } from '../QuoteFooter';
+import { WizardStepper } from '../WizardStepper';
 import { ShareQuoteModal } from '../motor/ShareQuoteModal';
 import { PolicyFeaturesModal } from '../PolicyFeaturesModal';
 import { HEALTH_POLICY_FEATURES } from '../policyFeaturesData';
@@ -49,6 +50,13 @@ export const HealthGuard: React.FC<HealthGuardProps> = ({
   onConvertToProposal,
 }) => {
   const [currentStep, setCurrentStep] = useState(1);
+  // Furthest step reached — the stepper only lets the agent jump back to steps
+  // they have already filled in, never skip ahead past validation.
+  const [maxVisitedStep, setMaxVisitedStep] = useState(1);
+
+  useEffect(() => {
+    setMaxVisitedStep((furthest) => Math.max(furthest, currentStep));
+  }, [currentStep]);
 
   // Registered once and reading the step from a ref, so advancing the wizard
   // doesn't churn the host's handler on every step.
@@ -189,6 +197,20 @@ export const HealthGuard: React.FC<HealthGuardProps> = ({
   return (
     <View style={styles.flex}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Hidden on the preview step, which is a result rather than a stage —
+            same rule the product header above follows. */}
+        {currentStep !== 6 ? (
+          <WizardStepper
+            steps={STEPS}
+            current={currentStep - 1}
+            onStepPress={(index) => {
+              if (index + 1 <= maxVisitedStep) {
+                setCurrentStep(index + 1);
+              }
+            }}
+          />
+        ) : null}
+
         {currentStep !== 6 ? (
           <HealthGuardHeader
             productName={productName}

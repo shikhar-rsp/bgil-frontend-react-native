@@ -75,6 +75,14 @@ interface RenewPolicyProps {
   onRenewFlowStart?: () => void;
 }
 
+/**
+ * Steps that show the premium card: the two that can change the figure (plan
+ * and add-ons) plus the one that collects it. On the detail-capture steps —
+ * proposer, member, nominee, previous policy, KYC — the premium can't move, so
+ * repeating it there is noise.
+ */
+const PREMIUM_CARD_STEPS: RenewalStepKey[] = ['policy', 'addons', 'payment'];
+
 const emptyProposer = (customerName: string): ProposerData => ({
   proposerName: customerName,
   proposerDOB: new Date('1985-09-12'),
@@ -124,7 +132,7 @@ const emptyPayment: PaymentData = {
  *
  * Mobile deviations from the web screen, all forced by the narrower viewport:
  *   • The sticky right-hand premium panel becomes the collapsible
- *     `RenewalPremiumCard` under each step's content.
+ *     `RenewalPremiumCard`, shown only on the steps in `PREMIUM_CARD_STEPS`.
  *   • The 10-step stepper scrolls horizontally instead of compressing.
  *   • Web's three-button footer (Cancel / Back / Proceed) collapses to
  *     Back / Proceed — Back on the first step exits the flow, which is what
@@ -1243,9 +1251,13 @@ export const RenewPolicy: React.FC<RenewPolicyProps> = ({ record, mode = 'flow',
 
         {renderStep()}
 
-        {/* The web app's sticky premium column — the proceed/edit choice has no
-            premium to show yet, and the summary already itemises it. */}
-        {currentKey !== 'preview' && currentKey !== 'summary' ? (
+        {/* The web app's sticky premium column. Web can afford to keep it beside
+            every step; stacked under the content on a phone it just repeats
+            itself down the flow, so it is limited to the steps where the figure
+            is actually in play — the ones that change it, and the one that
+            charges it. The proceed/edit choice has no premium yet and the
+            summary already itemises it. */}
+        {PREMIUM_CARD_STEPS.includes(currentKey) ? (
           <RenewalPremiumCard
             addOnCount={addOnTotalCount}
             addonPolicies={selectedEligiblePolicies}

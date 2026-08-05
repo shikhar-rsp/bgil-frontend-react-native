@@ -156,9 +156,9 @@ export const ConvertProposal: React.FC<ConvertProposalProps> = ({ customerName, 
   return (
     <View style={styles.flex}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <PolicyHeader policyNumber="PR-28686" customerName={proposer.proposerName || customerName} />
-
-        {/* Only steps already reached are tappable, matching the renewal flow. */}
+        {/* Above the policy header, matching the quote flows: progress first,
+            then what is being worked on. Only steps already reached are
+            tappable, as in the renewal flow. */}
         <WizardStepper
           steps={stepKeys.map((k) => ({ label: STEP_LABELS[k] ?? k }))}
           current={stepIndex}
@@ -168,6 +168,8 @@ export const ConvertProposal: React.FC<ConvertProposalProps> = ({ customerName, 
             }
           }}
         />
+
+        <PolicyHeader policyNumber="PR-28686" customerName={proposer.proposerName || customerName} />
 
         {key === 'preview' ? (
           <PreviewQuoteStep customerName={proposer.proposerName || customerName} planType={planType} policyType={policyType} planLabel={planLabel} />
