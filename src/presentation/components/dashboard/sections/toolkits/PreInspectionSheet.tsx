@@ -8,7 +8,6 @@ import {
   fontFamilyForWeight,
   radius,
   spacing,
-  typography,
   type FilterGroup,
 } from '@atlas-ds/react-native';
 import { ToolkitCard, ToolkitEmptyState, ToolkitMeta, ToolkitSheet } from './ToolkitSheet';
@@ -97,12 +96,15 @@ export const PreInspectionSheet: React.FC<PreInspectionSheetProps> = ({ visible,
       }}
       headerExtra={
         hasPendingUpload ? (
-          <View style={styles.warning}>
-            <Badge variant="light" size="sm" color="amber" label="Warning" />
-            <Text style={styles.warningText}>
-              Pre-inspection for this policy is not done. Send reminder to the party
-            </Text>
-          </View>
+          // The DS Toast already owns the warning treatment — amber surface,
+          // accent rail and the ⚠ glyph. The web builds this out of a Tile and
+          // an amber Badge because its own toast is a timed overlay; here the
+          // component renders inline, so there is nothing to reinvent.
+          <Toast
+            variant="warning"
+            title="Warning"
+            message="Pre-inspection for this policy is not done. Send reminder to the party"
+          />
         ) : null
       }
       sectionTitle={
@@ -191,23 +193,6 @@ export const PreInspectionSheet: React.FC<PreInspectionSheetProps> = ({ visible,
 };
 
 const styles = StyleSheet.create({
-  warning: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    padding: spacing.sm,
-    borderWidth: 1,
-    borderColor: '#FEF3C7',
-    borderRadius: radius.lg,
-    backgroundColor: '#FFFBEB',
-  },
-  warningText: {
-    flexShrink: 1,
-    fontFamily: typography.fontFamily,
-    fontSize: 13,
-    lineHeight: 18,
-    color: '#9A3412',
-  },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   title: {
     flexShrink: 1,

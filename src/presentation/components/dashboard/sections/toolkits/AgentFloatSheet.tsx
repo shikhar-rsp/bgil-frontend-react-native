@@ -47,7 +47,16 @@ export const AgentFloatSheet: React.FC<AgentFloatSheetProps> = ({ visible, onClo
       title="Agent Float"
       icon={<Wallet size={20} color={colors.brand} />}
       headerExtra={
-        <LinearGradient colors={['#FFFFFF', '#EFF6FF']} style={styles.balanceCard}>
+        // The gradient paints on `absoluteFill` behind a plain View rather than
+        // wrapping the content itself: given padding and children, LinearGradient
+        // doesn't grow to fit them on iOS and clips the balance mid-digit. Same
+        // arrangement the renewal premium card uses.
+        <View style={styles.balanceCard}>
+          <LinearGradient
+            colors={['#FFFFFF', '#EFF6FF']}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
+          />
           <View style={styles.balanceRow}>
             <View style={styles.balanceText}>
               <View style={styles.balanceLabelRow}>
@@ -72,7 +81,7 @@ export const AgentFloatSheet: React.FC<AgentFloatSheetProps> = ({ visible, onClo
             </View>
             <Image source={dashboardImages.wallet} style={styles.wallet} resizeMode="contain" />
           </View>
-        </LinearGradient>
+        </View>
       }
       sectionTitle="Recent Float Transactions"
       sectionHint="Float movements from the last 90 days. Credits show against a successful replenishment."
@@ -121,12 +130,21 @@ export const AgentFloatSheet: React.FC<AgentFloatSheetProps> = ({ visible, onClo
 
 const styles = StyleSheet.create({
   balanceCard: {
+    // `overflow: hidden` keeps the gradient inside the rounded corners now that
+    // it is a separate absolutely-positioned layer.
+    overflow: 'hidden',
     padding: spacing.lg,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
     borderRadius: radius.lg,
+    backgroundColor: colors.surface,
   },
-  balanceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  balanceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
   balanceText: { flexShrink: 1, gap: spacing.xxs },
   balanceLabelRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   balanceLabel: { fontFamily: typography.fontFamily, fontSize: 14, color: colors.textHeading },
