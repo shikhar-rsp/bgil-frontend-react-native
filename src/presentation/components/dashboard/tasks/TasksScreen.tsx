@@ -490,6 +490,14 @@ const ListShell: React.FC<{
   const [rangeStart, setRangeStart] = useState<Date | null>(null);
   const [rangeEnd, setRangeEnd] = useState<Date | null>(null);
   const appliedCount = Object.values(appliedFilters ?? {}).reduce((n, arr) => n + arr.length, 0);
+  const isCalendar = view === 'calendar';
+
+  // Switching to the calendar hides the search box, so drop any query with it —
+  // otherwise it would keep filtering the grid with nothing on screen saying so.
+  const changeView = (next: 'table' | 'calendar') => {
+    if (next === 'calendar' && search) onSearch('');
+    onView(next);
+  };
 
   const openFilter = () => {
     setDraft(appliedFilters ?? {});
@@ -537,7 +545,7 @@ const ListShell: React.FC<{
             size="sm"
             fullWidth={false}
             value={view}
-            onChange={(v) => onView(v as 'table' | 'calendar')}
+            onChange={(v) => changeView(v as 'table' | 'calendar')}
             options={[
               {
                 label: 'Calendar',
@@ -553,23 +561,27 @@ const ListShell: React.FC<{
           />
         </ScrollView>
 
-        {/* Search */}
-        <SearchBar value={search} onChangeText={onSearch} placeholder="Search" />
+        {/* Search — table view only; the calendar has its own month stepper. */}
+        {isCalendar ? null : <SearchBar value={search} onChangeText={onSearch} placeholder="Search" />}
 
-        {/* Date range + filter share a row so both fit within the card. */}
-        <View style={styles.filterRow}>
-          <DatePicker
-            mode="range"
-            startDate={rangeStart}
-            endDate={rangeEnd}
-            onRangeChange={(start, end) => {
-              setRangeStart(start);
-              setRangeEnd(end);
-            }}
-            startPlaceholder="From"
-            endPlaceholder="To"
-            style={styles.dateFlex}
-          />
+        {/* Date range + filter share a row so both fit within the card. The
+            range picker is table-only — the calendar already scopes by month —
+            so in calendar view the filter button sits alone at the right. */}
+        <View style={[styles.filterRow, isCalendar && styles.filterRowEnd]}>
+          {isCalendar ? null : (
+            <DatePicker
+              mode="range"
+              startDate={rangeStart}
+              endDate={rangeEnd}
+              onRangeChange={(start, end) => {
+                setRangeStart(start);
+                setRangeEnd(end);
+              }}
+              startPlaceholder="From"
+              endPlaceholder="To"
+              style={styles.dateFlex}
+            />
+          )}
           <FilterButton onPress={filterGroups ? openFilter : undefined} count={appliedCount} />
         </View>
 
@@ -1311,6 +1323,8 @@ const styles = StyleSheet.create({
 
   // Date range + filter on one row; the date field flexes, the filter hugs.
   filterRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  // Calendar view drops the range picker, so the filter button aligns right.
+  filterRowEnd: { justifyContent: 'flex-end' },
   dateFlex: { flex: 1 },
 
   // Table inset within the card with a small top margin; it scrolls sideways
