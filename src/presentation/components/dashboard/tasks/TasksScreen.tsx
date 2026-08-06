@@ -634,7 +634,7 @@ const TasksList: React.FC<{
 }> = ({ onViewTaskQuote, openTask, onOpenTaskHandled, onCreate }) => {
   const [category, setCategory] = useState<'all' | Category>('all');
   const [search, setSearch] = useState('');
-  const [view, setView] = useState<'table' | 'calendar'>('table');
+  const [view, setView] = useState<'table' | 'calendar'>('calendar');
   const [quick, setQuick] = useState<'today' | 'completed' | null>(null);
   const [filters, setFilters] = useState<Record<string, string[]>>({});
   const [detail, setDetail] = useState<TaskDetailData | null>(null);
@@ -801,7 +801,7 @@ const TasksList: React.FC<{
 const EventsList: React.FC = () => {
   const [category, setCategory] = useState<'all' | 'birthday' | 'anniversary'>('all');
   const [search, setSearch] = useState('');
-  const [view, setView] = useState<'table' | 'calendar'>('table');
+  const [view, setView] = useState<'table' | 'calendar'>('calendar');
   const [quick, setQuick] = useState<'today' | 'completed' | null>(null);
   const [detail, setDetail] = useState<EventDetail | null>(null);
 
@@ -875,7 +875,7 @@ const meetingDetailFor = (m: MeetingRow): MeetingDetail =>
 const MeetingsList: React.FC<{ persona: 'agent' | 'rm'; onCreate?: () => void }> = ({ persona, onCreate }) => {
   const [category, setCategory] = useState<'all' | MeetingMode>('all');
   const [search, setSearch] = useState('');
-  const [view, setView] = useState<'table' | 'calendar'>('table');
+  const [view, setView] = useState<'table' | 'calendar'>('calendar');
   const [quick, setQuick] = useState<'today' | 'completed' | null>(null);
   const [filters, setFilters] = useState<Record<string, string[]>>({});
   const [detail, setDetail] = useState<MeetingDetail | null>(null);

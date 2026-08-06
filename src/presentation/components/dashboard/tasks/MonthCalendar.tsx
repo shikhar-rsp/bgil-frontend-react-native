@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { CaretLeft, CaretRight, CheckCircle } from 'phosphor-react-native';
 import {
+  BADGE_DOT_COLORS,
   BadgeDot,
   BottomSheet,
   accent,
@@ -211,7 +212,10 @@ export const MonthCalendar: React.FC<{
     >
       <View style={styles.sheetList}>
         {(sheetDay?.events ?? []).map((ev, i) => {
-          const c = accent[ev.color];
+          // Border + text take the badge-dot value so a row reads as the same
+          // colour as its dot in the grid; the pale wash still comes from the
+          // accent pair, which is the only place a light tint is defined.
+          const dotColor = BADGE_DOT_COLORS[DOT_COLOR[ev.color]];
           return (
             <Pressable
               key={i}
@@ -220,9 +224,9 @@ export const MonthCalendar: React.FC<{
                 onEventPress?.(ev);
               }}
               disabled={!onEventPress}
-              style={[styles.sheetChip, { backgroundColor: c.lightBg, borderLeftColor: c.solidBg }]}
+              style={[styles.sheetChip, { backgroundColor: accent[ev.color].lightBg, borderLeftColor: dotColor }]}
             >
-              <Text style={[styles.sheetChipText, { color: c.solidBg }]} numberOfLines={1}>
+              <Text style={[styles.sheetChipText, { color: dotColor }]} numberOfLines={1}>
                 {ev.label}
               </Text>
               {ev.done ? <CheckCircle size={16} color={DONE_GREEN} weight="regular" /> : null}

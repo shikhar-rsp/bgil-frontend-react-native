@@ -34,7 +34,9 @@ export interface BadgeDotProps {
 const DOT = { sm: 6, md: 10, lg: 14 } as const;
 
 // Web --badge-dot-<color> tokens (badge-dot/tokens.css) — matched 1:1.
-const BADGE_DOT_COLORS: Record<BadgeDotColor, string> = {
+// Exported so consumers pairing a dot with other marks (e.g. the calendar's
+// day dots and its event rows) can key off the same value.
+export const BADGE_DOT_COLORS: Record<BadgeDotColor, string> = {
   lime:    '#65A30D',
   red:     '#DC2626',
   warning: '#EA580C',

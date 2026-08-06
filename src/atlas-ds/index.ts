@@ -62,7 +62,7 @@ export type {
 export { Badge, badgeForeground } from './components/Badge';
 export type { BadgeProps, BadgeVariant, BadgeSize } from './components/Badge';
 
-export { BadgeDot } from './components/BadgeDot';
+export { BadgeDot, BADGE_DOT_COLORS } from './components/BadgeDot';
 export type { BadgeDotProps, BadgeDotSize, BadgeDotColor } from './components/BadgeDot';
 
 export { Tag } from './components/Tag';
