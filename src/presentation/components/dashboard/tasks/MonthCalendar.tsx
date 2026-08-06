@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { CaretLeft, CaretRight, CheckCircle } from 'phosphor-react-native';
 import {
+  BadgeDot,
   BottomSheet,
   accent,
   colors,
@@ -10,6 +11,7 @@ import {
   spacing,
   typography,
   type AccentColor,
+  type BadgeDotColor,
 } from '@atlas-ds/react-native';
 
 /** One chip on a calendar day. */
@@ -30,15 +32,34 @@ export type MonthEvents = Record<number, MonthEvent[]>;
 const NOW = new Date();
 const TODAY = { year: NOW.getFullYear(), month: NOW.getMonth(), day: NOW.getDate() };
 
-const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat'];
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
-const CELL_WIDTH = 128;
-const MAX_CHIPS = 3;
+// Dots shown under a day number before the rest collapse into "+N".
+const MAX_DOTS = 3;
 const DONE_GREEN = '#16A34A';
+
+// The day cells reuse the same `BadgeDot` as the filter tags above the
+// calendar. The two palettes are 1:1 apart from accent `orange`, which the
+// badge-dot tokens call `warning`.
+const DOT_COLOR: Record<AccentColor, BadgeDotColor> = {
+  red: 'red',
+  amber: 'amber',
+  lime: 'lime',
+  blue: 'blue',
+  neutral: 'neutral',
+  brand: 'brand',
+  indigo: 'indigo',
+  emerald: 'emerald',
+  teal: 'teal',
+  orange: 'warning',
+  pink: 'pink',
+  violet: 'violet',
+  rose: 'rose',
+};
 
 interface Cell {
   day: number;
@@ -65,9 +86,10 @@ function buildCells(year: number, month: number): Cell[] {
 }
 
 /**
- * Month calendar with chips laid over a day grid. The `events` map is applied to
- * the reference month (August '26); navigating to other months shows an empty
- * grid. On a phone the grid scrolls sideways (128px cells).
+ * Month calendar with a compact day grid. The `events` map is applied to the
+ * reference month (August '26); navigating to other months shows an empty grid.
+ * The seven columns share the phone width — a day's events show as category
+ * dots, and tapping the day opens the bottom sheet with the labelled list.
  */
 export const MonthCalendar: React.FC<{
   events: MonthEvents;
@@ -124,73 +146,60 @@ export const MonthCalendar: React.FC<{
       {showEmpty ? (
         <View style={styles.calendarEmpty}>{emptyState}</View>
       ) : (
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        <View style={{ width: CELL_WIDTH * 7 }}>
-          {/* Weekday header row */}
-          <View style={styles.weekdayRow}>
-            {WEEKDAYS.map((d) => (
-              <View key={d} style={styles.weekdayCell}>
-                <Text style={styles.weekdayText}>{d}</Text>
-              </View>
-            ))}
-          </View>
-
-          {/* Day grid */}
-          {weeks.map((week, wi) => (
-            <View key={wi} style={styles.weekRow}>
-              {week.map((cell, ci) => {
-                const dayEvents = eventsFor(cell);
-                const today = isToday(cell);
-                const shown = dayEvents.slice(0, MAX_CHIPS);
-                const overflow = dayEvents.length - shown.length;
-                return (
-                  <View
-                    key={ci}
-                    style={[styles.dayCell, !cell.inMonth && styles.dayCellMuted, today && styles.dayCellToday]}
-                  >
-                    <View style={styles.dayNumberRow}>
-                      {today ? (
-                        <View style={styles.todayBadge}>
-                          <Text style={styles.todayNumber}>{cell.day}</Text>
-                        </View>
-                      ) : (
-                        <Text style={[styles.dayNumber, !cell.inMonth && styles.dayNumberMuted]}>{cell.day}</Text>
-                      )}
-                    </View>
-
-                    {shown.map((ev, i) => {
-                      const c = accent[ev.color];
-                      return (
-                        <Pressable
-                          key={i}
-                          onPress={() => onEventPress?.(ev)}
-                          disabled={!onEventPress}
-                          style={[styles.chip, { backgroundColor: c.lightBg, borderLeftColor: c.solidBg }]}
-                        >
-                          <Text style={[styles.chipText, { color: c.solidBg }]} numberOfLines={1}>
-                            {ev.label}
-                          </Text>
-                          {ev.done ? <CheckCircle size={13} color={DONE_GREEN} weight="regular" /> : null}
-                        </Pressable>
-                      );
-                    })}
-
-                    {overflow > 0 ? (
-                      <Pressable
-                        onPress={() => setSheetDay({ day: cell.day, events: dayEvents })}
-                        accessibilityRole="button"
-                        accessibilityLabel={`Show all ${dayEvents.length} on ${cell.day}`}
-                      >
-                        <Text style={styles.moreText}>+{overflow} more</Text>
-                      </Pressable>
-                    ) : null}
-                  </View>
-                );
-              })}
+      <View>
+        {/* Weekday header row */}
+        <View style={styles.weekdayRow}>
+          {WEEKDAYS.map((d) => (
+            <View key={d} style={styles.weekdayCell}>
+              <Text style={styles.weekdayText}>{d}</Text>
             </View>
           ))}
         </View>
-      </ScrollView>
+
+        {/* Day grid */}
+        {weeks.map((week, wi) => (
+          <View key={wi} style={styles.weekRow}>
+            {week.map((cell, ci) => {
+              const dayEvents = eventsFor(cell);
+              const today = isToday(cell);
+              const dots = dayEvents.slice(0, MAX_DOTS);
+              const overflow = dayEvents.length - dots.length;
+              const hasEvents = dayEvents.length > 0;
+              return (
+                <Pressable
+                  key={ci}
+                  // Labels don't fit a 1/7-width cell, so the day itself opens
+                  // the sheet that lists them.
+                  onPress={hasEvents ? () => setSheetDay({ day: cell.day, events: dayEvents }) : undefined}
+                  disabled={!hasEvents}
+                  accessibilityRole={hasEvents ? 'button' : undefined}
+                  accessibilityLabel={
+                    hasEvents ? `${cell.day} — show all ${dayEvents.length} events` : undefined
+                  }
+                  style={[styles.dayCell, !cell.inMonth && styles.dayCellMuted, today && styles.dayCellToday]}
+                >
+                  <View style={styles.dayNumberRow}>
+                    {today ? (
+                      <View style={styles.todayBadge}>
+                        <Text style={styles.todayNumber}>{cell.day}</Text>
+                      </View>
+                    ) : (
+                      <Text style={[styles.dayNumber, !cell.inMonth && styles.dayNumberMuted]}>{cell.day}</Text>
+                    )}
+                  </View>
+
+                  <View style={styles.dotRow}>
+                    {dots.map((ev, i) => (
+                      <BadgeDot key={i} size="sm" color={DOT_COLOR[ev.color]} />
+                    ))}
+                    {overflow > 0 ? <Text style={styles.moreText}>+{overflow}</Text> : null}
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+        ))}
+      </View>
       )}
     </View>
 
@@ -254,19 +263,21 @@ const styles = StyleSheet.create({
 
   weekdayRow: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: colors.borderSubtle },
   weekdayCell: {
-    width: CELL_WIDTH,
+    flex: 1,
     paddingVertical: spacing.sm,
     alignItems: 'center',
     borderRightWidth: 1,
     borderRightColor: colors.borderSubtle,
   },
-  weekdayText: { fontFamily: typography.fontFamily, fontSize: 12, lineHeight: 16, color: colors.textBody },
+  weekdayText: { fontFamily: typography.fontFamily, fontSize: 11, lineHeight: 16, color: colors.textBody },
 
   weekRow: { flexDirection: 'row' },
+  // Seven columns share the phone width — no sideways scroll.
   dayCell: {
-    width: CELL_WIDTH,
-    minHeight: 118,
-    padding: spacing.xs,
+    flex: 1,
+    minHeight: 58,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: 2,
     gap: 3,
     borderRightWidth: 1,
     borderBottomWidth: 1,
@@ -278,12 +289,12 @@ const styles = StyleSheet.create({
   // Today — brand outline drawn inside the cell.
   dayCellToday: { borderWidth: 1, borderColor: colors.brand },
 
-  dayNumberRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
-  dayNumber: { fontFamily: typography.fontFamily, fontSize: 13, lineHeight: 18, color: colors.textBody },
+  dayNumberRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  dayNumber: { fontFamily: typography.fontFamily, fontSize: 13, lineHeight: 20, color: colors.textBody },
   dayNumberMuted: { color: colors.textMuted },
   todayBadge: {
-    minWidth: 22,
-    height: 22,
+    minWidth: 20,
+    height: 20,
     paddingHorizontal: 4,
     borderRadius: radius.sm,
     backgroundColor: colors.brandPressed,
@@ -292,18 +303,10 @@ const styles = StyleSheet.create({
   },
   todayNumber: { fontFamily: fontFamilyForWeight('400'), fontSize: 13, fontWeight: '400', color: colors.textOnBrand },
 
-  // Event chip — pale category tint + a solid category left border.
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    borderLeftWidth: 3,
-    borderRadius: 3,
-    paddingVertical: 2,
-    paddingHorizontal: 4,
-  },
-  chipText: { flex: 1, fontFamily: typography.fontFamily, fontSize: 11, lineHeight: 15 },
-  moreText: { fontFamily: fontFamilyForWeight('500'), fontSize: 11, lineHeight: 15, fontWeight: '500', color: colors.brand, paddingHorizontal: 4 },
+  // Category dots stand in for the chips the narrow cell can't fit; the labels
+  // live in the day's bottom sheet.
+  dotRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3, minHeight: 12 },
+  moreText: { fontFamily: fontFamilyForWeight('500'), fontSize: 10, lineHeight: 12, fontWeight: '500', color: colors.brand },
 
   // "+N more" bottom-sheet list.
   sheetList: { gap: spacing.sm },
