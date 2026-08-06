@@ -6,7 +6,6 @@ import LinearGradient from 'react-native-linear-gradient';
 import {
   ArrowUpRight,
   CaretDown,
-  Check,
   Copy,
   Info,
   Smiley,
@@ -17,7 +16,6 @@ import { dashboardImages } from '../images';
 import {
   Avatar,
   Badge,
-  BadgeDot,
   BottomSheet,
   Button,
   Checkbox,
@@ -237,25 +235,6 @@ const AttendeeRow: React.FC<{ attendee: Attendee; clashing?: boolean }> = ({ att
   </View>
 );
 
-const DotPill: React.FC<{ label: string; dot?: BadgeDotColor; selected?: boolean; onPress: () => void }> = ({
-  label,
-  dot,
-  selected,
-  onPress,
-}) => (
-  <Pressable
-    onPress={onPress}
-    accessibilityRole="button"
-    accessibilityState={{ selected }}
-    style={[styles.pill, selected ? styles.pillSelected : styles.pillIdle]}
-  >
-    {dot ? <BadgeDot size="sm" color={dot} style={styles.pillDot} /> : null}
-    <Text style={[styles.pillLabel, selected && styles.pillLabelSelected]} numberOfLines={1}>
-      {label}
-    </Text>
-  </Pressable>
-);
-
 type AttendeeFilter = 'all' | 'customers' | 'internal';
 const ATTENDEE_FILTERS: { value: AttendeeFilter; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -315,21 +294,16 @@ const AttendeePicker: React.FC<{ selected: Attendee[]; onChange: (next: Attendee
           <SearchBar value={query} onChangeText={setQuery} placeholder="Search" />
 
           <View style={styles.filterChips}>
-            {ATTENDEE_FILTERS.map((f) => {
-              const sel = filter === f.value;
-              return (
-                <Pressable
-                  key={f.value}
-                  style={[styles.attFilter, sel && styles.attFilterSelected]}
-                  onPress={() => setFilter(f.value)}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: sel }}
-                >
-                  {sel ? <Check size={13} color={colors.brandPressed} weight="bold" /> : null}
-                  <Text style={[styles.attFilterLabel, sel && styles.attFilterLabelSelected]}>{f.label}</Text>
-                </Pressable>
-              );
-            })}
+            {ATTENDEE_FILTERS.map((f) => (
+              <Tag
+                key={f.value}
+                label={f.label}
+                size="sm"
+                selected={filter === f.value}
+                showIndicator={false}
+                onPress={() => setFilter(f.value)}
+              />
+            ))}
           </View>
 
           {q === '' ? (
@@ -700,7 +674,7 @@ export const MeetingDetailModal: React.FC<MeetingDetailModalProps> = ({
                 <TextArea value={agenda} onChangeText={setAgenda} placeholder="Describe what needs to be done…" rows={3} />
                 <View style={styles.pillRow}>
                   {AGENDA_PRESETS.map((preset) => (
-                    <DotPill key={preset} label={preset} onPress={() => setAgenda(preset)} />
+                    <Tag key={preset} label={preset} size="sm" showIndicator={false} onPress={() => setAgenda(preset)} />
                   ))}
                 </View>
               </View>
@@ -710,7 +684,7 @@ export const MeetingDetailModal: React.FC<MeetingDetailModalProps> = ({
                 <FieldLabel>Set Priority</FieldLabel>
                 <View style={styles.pillRow}>
                   {(Object.keys(PRIORITY_DOT) as Priority[]).map((p) => (
-                    <DotPill key={p} label={p} dot={PRIORITY_DOT[p]} selected={priority === p} onPress={() => setPriority(p)} />
+                    <Tag key={p} label={p} size="sm" dot={PRIORITY_DOT[p]} selected={priority === p} showIndicator={false} onPress={() => setPriority(p)} />
                   ))}
                 </View>
               </View>
@@ -1026,21 +1000,6 @@ const styles = StyleSheet.create({
   // Attendee picker sheet
   pickerBody: { gap: spacing.sm },
   filterChips: { flexDirection: 'row', gap: spacing.sm },
-  // Attendee filter pills — check when selected, no stray × on the rest.
-  attFilter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    minHeight: 28,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.full,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-  },
-  attFilterSelected: { borderColor: colors.brand, backgroundColor: colors.brandSubtle },
-  attFilterLabel: { fontFamily: typography.fontFamily, fontSize: 13, color: colors.textBody },
-  attFilterLabelSelected: { color: colors.brandPressed, fontFamily: fontFamilyForWeight('500'), fontWeight: '500' },
   pickerEmpty: { alignItems: 'center', gap: spacing.xs, paddingVertical: spacing.xl },
   pickerEmptyStrong: { fontFamily: fontFamilyForWeight('500'), fontSize: 14, fontWeight: '500', color: colors.textHeading },
   pickerEmptyText: { fontFamily: typography.fontFamily, fontSize: 13, color: colors.textMuted },
@@ -1121,20 +1080,4 @@ const styles = StyleSheet.create({
   },
   channelCheck: { position: 'absolute', top: spacing.sm, right: spacing.sm, zIndex: 1 },
   channelLabel: { fontFamily: typography.fontFamily, fontSize: 12, lineHeight: 16, color: colors.textBody },
-
-  // Pill
-  pill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    minHeight: 32,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.full,
-    borderWidth: 1,
-  },
-  pillIdle: { backgroundColor: colors.surfaceMuted, borderColor: 'transparent' },
-  pillSelected: { backgroundColor: colors.surface, borderColor: colors.brand },
-  pillDot: { alignSelf: 'center' },
-  pillLabel: { fontFamily: typography.fontFamily, fontSize: 14, lineHeight: 20, color: colors.textBody },
-  pillLabelSelected: { color: colors.brandPressed, fontFamily: fontFamilyForWeight('500'), fontWeight: '500' },
 });

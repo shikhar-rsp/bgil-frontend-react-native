@@ -16,7 +16,6 @@ import {
 import { dashboardImages } from '../images';
 import {
   Badge,
-  BadgeDot,
   BottomSheet,
   Button,
   Calendar,
@@ -210,25 +209,6 @@ const FieldLabel: React.FC<{ children: React.ReactNode; required?: boolean }> = 
     {children}
     {required ? <Text style={styles.required}> *</Text> : null}
   </Text>
-);
-
-const DotPill: React.FC<{ label: string; dot?: BadgeDotColor; selected: boolean; onPress: () => void }> = ({
-  label,
-  dot,
-  selected,
-  onPress,
-}) => (
-  <Pressable
-    onPress={onPress}
-    accessibilityRole="button"
-    accessibilityState={{ selected }}
-    style={[styles.pill, selected ? styles.pillSelected : styles.pillIdle]}
-  >
-    {dot ? <BadgeDot size="sm" color={dot} style={styles.pillDot} /> : null}
-    <Text style={[styles.pillLabel, selected && styles.pillLabelSelected]} numberOfLines={1}>
-      {label}
-    </Text>
-  </Pressable>
 );
 
 /** Create-mode searchable task picker — trigger + inline SearchBar/result list. */
@@ -714,11 +694,13 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
             <FieldLabel>Set Priority</FieldLabel>
             <View style={styles.pillRow}>
               {PRIORITIES.map((p) => (
-                <DotPill
+                <Tag
                   key={p.key}
                   label={p.key}
+                  size="sm"
                   dot={p.dot}
                   selected={priority === p.key}
+                  showIndicator={false}
                   onPress={() => setPriority(p.key)}
                 />
               ))}
@@ -750,10 +732,12 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
                       ? formatShort(reminderDate)
                       : preset;
                   return (
-                    <DotPill
+                    <Tag
                       key={preset}
                       label={label}
+                      size="sm"
                       selected={notifyPreset === preset}
+                      showIndicator={false}
                       onPress={() => handlePreset(preset)}
                     />
                   );
@@ -1114,19 +1098,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  // Pill
-  pill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    minHeight: 32,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.full,
-    borderWidth: 1,
-  },
-  pillIdle: { backgroundColor: colors.surfaceMuted, borderColor: 'transparent' },
-  pillSelected: { backgroundColor: colors.surface, borderColor: colors.brand },
-  pillDot: { alignSelf: 'center' },
-  pillLabel: { fontFamily: typography.fontFamily, fontSize: 14, lineHeight: 20, color: colors.textBody },
-  pillLabelSelected: { color: colors.brandPressed, fontFamily: fontFamilyForWeight('500'), fontWeight: '500' },
 });

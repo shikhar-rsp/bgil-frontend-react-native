@@ -1,11 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
-import { ArrowClockwise, Cake, CalendarBlank, CaretDown, Check, Confetti, Copy, NotePencil, Phone, Plus, Table as TableIcon, WarningCircle, XCircle } from 'phosphor-react-native';
+import { ArrowClockwise, Cake, CalendarBlank, CaretDown, Check, Confetti, Copy, Info, NotePencil, Phone, Plus, Table as TableIcon, WarningCircle, XCircle } from 'phosphor-react-native';
 import {
   Avatar,
   AvatarGroup,
   Badge,
-  BadgeDot,
   BottomSheet,
   Button,
   Checkbox,
@@ -15,6 +14,7 @@ import {
   SearchBar,
   SegmentedControl,
   Table,
+  Tag,
   Toast,
   accent,
   colors,
@@ -189,6 +189,7 @@ const MEETINGS: MeetingRow[] = [
   { id: '4', title: 'Policy review with the team', agenda: 'Meeting scheduled', schedule: '18/08/2026, 02:00 PM - 03:00 PM', priority: 'Urgent', attendees: ['Manas Patel'], mode: 'In-Person', action: 'View Address', kind: 'sub-imd', createdByMe: true },
   { id: '5', title: 'Renewal status update', agenda: 'Call customer to confirm renewal again', schedule: 'Today, 02:00PM - 03:00PM', priority: 'Normal', attendees: ['Priti Sinha'], mode: 'Virtual', action: 'Join Meeting', kind: 'customer', createdByMe: false, scheduledBy: 'Manish Jain' },
   { id: '6', title: 'IMD sync (scheduled by me)', agenda: 'Team alignment for the quarter', schedule: '22/11/2026, 12:00PM - 01:00PM', priority: 'None', attendees: ['Manish Jain', 'Rahul Jain'], mode: 'Virtual', action: 'Join Meeting', kind: 'imd', createdByMe: true },
+  { id: '7', title: 'Prospect intro call', agenda: 'Intro call with a new prospect', schedule: '25/11/2026, 03:00 PM - 03:30 PM', priority: 'Low', attendees: ['Rohini Kumar'], mode: 'Virtual', action: 'Join Meeting', kind: 'customer', createdByMe: true },
 ];
 
 const MEETING_FILTERS: { value: 'all' | MeetingMode; label: string; dot?: BadgeDotColor }[] = [
@@ -267,25 +268,51 @@ const TASK_CALENDAR: MonthEvents = {
   15: [{ label: 'Maya Kaya', color: 'orange' }],
 };
 
-const EVENT_CALENDAR: MonthEvents = {
-  1: [{ label: "Pandit Harilal's Birthday", color: 'rose' }],
-  4: [{ label: "Ankit Sharma's Birthday", color: 'rose' }],
-  8: [{ label: "Priya Sharma's Birthday", color: 'rose' }],
-  11: [{ label: "Nikhil Patel's Birthday", color: 'rose' }],
-  13: [{ label: "Rishabh Singh's Anniversary", color: 'violet' }],
-  14: [{ label: "Maya Kaya's Birthday", color: 'rose' }],
-  18: [{ label: "Gayatri Sharma's Anniversary", color: 'violet' }],
+/** Day-of-month from an event's `dd/mm/yyyy` date. */
+const eventDay = (date: string): number => {
+  const match = date.match(/^(\d{1,2})\b/);
+  return match ? Number(match[1]) : 1;
 };
 
-// Chips coloured by mode: Virtual → emerald, In-Person → orange.
-// Chips coloured by mode: Virtual → emerald, In-Person → orange.
-const MEETING_CALENDAR: MonthEvents = {
-  18: [{ label: 'Policy review with the team', color: 'orange' }],
-  22: [{ label: 'Quarterly IMD sync', color: 'emerald' }],
-  27: [{ label: 'Meeting with IMDs', color: 'emerald' }],
-  29: [{ label: 'Meeting with the Sub-IMDs', color: 'orange' }],
-  30: [{ label: 'Meeting with Customer', color: 'orange' }],
+/** "Ankit Sharma's Birthday" / "…'s Anniversary" / "…'s Birthday & Anniversary". */
+const eventLabel = (e: EventRow): string => {
+  const hasAnniv = e.occasions.includes('Anniversary');
+  const hasBday = e.occasions.some((o) => o.includes('Birthday'));
+  const word = hasAnniv && hasBday ? 'Birthday & Anniversary' : hasAnniv ? 'Anniversary' : 'Birthday';
+  return `${e.customer}'s ${word}`;
 };
+
+// Calendar chips are derived from the (filtered) events list so a tapped chip
+// opens the same event and the category/search filters apply to the calendar
+// too. Anniversary → violet, birthday → rose; the `id` links each chip back to
+// its EVENTS row.
+const buildEventCalendar = (events: EventRow[]): MonthEvents =>
+  events.reduce<MonthEvents>((acc, e) => {
+    const day = eventDay(e.date);
+    if (!acc[day]) acc[day] = [];
+    acc[day].push({ label: eventLabel(e), color: e.occasions.includes('Anniversary') ? 'violet' : 'rose', id: e.id });
+    return acc;
+  }, {});
+
+/** Day-of-month a meeting falls on: the leading `dd/` of its schedule, or the
+ *  device's today for a "Today, …" schedule. */
+const meetingDay = (schedule: string): number => {
+  if (schedule.trim().toLowerCase().startsWith('today')) return new Date().getDate();
+  const match = schedule.match(/^(\d{1,2})\b/);
+  return match ? Number(match[1]) : 1;
+};
+
+// Calendar chips are derived from the (filtered) meetings list so a tapped chip
+// opens the same meeting and the filters apply to the calendar too. Coloured by
+// mode: Virtual → emerald, In-Person → orange; the `id` links each chip back to
+// its MEETINGS row.
+const buildMeetingCalendar = (meetings: MeetingRow[]): MonthEvents =>
+  meetings.reduce<MonthEvents>((acc, m) => {
+    const day = meetingDay(m.schedule);
+    if (!acc[day]) acc[day] = [];
+    acc[day].push({ label: m.title, color: m.mode === 'Virtual' ? 'emerald' : 'orange', id: m.id });
+    return acc;
+  }, {});
 
 const CATEGORY_FILTERS: { value: 'all' | Category; label: string; dot?: BadgeDotColor }[] = [
   { value: 'all', label: 'All' },
@@ -345,9 +372,14 @@ export const TasksScreen: React.FC<{
     tab === 'events' ? (
       <EventsList />
     ) : tab === 'meetings' ? (
-      <MeetingsList persona={persona} />
+      <MeetingsList persona={persona} onCreate={() => setCreateMeetingOpen(true)} />
     ) : (
-      <TasksList onViewTaskQuote={onViewTaskQuote} openTask={openTask} onOpenTaskHandled={onOpenTaskHandled} />
+      <TasksList
+        onViewTaskQuote={onViewTaskQuote}
+        openTask={openTask}
+        onOpenTaskHandled={onOpenTaskHandled}
+        onCreate={() => setCreateOpen(true)}
+      />
     );
 
   return (
@@ -374,35 +406,40 @@ export const TasksScreen: React.FC<{
   );
 };
 
-/** A filter chip in the shell's chip row. */
+/** A filter chip in the shell's chip row — rendered with the DS `Tag`. */
 interface ChipDef {
   value: string;
   label: string;
   dot?: BadgeDotColor;
 }
 
-/**
- * A selectable filter pill — an optional leading `BadgeDot`, brand outline when
- * selected, no tick/× (that's the DS Tag's job for removable chips). Kept local
- * so the shared Tag component stays unchanged.
- */
-const FilterChip: React.FC<{
-  label: string;
-  dot?: BadgeDotColor;
-  selected: boolean;
-  onPress: () => void;
-}> = ({ label, dot, selected, onPress }) => (
-  <Pressable
-    onPress={onPress}
-    accessibilityRole="button"
-    accessibilityState={{ selected }}
-    style={[styles.chip, selected ? styles.chipSelected : styles.chipIdle]}
-  >
-    {dot ? <BadgeDot size="sm" color={dot} style={styles.chipDot} /> : null}
-    <Text style={[styles.chipLabel, selected && styles.chipLabelSelected]} numberOfLines={1}>
-      {label}
-    </Text>
-  </Pressable>
+/** Concentric double-ring badge (outer #EFF6FF / inner #DBEAFE) around a glyph. */
+const RoundedIconBadge: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <View style={styles.ringOuter}>
+    <View style={styles.ringInner}>{children}</View>
+  </View>
+);
+
+/** Shared empty-state fallback: a rounded icon badge + title + description, with
+ *  an optional action button (e.g. "Create a task"). Used by the Tasks and
+ *  Meetings tables and — inside the month — their calendars, whenever a filter
+ *  combination matches nothing. */
+const ListEmpty: React.FC<{
+  title: string;
+  description: string;
+  actionLabel?: string;
+  onAction?: () => void;
+}> = ({ title, description, actionLabel, onAction }) => (
+  <View style={styles.listEmpty}>
+    <RoundedIconBadge>
+      <Info size={22} color={colors.brand} />
+    </RoundedIconBadge>
+    <Text style={styles.listEmptyTitle}>{title}</Text>
+    <Text style={styles.listEmptyDesc}>{description}</Text>
+    {actionLabel ? (
+      <Button label={actionLabel} variant="secondaryGray" size="md" onPress={onAction} style={styles.listEmptyBtn} />
+    ) : null}
+  </View>
 );
 
 /**
@@ -466,11 +503,13 @@ const ListShell: React.FC<{
         {/* Category filter chips */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
           {chips.map((c) => (
-            <FilterChip
+            <Tag
               key={c.value}
               label={c.label}
+              size="sm"
               dot={c.dot}
               selected={category === c.value}
+              showIndicator={false}
               onPress={() => onCategory(c.value)}
             />
           ))}
@@ -478,15 +517,19 @@ const ListShell: React.FC<{
 
         {/* View toggles */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.toolRow}>
-          <FilterChip
+          <Tag
             label={todayLabel}
+            size="sm"
             selected={quick === 'today'}
+            showIndicator={false}
             onPress={() => onQuick(quick === 'today' ? null : 'today')}
           />
           {showCompleted ? (
-            <FilterChip
+            <Tag
               label="Completed"
+              size="sm"
               selected={quick === 'completed'}
+              showIndicator={false}
               onPress={() => onQuick(quick === 'completed' ? null : 'completed')}
             />
           ) : null}
@@ -586,7 +629,9 @@ const TasksList: React.FC<{
   /** A task to open in the detail modal (e.g. from a tapped notification). */
   openTask?: OpenTaskRequest | null;
   onOpenTaskHandled?: () => void;
-}> = ({ onViewTaskQuote, openTask, onOpenTaskHandled }) => {
+  /** Opens the create-task modal (from the empty state's action button). */
+  onCreate?: () => void;
+}> = ({ onViewTaskQuote, openTask, onOpenTaskHandled, onCreate }) => {
   const [category, setCategory] = useState<'all' | Category>('all');
   const [search, setSearch] = useState('');
   const [view, setView] = useState<'table' | 'calendar'>('table');
@@ -667,7 +712,10 @@ const TasksList: React.FC<{
   }, [category, search, quick, filters]);
 
   // Calendar cells honour the same category + quick-filter chips as the table.
+  // When the full filter set (incl. priority/source) empties the table, empty
+  // the calendar too so its in-month empty state shows.
   const calendarEvents = useMemo<MonthEvents>(() => {
+    if (data.length === 0) return {};
     const wantColor = category !== 'all' ? CATEGORY_COLOR[category] : null;
     const result: MonthEvents = {};
     for (const [day, evs] of Object.entries(TASK_CALENDAR)) {
@@ -678,7 +726,7 @@ const TasksList: React.FC<{
       if (kept.length) result[Number(day)] = kept;
     }
     return result;
-  }, [category, quick]);
+  }, [data, category, quick]);
 
   return (
     <>
@@ -698,13 +746,27 @@ const TasksList: React.FC<{
         onApplyFilters={setFilters}
       >
         {view === 'calendar' ? (
-          <MonthCalendar events={calendarEvents} onEventPress={() => setDetail(detailFor(TASKS[0]))} />
+          <MonthCalendar
+            events={calendarEvents}
+            onEventPress={() => setDetail(detailFor(TASKS[0]))}
+            emptyState={
+              <ListEmpty
+                title="No tasks found"
+                description="No tasks match the filters you've applied. Try adjusting them."
+                actionLabel="Create a task"
+                onAction={onCreate}
+              />
+            }
+          />
         ) : data.length > 0 ? (
           <Table columns={columns} data={data} rowKey="id" style={styles.table} onRowPress={(t) => setDetail(detailFor(t))} />
         ) : (
-          <View style={styles.inlineEmpty}>
-            <Text style={styles.inlineEmptyText}>No tasks match your filters.</Text>
-          </View>
+          <ListEmpty
+            title="No tasks found"
+            description="No tasks match the filters you've applied. Try adjusting them."
+            actionLabel="Create a task"
+            onAction={onCreate}
+          />
         )}
       </ListShell>
 
@@ -754,6 +816,9 @@ const EventsList: React.FC = () => {
     });
   }, [category, search, quick]);
 
+  // The calendar shows the same filtered set as the table.
+  const calendarEvents = useMemo(() => buildEventCalendar(data), [data]);
+
   return (
     <>
       <ListShell
@@ -769,7 +834,13 @@ const EventsList: React.FC = () => {
         onSearch={setSearch}
       >
         {view === 'calendar' ? (
-          <MonthCalendar events={EVENT_CALENDAR} onEventPress={() => setDetail(buildEventDetail(EVENTS[0].customer, EVENTS[0].occasions))} />
+          <MonthCalendar
+            events={calendarEvents}
+            onEventPress={(ev) => {
+              const event = EVENTS.find((e) => e.id === ev.id) ?? EVENTS[0];
+              setDetail(buildEventDetail(event.customer, event.occasions));
+            }}
+          />
         ) : data.length > 0 ? (
           <Table
             columns={EVENT_COLUMNS}
@@ -801,7 +872,7 @@ const meetingDetailFor = (m: MeetingRow): MeetingDetail =>
     scheduledBy: m.scheduledBy,
   });
 
-const MeetingsList: React.FC<{ persona: 'agent' | 'rm' }> = ({ persona }) => {
+const MeetingsList: React.FC<{ persona: 'agent' | 'rm'; onCreate?: () => void }> = ({ persona, onCreate }) => {
   const [category, setCategory] = useState<'all' | MeetingMode>('all');
   const [search, setSearch] = useState('');
   const [view, setView] = useState<'table' | 'calendar'>('table');
@@ -835,6 +906,9 @@ const MeetingsList: React.FC<{ persona: 'agent' | 'rm' }> = ({ persona }) => {
     });
   }, [category, search, quick, filters]);
 
+  // The calendar shows the same filtered set as the table.
+  const calendarEvents = useMemo(() => buildMeetingCalendar(data), [data]);
+
   return (
     <>
       <ListShell
@@ -854,7 +928,21 @@ const MeetingsList: React.FC<{ persona: 'agent' | 'rm' }> = ({ persona }) => {
         onApplyFilters={setFilters}
       >
         {view === 'calendar' ? (
-          <MonthCalendar events={MEETING_CALENDAR} onEventPress={() => setDetail(meetingDetailFor(MEETINGS[0]))} />
+          <MonthCalendar
+            events={calendarEvents}
+            onEventPress={(ev) => {
+              const meeting = MEETINGS.find((m) => m.id === ev.id) ?? MEETINGS[0];
+              setDetail(meetingDetailFor(meeting));
+            }}
+            emptyState={
+              <ListEmpty
+                title="No meetings found"
+                description="No meetings match the filters you've applied. Try adjusting them."
+                actionLabel="Schedule a meeting"
+                onAction={onCreate}
+              />
+            }
+          />
         ) : data.length > 0 ? (
           <Table
             columns={columns}
@@ -864,11 +952,11 @@ const MeetingsList: React.FC<{ persona: 'agent' | 'rm' }> = ({ persona }) => {
             onRowPress={(m) => setDetail(meetingDetailFor(m))}
           />
         ) : (
-          <EmptyState
-            icon={<CalendarBlank size={22} color={colors.brand} />}
-            title="No meetings yet"
-            description="Schedule calls and meetings with your customers and keep everything in one place."
+          <ListEmpty
+            title="No meetings found"
+            description="No meetings match the filters you've applied. Try adjusting them."
             actionLabel="Schedule a meeting"
+            onAction={onCreate}
           />
         )}
       </ListShell>
@@ -1008,11 +1096,11 @@ const EVENT_COLUMNS: TableColumn<EventRow>[] = [
         </Text>
       ) : (
         <View style={styles.actionRow}>
-          <Button label="Send wish" variant="link" size="sm" onPress={() => undefined} />
+          <Button label="Send wish" variant="tertiary" size="sm" onPress={() => undefined} />
           <Button
             iconOnly
             label="Call"
-            variant="secondaryGray"
+            variant="tertiaryGray"
             size="sm"
             leadingIcon={<Phone size={16} color={colors.textBody} />}
             onPress={() => undefined}
@@ -1198,20 +1286,6 @@ const StatusArrow: React.FC<{ status: Status; onChange: (next: Status) => void }
 // Empty state (Events / Meetings)
 // ---------------------------------------------------------------------------
 
-const EmptyState: React.FC<{
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  actionLabel: string;
-}> = ({ icon, title, description, actionLabel }) => (
-  <View style={styles.emptyWrap}>
-    <View style={styles.emptyIcon}>{icon}</View>
-    <Text style={styles.emptyTitle}>{title}</Text>
-    <Text style={styles.emptyDesc}>{description}</Text>
-    <Button label={actionLabel} variant="secondaryGray" size="md" onPress={() => undefined} style={styles.emptyBtn} />
-  </View>
-);
-
 // ---------------------------------------------------------------------------
 // Styles
 // ---------------------------------------------------------------------------
@@ -1234,23 +1308,6 @@ const styles = StyleSheet.create({
 
   chipRow: { gap: spacing.sm, paddingRight: spacing.lg },
   toolRow: { gap: spacing.sm, paddingRight: spacing.lg, alignItems: 'center' },
-
-  // Filter pill — mirrors the DS Tag's selected/idle states, plus a leading dot.
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    minHeight: 32,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.full,
-    borderWidth: 1,
-  },
-  chipIdle: { backgroundColor: colors.surfaceMuted, borderColor: 'transparent' },
-  chipSelected: { backgroundColor: colors.surface, borderColor: colors.brand },
-  // BadgeDot's own row is `alignSelf: 'flex-start'`; recentre against the label.
-  chipDot: { alignSelf: 'center' },
-  chipLabel: { fontFamily: typography.fontFamily, fontSize: 14, lineHeight: 20, color: colors.textBody },
-  chipLabelSelected: { color: colors.brandPressed, fontFamily: fontFamilyForWeight('500'), fontWeight: '500' },
 
   // Date range + filter on one row; the date field flexes, the filter hugs.
   filterRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
@@ -1309,10 +1366,13 @@ const styles = StyleSheet.create({
   inlineEmpty: { alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.xl },
   inlineEmptyText: { fontFamily: typography.fontFamily, ...typography.body2, color: colors.textBody },
 
+  // Shared empty-state fallback (rounded icon badge + title + description).
+  ringOuter: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#EFF6FF', alignItems: 'center', justifyContent: 'center' },
+  ringInner: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#DBEAFE', alignItems: 'center', justifyContent: 'center' },
+  listEmpty: { alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.xl, paddingHorizontal: spacing.lg },
+  listEmptyTitle: { fontFamily: fontFamilyForWeight('600'), fontSize: 16, fontWeight: '600', color: colors.textHeading, textAlign: 'center' },
+  listEmptyDesc: { fontFamily: typography.fontFamily, ...typography.body2, color: colors.textBody, textAlign: 'center', maxWidth: 280 },
+  listEmptyBtn: { alignSelf: 'center', marginTop: spacing.xs },
+
   // Empty state (Events / Meetings).
-  emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, padding: spacing.xl },
-  emptyIcon: { padding: spacing.md, borderRadius: radius.full, backgroundColor: colors.brandSubtle },
-  emptyTitle: { fontFamily: fontFamilyForWeight('600'), fontSize: 18, fontWeight: '600', color: colors.textHeading, textAlign: 'center' },
-  emptyDesc: { fontFamily: typography.fontFamily, ...typography.body2, color: colors.textBody, textAlign: 'center', maxWidth: 300 },
-  emptyBtn: { alignSelf: 'center' },
 });

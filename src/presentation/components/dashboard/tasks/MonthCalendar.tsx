@@ -17,6 +17,9 @@ export interface MonthEvent {
   label: string;
   color: AccentColor;
   done?: boolean;
+  /** Links the chip back to its source row (e.g. a meeting id) so the consumer
+   *  can open the matching detail. */
+  id?: string;
 }
 
 /** Events keyed by day-of-month within the reference month. */
@@ -66,10 +69,13 @@ function buildCells(year: number, month: number): Cell[] {
  * the reference month (August '26); navigating to other months shows an empty
  * grid. On a phone the grid scrolls sideways (128px cells).
  */
-export const MonthCalendar: React.FC<{ events: MonthEvents; onEventPress?: () => void }> = ({
-  events,
-  onEventPress,
-}) => {
+export const MonthCalendar: React.FC<{
+  events: MonthEvents;
+  onEventPress?: (event: MonthEvent) => void;
+  /** Shown inside the month (in place of the day grid) when `events` is empty —
+   *  e.g. a filter combination that matches nothing. */
+  emptyState?: React.ReactNode;
+}> = ({ events, onEventPress, emptyState }) => {
   const [view, setView] = useState({ year: TODAY.year, month: TODAY.month });
   // The day whose full event list is shown in the "+N more" bottom sheet.
   const [sheetDay, setSheetDay] = useState<{ day: number; events: MonthEvent[] } | null>(null);
@@ -92,6 +98,8 @@ export const MonthCalendar: React.FC<{ events: MonthEvents; onEventPress?: () =>
     });
   };
 
+  // No matching events at all — the consumer's filters emptied the set.
+  const showEmpty = !!emptyState && Object.keys(events).length === 0;
   const isReferenceMonth = view.year === TODAY.year && view.month === TODAY.month;
   const eventsFor = (cell: Cell): MonthEvent[] =>
     isReferenceMonth && cell.inMonth ? events[cell.day] ?? [] : [];
@@ -113,6 +121,9 @@ export const MonthCalendar: React.FC<{ events: MonthEvents; onEventPress?: () =>
         </Pressable>
       </View>
 
+      {showEmpty ? (
+        <View style={styles.calendarEmpty}>{emptyState}</View>
+      ) : (
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View style={{ width: CELL_WIDTH * 7 }}>
           {/* Weekday header row */}
@@ -152,7 +163,7 @@ export const MonthCalendar: React.FC<{ events: MonthEvents; onEventPress?: () =>
                       return (
                         <Pressable
                           key={i}
-                          onPress={onEventPress}
+                          onPress={() => onEventPress?.(ev)}
                           disabled={!onEventPress}
                           style={[styles.chip, { backgroundColor: c.lightBg, borderLeftColor: c.solidBg }]}
                         >
@@ -180,6 +191,7 @@ export const MonthCalendar: React.FC<{ events: MonthEvents; onEventPress?: () =>
           ))}
         </View>
       </ScrollView>
+      )}
     </View>
 
     {/* All events for a day, opened from "+N more" */}
@@ -196,7 +208,7 @@ export const MonthCalendar: React.FC<{ events: MonthEvents; onEventPress?: () =>
               key={i}
               onPress={() => {
                 setSheetDay(null);
-                onEventPress?.();
+                onEventPress?.(ev);
               }}
               disabled={!onEventPress}
               style={[styles.sheetChip, { backgroundColor: c.lightBg, borderLeftColor: c.solidBg }]}
@@ -230,6 +242,15 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
   },
   monthLabel: { fontFamily: fontFamilyForWeight('600'), fontSize: 16, fontWeight: '600', color: colors.textHeading },
+
+  calendarEmpty: {
+    borderTopWidth: 1,
+    borderTopColor: colors.borderSubtle,
+    paddingVertical: spacing.xxl,
+    paddingHorizontal: spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 
   weekdayRow: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: colors.borderSubtle },
   weekdayCell: {

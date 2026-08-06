@@ -17,6 +17,7 @@ import { YourToolkit } from '../../components/dashboard/sections/YourToolkit';
 import { AssistantInsights } from '../../components/dashboard/sections/AssistantInsights';
 import { TodaysTasks } from '../../components/dashboard/sections/TodaysTasks';
 import { TasksScreen, type TasksTab } from '../../components/dashboard/tasks/TasksScreen';
+import { NotesSheet } from '../../components/dashboard/tasks/NotesSheet';
 import { WhatsNew } from '../../components/dashboard/sections/WhatsNew';
 import { SearchPanel } from '../../components/dashboard/sections/SearchPanel';
 import { ObboardingModal } from '../../components/dashboard/sections/ObboardingModal';
@@ -87,6 +88,7 @@ const DashboardScreenInner: React.FC<AuthScreenProps<'Dashboard'>> = ({ navigati
   // matching flow. Cleared once BusinessScreen has routed it.
   const [quoteRequest, setQuoteRequest] = useState<QuoteRequest | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
   // Shown on every dashboard entry, matching the web.
   const [showOnboarding, setShowOnboarding] = useState(true);
   const [tourActive, setTourActive] = useState(false);
@@ -215,6 +217,8 @@ const DashboardScreenInner: React.FC<AuthScreenProps<'Dashboard'>> = ({ navigati
         onBackPress={() => businessBackRef.current?.()}
         onSearchPress={() => setSearchOpen(true)}
         onNotificationsPress={() => navigation.navigate('Notifications')}
+        showNotes={selectedItem === 'Tasks'}
+        onNotesPress={() => setNotesOpen(true)}
         tabs={selectedItem === 'Home' ? HOME_TABS : selectedItem === 'Tasks' ? TASKS_TABS : undefined}
         activeTab={selectedItem === 'Tasks' ? tasksTab : homeTab}
         onTabChange={selectedItem === 'Tasks' ? (v) => setTasksTab(v as TasksTab) : setHomeTab}
@@ -281,8 +285,11 @@ const DashboardScreenInner: React.FC<AuthScreenProps<'Dashboard'>> = ({ navigati
             quoteRequest={quoteRequest}
             onQuoteRequestHandled={() => setQuoteRequest(null)}
             onFullScreenChange={handleFullScreenChange}
-            onExitToHome={() => handleSelectItem('Home')}
-            onExitToTasks={() => handleSelectItem('Tasks')}
+            // Exiting a task-opened quote unmounts BusinessScreen in the same
+            // tick, so its full-screen effect never fires onFullScreenChange(false)
+            // to restore the nav — reset hideNav here explicitly.
+            onExitToHome={() => { setHideNav(false); handleSelectItem('Home'); }}
+            onExitToTasks={() => { setHideNav(false); handleSelectItem('Tasks'); }}
           />
         ) : selectedItem === 'Tasks' ? (
           <TasksScreen
@@ -318,6 +325,8 @@ const DashboardScreenInner: React.FC<AuthScreenProps<'Dashboard'>> = ({ navigati
 
 
       <SearchPanel visible={searchOpen} onClose={() => setSearchOpen(false)} />
+
+      <NotesSheet visible={notesOpen} onClose={() => setNotesOpen(false)} />
 
       <ObboardingModal
         isOpen={showOnboarding}

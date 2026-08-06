@@ -1,24 +1,27 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, Pressable, Modal as RNModal, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, Pressable, Image, Modal as RNModal, StyleSheet } from 'react-native';
+import type { ImageSourcePropType } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import LinearGradient from 'react-native-linear-gradient';
 import {
   At,
   Cake,
-  ChatCircleDots,
   Confetti,
   CrownSimple,
   EnvelopeSimple,
   Heartbeat,
+  Info,
   Phone,
   ShieldPlus,
+  ChatText,
   X,
-  WhatsappLogo,
 } from 'phosphor-react-native';
+import { dashboardImages } from '../images';
 import {
   Badge,
+  BottomSheet,
   Button,
   Checkbox,
-  Modal,
   Radio,
   TextArea,
   Toggle,
@@ -108,10 +111,12 @@ const POLICIES = [
   { name: 'Personal Guard', desc: 'Covers you and your family against any accidental bodily injury, disability or death.', tile: '#16A34A', border: '#A7F3D0', icon: <CrownSimple size={16} weight="fill" color="#FFFFFF" /> },
 ];
 
-const CHANNELS: { key: string; icon: React.ReactNode }[] = [
-  { key: 'WhatsApp', icon: <WhatsappLogo size={26} color="#25D366" weight="fill" /> },
-  { key: 'Email', icon: <EnvelopeSimple size={26} color="#EA4335" weight="fill" /> },
-  { key: 'SMS', icon: <ChatCircleDots size={26} color={colors.brand} weight="fill" /> },
+// Share channels: colored border (always) + a light selected-bg tint; `img` is a
+// bundled logo, SMS a blue tile. Matches the meeting modal's confirm sheet.
+const CHANNELS: { key: string; img: ImageSourcePropType | null; border: string; tint: string }[] = [
+  { key: 'WhatsApp', img: dashboardImages.whatsapp, border: '#A7F3D0', tint: '#ECFDF5' },
+  { key: 'Email', img: dashboardImages.mail, border: '#FED7AA', tint: '#FFF7ED' },
+  { key: 'SMS', img: null, border: '#BFDBFE', tint: '#EFF6FF' },
 ];
 
 /** The member card(s) a single occasion contributes to the modal. */
@@ -152,6 +157,13 @@ export const buildEventDetail = (customer: string, occasions: OccasionKind | Occ
     policyId: '28686-8728387',
   };
 };
+
+/** Concentric double-ring badge (outer #EFF6FF / inner #DBEAFE) around a glyph. */
+const RoundedIconBadge: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <View style={styles.ringOuter}>
+    <View style={styles.ringInner}>{children}</View>
+  </View>
+);
 
 // ---------------------------------------------------------------------------
 // Component
@@ -359,15 +371,17 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({ visible, onC
       </View>
 
       {/* Send-message confirmation */}
-      <Modal
+      <BottomSheet
         visible={showSendConfirm}
         onClose={() => setShowSendConfirm(false)}
-        iconName="info"
-        title="Send message to customer?"
         primaryAction={{ label: 'Confirm', onPress: () => finish(true) }}
-        secondaryAction={{ label: 'Cancel', tone: 'neutral', onPress: () => setShowSendConfirm(false) }}
+        secondaryAction={{ label: 'Cancel', onPress: () => setShowSendConfirm(false) }}
       >
         <View style={styles.confirmBody}>
+          <RoundedIconBadge>
+            <Info size={22} color={colors.brand} />
+          </RoundedIconBadge>
+          <Text style={styles.confirmTitle}>Send message to customer?</Text>
           <Text style={styles.confirmText}>
             This message will be sent to the customer as a personal message by you. Review the message before sending.
           </Text>
@@ -384,15 +398,29 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({ visible, onC
                 return (
                   <Pressable
                     key={ch.key}
-                    style={[styles.channelCard, sel && styles.channelCardSelected]}
+                    style={[styles.channelCard, { borderColor: ch.border }]}
                     onPress={() => toggleChannel(ch.key)}
                     accessibilityRole="button"
                     accessibilityState={{ selected: sel }}
                   >
+                    {sel ? (
+                      <LinearGradient
+                        colors={['#FFFFFF', ch.tint]}
+                        start={{ x: 0.5, y: 0 }}
+                        end={{ x: 0.5, y: 1 }}
+                        style={StyleSheet.absoluteFill}
+                      />
+                    ) : null}
                     <View style={styles.channelCheck}>
                       <Checkbox size="sm" checked={sel} onChange={() => toggleChannel(ch.key)} />
                     </View>
-                    {ch.icon}
+                    {ch.img ? (
+                      <Image source={ch.img} style={styles.channelImg} resizeMode="contain" />
+                    ) : (
+                      <View style={styles.channelTile}>
+                        <ChatText size={18} color="#FFFFFF" />
+                      </View>
+                    )}
                     <Text style={styles.channelLabel}>{ch.key}</Text>
                   </Pressable>
                 );
@@ -400,7 +428,7 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({ visible, onC
             </View>
           </View>
         </View>
-      </Modal>
+      </BottomSheet>
     </RNModal>
   );
 };
@@ -488,32 +516,36 @@ const styles = StyleSheet.create({
   },
   footerPrimary: { minWidth: 120 },
 
-  // Send-confirm modal body
-  confirmBody: { gap: spacing.md, alignItems: 'stretch' },
+  // Send-confirm sheet body
+  ringOuter: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#EFF6FF', alignItems: 'center', justifyContent: 'center' },
+  ringInner: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#DBEAFE', alignItems: 'center', justifyContent: 'center' },
+  confirmBody: { gap: spacing.md, alignItems: 'center' },
+  confirmTitle: { fontFamily: fontFamilyForWeight('500'), fontSize: 18, lineHeight: 24, fontWeight: '500', color: colors.textHeading, textAlign: 'center' },
   confirmText: { fontFamily: typography.fontFamily, fontSize: 14, lineHeight: 20, color: colors.textBody, textAlign: 'center' },
   messagePreview: {
+    alignSelf: 'stretch',
     borderWidth: 1,
     borderColor: colors.borderSubtle,
     borderRadius: radius.lg,
     backgroundColor: colors.surfaceSubtle,
     padding: spacing.md,
   },
-  messagePreviewText: { fontFamily: typography.fontFamily, fontSize: 13, lineHeight: 19, color: colors.textBody },
-  shareVia: { gap: spacing.sm },
+  messagePreviewText: { fontFamily: typography.fontFamily, fontSize: 13, lineHeight: 19, color: colors.textHeading },
+  shareVia: { gap: spacing.sm, alignSelf: 'stretch' },
   shareViaLabel: { fontFamily: fontFamilyForWeight('500'), fontSize: 13, fontWeight: '500', color: colors.textHeading },
   channelRow: { flexDirection: 'row', gap: spacing.sm },
   channelCard: {
     flex: 1,
-    alignItems: 'center',
-    gap: spacing.xs,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.xs,
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    padding: spacing.md,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
     backgroundColor: colors.surface,
+    overflow: 'hidden',
   },
-  channelCardSelected: { borderColor: colors.brand },
-  channelCheck: { position: 'absolute', top: spacing.xs, right: spacing.xs },
+  channelImg: { width: 32, height: 32 },
+  channelTile: { width: 32, height: 32, borderRadius: radius.md, backgroundColor: '#2563EB', alignItems: 'center', justifyContent: 'center' },
+  channelCheck: { position: 'absolute', top: spacing.sm, right: spacing.sm, zIndex: 1 },
   channelLabel: { fontFamily: typography.fontFamily, fontSize: 12, lineHeight: 16, color: colors.textBody },
 });
