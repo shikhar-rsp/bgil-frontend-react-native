@@ -36,6 +36,13 @@ interface HealthGuardProps {
    */
   onRegisterBack?: (handler: (() => void) | null) => void;
   onConvertToProposal: (customer: string) => void;
+  /** Open the wizard at this step (e.g. 6 = Preview) — used by a task's "View". */
+  initialStep?: number;
+  /** Seed a customer as the proposer + a demo quote when opened at `initialStep`. */
+  initialCustomer?: string;
+  /** Task-View mode: Back exits the flow entirely (e.g. to the Tasks tab) rather
+   *  than walking the wizard steps. */
+  onExit?: () => void;
 }
 
 /**
@@ -48,11 +55,16 @@ export const HealthGuard: React.FC<HealthGuardProps> = ({
   onClose,
   onRegisterBack,
   onConvertToProposal,
+  initialStep,
+  initialCustomer,
+  onExit,
 }) => {
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(() => initialStep ?? 1);
   // Furthest step reached — the stepper only lets the agent jump back to steps
   // they have already filled in, never skip ahead past validation.
-  const [maxVisitedStep, setMaxVisitedStep] = useState(1);
+  const [maxVisitedStep, setMaxVisitedStep] = useState(() => initialStep ?? 1);
+  // Task-View mode (opened at Preview from a task's "View"): Back leaves the flow.
+  const taskView = !!initialCustomer;
 
   useEffect(() => {
     setMaxVisitedStep((furthest) => Math.max(furthest, currentStep));
@@ -65,6 +77,12 @@ export const HealthGuard: React.FC<HealthGuardProps> = ({
 
   useEffect(() => {
     onRegisterBack?.(() => {
+      // From a task's "View", Back returns to where it came from (Tasks) instead
+      // of stepping through the wizard.
+      if (taskView && onExit) {
+        onExit();
+        return;
+      }
       if (stepRef.current > 1) {
         setCurrentStep(stepRef.current - 1);
         return;
@@ -72,7 +90,7 @@ export const HealthGuard: React.FC<HealthGuardProps> = ({
       onClose();
     });
     return () => onRegisterBack?.(null);
-  }, [onRegisterBack, onClose]);
+  }, [onRegisterBack, onClose, taskView, onExit]);
 
   // Preselect the product the flow was entered with (Browse Categories tile).
   const [selectedPlan, setSelectedPlan] = useState(() => planValueForProduct(productName));
@@ -107,6 +125,35 @@ export const HealthGuard: React.FC<HealthGuardProps> = ({
       clearTimeout(brochureTimer.current);
     }
   }, []);
+
+  // When opened from a task's "View", seed a representative Individual/Gold quote
+  // for the customer so the Preview step renders with real data (runs once).
+  const seededRef = useRef(false);
+  useEffect(() => {
+    if (!initialCustomer || seededRef.current) {
+      return;
+    }
+    seededRef.current = true;
+    const dob = new Date(1990, 0, 1);
+    const s = new Date();
+    const e = new Date(s);
+    e.setFullYear(e.getFullYear() + 3);
+    setPlanType('individual');
+    setSubPlan('gold');
+    setProposerIsMember(true);
+    setProposerName(initialCustomer);
+    setProposerDOB(dob);
+    setAnnualIncome('100000');
+    setPincode('590001');
+    setCity('Delhi');
+    setState('Delhi');
+    setAdults('0');
+    setSumInsured('500000');
+    setTenure('3y');
+    setStartDate(s);
+    setEndDate(e);
+    setMemberData({ proposer: { dob, sumInsured: '500000', selectedAddOns: [], wantsAddOns: 'no' } });
+  }, [initialCustomer]);
 
   // Mirrors the web brochure toast: show, then auto-dismiss after 3s.
   const handleDownloadBrochure = () => {

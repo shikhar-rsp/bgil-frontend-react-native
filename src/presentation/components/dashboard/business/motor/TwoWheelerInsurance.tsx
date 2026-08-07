@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
-import { colors, spacing, radius, fontFamilyForWeight, shadow } from '@atlas-ds/react-native';
+import { Toast, colors, spacing, radius, fontFamilyForWeight, shadow } from '@atlas-ds/react-native';
 import { MotorHeader, motorPolicyTitle } from './MotorHeader';
 import { VehicleTypeModal } from './VehicleTypeModal';
 import { VehicleIdentificationStep } from './VehicleIdentificationStep';
@@ -34,6 +34,12 @@ interface TwoWheelerInsuranceProps {
   initialVehicleType?: 'registered' | 'new';
   /** Selected product label, e.g. "Two Wheeler" — drives the header title. */
   productName?: string;
+  /** Open the wizard at this step (e.g. 6 = Preview) — used by a task's "View". */
+  initialStep?: number;
+  /** Seed a customer as the proposer when opened at `initialStep` (task View). */
+  initialCustomer?: string;
+  /** Task-View mode: Back exits the flow entirely (e.g. to the Tasks tab). */
+  onExit?: () => void;
 }
 
 /**
@@ -52,18 +58,21 @@ const STEPS = [
   { label: 'Preview' },
 ];
 
-export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClose, onRegisterBack, onConvertToProposal, initialVehicleType, productName }) => {
+export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClose, onRegisterBack, onConvertToProposal, initialVehicleType, productName, initialStep, initialCustomer, onExit }) => {
   // The type is normally picked on the Browse Categories screen before this
   // flow mounts; the sheet only reappears after a Reset.
   const isNewInit = initialVehicleType === 'new';
+  // Task-View mode: opened at Preview from a proposal task's "View".
+  const taskView = !!initialCustomer;
   const [vehicleType, setVehicleType] = useState<VehicleType>(initialVehicleType ?? null);
   const [showVehicleTypeModal, setShowVehicleTypeModal] = useState(!initialVehicleType);
   const [registrationNumber, setRegistrationNumber] = useState('');
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(() => initialStep ?? 1);
   const [showFeatures, setShowFeatures] = useState(false);
   // Furthest step reached — the stepper only lets the agent jump back to steps
   // they have already filled in, never skip ahead past validation.
-  const [maxVisitedStep, setMaxVisitedStep] = useState(1);
+  const [maxVisitedStep, setMaxVisitedStep] = useState(() => initialStep ?? 1);
+  const [showPaymentPending, setShowPaymentPending] = useState(taskView);
 
   useEffect(() => {
     setMaxVisitedStep((furthest) => Math.max(furthest, currentStep));
@@ -76,6 +85,12 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
 
   useEffect(() => {
     onRegisterBack?.(() => {
+      // From a task's "View", Back returns where it came from (Tasks) instead of
+      // stepping through the wizard.
+      if (taskView && onExit) {
+        onExit();
+        return;
+      }
       if (stepRef.current > 1) {
         setCurrentStep(stepRef.current - 1);
         return;
@@ -83,7 +98,7 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
       onClose();
     });
     return () => onRegisterBack?.(null);
-  }, [onRegisterBack, onClose]);
+  }, [onRegisterBack, onClose, taskView, onExit]);
 
   const [selectedPlanType, setSelectedPlanType] = useState('');
   const [selectedCustomerType, setSelectedCustomerType] = useState('');
@@ -91,7 +106,7 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
   const [policyEndDate, setPolicyEndDate] = useState<Date | null>(null);
   const [policyTenure, setPolicyTenure] = useState('');
 
-  const [proposerName, setProposerName] = useState('');
+  const [proposerName, setProposerName] = useState(initialCustomer ?? '');
   const [proposerPhone, setProposerPhone] = useState('');
   const [proposerEmail, setProposerEmail] = useState('');
 
@@ -340,7 +355,18 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
             discountLoader={discountLoader}
           />
         ) : currentStep === 6 ? (
-          <PreviewStep proposerName={proposerName || 'Rakesh Kumar'} proposerDOB={new Date('1998-04-12')} productName={productName} />
+          <>
+            {taskView && showPaymentPending ? (
+              <Toast
+                variant="warning"
+                layout="stacked"
+                title="Payment Pending"
+                message={`Policy ID 1973937 for ${proposerName || 'Rakesh Kumar'} payment is still pending. Follow up with the customer or send a quick reminder notice ASAP!`}
+                onClose={() => setShowPaymentPending(false)}
+              />
+            ) : null}
+            <PreviewStep proposerName={proposerName || 'Rakesh Kumar'} proposerDOB={new Date('1998-04-12')} productName={productName} />
+          </>
         ) : null}
       </ScrollView>
 

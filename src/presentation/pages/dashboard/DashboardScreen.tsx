@@ -16,6 +16,8 @@ import { QuickQuotes } from '../../components/dashboard/sections/QuickQuotes';
 import { YourToolkit } from '../../components/dashboard/sections/YourToolkit';
 import { AssistantInsights } from '../../components/dashboard/sections/AssistantInsights';
 import { TodaysTasks } from '../../components/dashboard/sections/TodaysTasks';
+import { TasksScreen, type TasksTab } from '../../components/dashboard/tasks/TasksScreen';
+import { NotesSheet } from '../../components/dashboard/tasks/NotesSheet';
 import { WhatsNew } from '../../components/dashboard/sections/WhatsNew';
 import { SearchPanel } from '../../components/dashboard/sections/SearchPanel';
 import { ObboardingModal } from '../../components/dashboard/sections/ObboardingModal';
@@ -28,7 +30,7 @@ import {
 } from '../../components/dashboard/walkthrough/WalkthroughContext';
 import { DashboardWalkthrough } from '../../components/dashboard/walkthrough/DashboardWalkthrough';
 import { WALKTHROUGH_STEPS, type WalkthroughSurface } from '../../components/dashboard/walkthrough/walkthroughSteps';
-import type { AuthScreenProps } from '../../../navigation';
+import type { AuthScreenProps, OpenTaskRequest } from '../../../navigation';
 
 /** Bottom-nav tabs — split 2 + 2 around the centre AI button. */
 const NAV_ITEMS: BottomNavItem[] = [
@@ -54,6 +56,13 @@ const HOME_TABS = [
   { label: 'Tasks', value: 'tasks' },
 ];
 
+/** Tasks-tab sub-views, driven by the same header segmented control. */
+const TASKS_TABS = [
+  { label: 'Tasks', value: 'tasks' },
+  { label: 'Events', value: 'events' },
+  { label: 'Meetings', value: 'meetings' },
+];
+
 /**
  * Agent dashboard. The top section is an avatar + search + notifications row
  * with a Tools / Insights / Tasks segmented control; the bottom nav switches
@@ -74,10 +83,12 @@ const DashboardScreenInner: React.FC<AuthScreenProps<'Dashboard'>> = ({ navigati
     setHideNav(fullScreen);
   }, []);
   const [homeTab, setHomeTab] = useState('tools');
+  const [tasksTab, setTasksTab] = useState<TasksTab>('tasks');
   // A Quick Quotes tile hands its product to the Business tab, which opens the
   // matching flow. Cleared once BusinessScreen has routed it.
   const [quoteRequest, setQuoteRequest] = useState<QuoteRequest | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
   // Shown on every dashboard entry, matching the web.
   const [showOnboarding, setShowOnboarding] = useState(true);
   const [tourActive, setTourActive] = useState(false);
@@ -104,6 +115,20 @@ const DashboardScreenInner: React.FC<AuthScreenProps<'Dashboard'>> = ({ navigati
     setShowOnboarding(false);
     setTourActive(true);
   }, [startTourParam, navigation]);
+
+  // Tapping a task notification lands here with `openTask`: switch to the Tasks
+  // tab and hand the task down so its detail modal opens. Cleared once consumed.
+  const [pendingTask, setPendingTask] = useState<OpenTaskRequest | null>(null);
+  const openTaskParam = route.params?.openTask;
+  useEffect(() => {
+    if (!openTaskParam) {
+      return;
+    }
+    navigation.setParams({ openTask: undefined });
+    setPendingTask(openTaskParam);
+    setTasksTab('tasks');
+    setSelectedItem('Tasks');
+  }, [openTaskParam, navigation]);
 
   const dismissOnboarding = () => setShowOnboarding(false);
 
@@ -153,6 +178,22 @@ const DashboardScreenInner: React.FC<AuthScreenProps<'Dashboard'>> = ({ navigati
       userInitials: 'RC',
     });
 
+  // A task's "View" opens the matching Business flow: Proposals → Two Wheeler,
+  // Renewals → the renewals table, Quotes → Health Guard (mirrors the web).
+  const handleViewTaskQuote = (taskType: 'Quotes' | 'Proposals' | 'Renewals', customer: string) => {
+    if (taskType === 'Proposals') {
+      // Open the Two Wheeler motor quote straight at Preview & Share (payment-pending toast).
+      setQuoteRequest({ product: 'Two Wheeler', vehicleType: 'registered', initialStep: 6, customer });
+    } else if (taskType === 'Renewals') {
+      // Open the expiring-policy screen for the customer (policy is due for renewal).
+      setQuoteRequest({ renewalPolicy: { customer } });
+    } else {
+      // Open the Health Guard quote straight at Preview & Share, seeded for the customer.
+      setQuoteRequest({ product: 'Health Guard', initialStep: 6, customer });
+    }
+    setSelectedItem('Business');
+  };
+
   const startWalkthrough = () => {
     setShowOnboarding(false);
     // Let the modal's fade-out finish before the overlay takes over, so the two
@@ -176,9 +217,11 @@ const DashboardScreenInner: React.FC<AuthScreenProps<'Dashboard'>> = ({ navigati
         onBackPress={() => businessBackRef.current?.()}
         onSearchPress={() => setSearchOpen(true)}
         onNotificationsPress={() => navigation.navigate('Notifications')}
-        tabs={selectedItem === 'Home' ? HOME_TABS : undefined}
-        activeTab={homeTab}
-        onTabChange={setHomeTab}
+        showNotes={selectedItem === 'Tasks'}
+        onNotesPress={() => setNotesOpen(true)}
+        tabs={selectedItem === 'Home' ? HOME_TABS : selectedItem === 'Tasks' ? TASKS_TABS : undefined}
+        activeTab={selectedItem === 'Tasks' ? tasksTab : homeTab}
+        onTabChange={selectedItem === 'Tasks' ? (v) => setTasksTab(v as TasksTab) : setHomeTab}
       />
 
       <View style={styles.body}>
@@ -242,7 +285,19 @@ const DashboardScreenInner: React.FC<AuthScreenProps<'Dashboard'>> = ({ navigati
             quoteRequest={quoteRequest}
             onQuoteRequestHandled={() => setQuoteRequest(null)}
             onFullScreenChange={handleFullScreenChange}
-            onExitToHome={() => handleSelectItem('Home')}
+            // Exiting a task-opened quote unmounts BusinessScreen in the same
+            // tick, so its full-screen effect never fires onFullScreenChange(false)
+            // to restore the nav — reset hideNav here explicitly.
+            onExitToHome={() => { setHideNav(false); handleSelectItem('Home'); }}
+            onExitToTasks={() => { setHideNav(false); handleSelectItem('Tasks'); }}
+          />
+        ) : selectedItem === 'Tasks' ? (
+          <TasksScreen
+            tab={tasksTab}
+            onViewTaskQuote={handleViewTaskQuote}
+            openTask={pendingTask}
+            onOpenTaskHandled={() => setPendingTask(null)}
+            persona="agent"
           />
         ) : (
           <View style={styles.placeholder}>
@@ -270,6 +325,8 @@ const DashboardScreenInner: React.FC<AuthScreenProps<'Dashboard'>> = ({ navigati
 
 
       <SearchPanel visible={searchOpen} onClose={() => setSearchOpen(false)} />
+
+      <NotesSheet visible={notesOpen} onClose={() => setNotesOpen(false)} />
 
       <ObboardingModal
         isOpen={showOnboarding}

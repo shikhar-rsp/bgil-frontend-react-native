@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CaretLeft } from 'phosphor-react-native';
 import {
@@ -10,7 +10,7 @@ import {
   fontFamilyForWeight,
   type NotificationTab,
 } from '@atlas-ds/react-native';
-import type { AuthScreenProps } from '../../../navigation';
+import type { AuthScreenProps, OpenTaskRequest } from '../../../navigation';
 
 type NotificationCategory = 'general' | 'updates';
 
@@ -21,9 +21,21 @@ type NotificationEntry = {
   description: string;
   time?: string;
   unread?: boolean;
+  /** Task notifications open the task detail modal when tapped. */
+  task?: OpenTaskRequest;
 };
 
 const ITEMS: NotificationEntry[] = [
+  {
+    id: 'task-1',
+    category: 'general',
+    title: 'New Task Assigned to You',
+    description:
+      'A new task for quote of Priti Sinha has been assigned to you by Manas Patel with due date on 31/11/2026',
+    time: '2mins',
+    unread: true,
+    task: { taskType: 'Quotes', customer: 'Priti Sinha', priority: 'Normal', status: 'Open', assignedBy: 'Manas Patel' },
+  },
   {
     id: '1',
     category: 'general',
@@ -111,7 +123,12 @@ export const NotificationsScreen: React.FC<AuthScreenProps<'Notifications'>> = (
       >
         <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
           {filtered.map((item) => (
-            <View key={item.id} style={styles.item}>
+            <Pressable
+              key={item.id}
+              style={({ pressed }) => [styles.item, item.task && pressed && styles.itemPressed]}
+              onPress={item.task ? () => navigation.navigate('Dashboard', { openTask: item.task }) : undefined}
+              accessibilityRole={item.task ? 'button' : undefined}
+            >
               <View style={styles.itemText}>
                 <Text style={styles.itemTitle}>{item.title}</Text>
                 <Text style={styles.itemDesc}>{item.description}</Text>
@@ -122,7 +139,7 @@ export const NotificationsScreen: React.FC<AuthScreenProps<'Notifications'>> = (
                   {item.time ? <Text style={styles.itemTime}>{item.time}</Text> : null}
                 </View>
               )}
-            </View>
+            </Pressable>
           ))}
         </ScrollView>
       </NotificationsBase>
@@ -141,6 +158,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.borderSubtle,
   },
+  itemPressed: { backgroundColor: colors.surfaceSubtle },
   itemText: { flex: 1, gap: spacing.xs },
   itemTitle: { fontFamily: fontFamilyForWeight('500'), fontSize: 15, color: colors.textHeading },
   itemDesc: {

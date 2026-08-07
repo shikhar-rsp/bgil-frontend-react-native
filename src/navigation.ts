@@ -17,6 +17,16 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 /** An agent an RM can "view as" from the profile page. */
 export type AgentViewTarget = { name: string; code: string };
 
+/** A task to open in the Tasks detail modal (e.g. from a notification tap). */
+export type OpenTaskRequest = {
+  taskType: 'Quotes' | 'Proposals' | 'Renewals';
+  customer: string;
+  priority: 'Urgent' | 'Normal' | 'Low' | 'None';
+  status: 'Open' | 'In progress' | 'Completed';
+  /** Set when the task was assigned to me by this person (vs. created by me). */
+  assignedBy?: string;
+};
+
 export type RootStackParamList = {
   DesignationSelect: undefined;
   AgentLogin: undefined;
@@ -26,8 +36,9 @@ export type RootStackParamList = {
   ForgotPassword: undefined;
   ResetPassword: undefined;
   PasswordSuccess: undefined;
-  /** `startTour` re-runs the product walkthrough (Profile → Product Tour). */
-  Dashboard: { startTour?: boolean } | undefined;
+  /** `startTour` re-runs the product walkthrough (Profile → Product Tour);
+   *  `openTask` opens the Tasks tab with that task's detail modal. */
+  Dashboard: { startTour?: boolean; openTask?: OpenTaskRequest } | undefined;
   /** `viewAgent` puts the RM dashboard into read-only "agent view" mode. */
   RMDashboard: { viewAgent?: AgentViewTarget } | undefined;
   Trainee: undefined;
