@@ -76,12 +76,11 @@ interface RenewPolicyProps {
 }
 
 /**
- * Steps that show the premium card: the two that can change the figure (plan
- * and add-ons) plus the one that collects it. On the detail-capture steps —
- * proposer, member, nominee, previous policy, KYC — the premium can't move, so
- * repeating it there is noise.
+ * Only the step that charges the premium shows the card. Web keeps it beside
+ * every step as a sticky column; stacked under the content on a phone it just
+ * repeats down the flow, and the summary already itemises it.
  */
-const PREMIUM_CARD_STEPS: RenewalStepKey[] = ['policy', 'addons', 'payment'];
+const PREMIUM_CARD_STEPS: RenewalStepKey[] = ['payment'];
 
 const emptyProposer = (customerName: string): ProposerData => ({
   proposerName: customerName,
@@ -609,14 +608,11 @@ export const RenewPolicy: React.FC<RenewPolicyProps> = ({ record, mode = 'flow',
     [stepKeys],
   );
 
-  // Single-step edit flows have nothing meaningful to show in a stepper.
+  // A stepper only says anything when there is more than one step to walk.
+  // Driven by the step list itself rather than a hand-kept list of edit
+  // options, which had gone stale and hid it across the whole renewal path.
   const showStepper =
-    currentKey !== 'preview' &&
-    currentKey !== 'payment' &&
-    editOption !== 'policy-plan' &&
-    editOption !== 'addons-subplan' &&
-    !(proceedOption === 'renewal' && editOption === 'nominee-details') &&
-    !(proceedOption === 'renewal' && editOption === 'proposer-details');
+    currentKey !== 'preview' && currentKey !== 'payment' && stepperSteps.length > 1;
 
   /* ------------------------------ validation ----------------------------- */
   const isPreviewValid =
@@ -1236,7 +1232,7 @@ export const RenewPolicy: React.FC<RenewPolicyProps> = ({ record, mode = 'flow',
   return (
     <View style={styles.flex}>
       <ScrollView ref={scrollRef} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {showStepper && stepperSteps.length > 0 ? (
+        {showStepper ? (
           <WizardStepper
             steps={stepperSteps.map((s) => ({ label: s.label }))}
             current={stepperSteps.findIndex((s) => s.actualStep === currentStep)}

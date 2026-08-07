@@ -168,25 +168,6 @@ export const RenewalSummary: React.FC<RenewalSummaryProps> = ({
               </View>
             </Section>
 
-            <Section
-              title="Renewal Premium Details"
-              tone="info"
-              badge={changed.includes('premium') ? updatedBadge : null}
-            >
-              <View style={styles.grid}>
-                <Field label="Current Premium:" value="Rs. 30,000" />
-                <Field label="Add on premium:" value="Rs. 1,600" />
-                <Field label="Discount:" value="Rs. 0" />
-                <Field label="Central GST:" value="Rs. 0" />
-                <Field label="State GST:" value="Rs. 0" />
-                <Field label="Receipt no.:" value="SYS-24-000003708236" />
-                <Field label="Payment Status">
-                  <Badge label="NA" variant="solid" size="sm" color="neutral" style={styles.inlineBadge} />
-                </Field>
-                <Field label="Renewal Premium:" value="Rs. 31,600" big />
-              </View>
-            </Section>
-
             <Section title="Proposer Details" badge={changed.includes('proposer') ? updatedBadge : null}>
               <View style={styles.grid}>
                 {(
@@ -268,6 +249,26 @@ export const RenewalSummary: React.FC<RenewalSummaryProps> = ({
                 <Field label="Amount:" value="Rs. 31,600" big />
               </View>
             </Section>
+
+            {/* Last: the figure the agent is being asked to approve. */}
+            <Section
+              title="Renewal Premium Details"
+              tone="info"
+              badge={changed.includes('premium') ? updatedBadge : null}
+            >
+              <View style={styles.grid}>
+                <Field label="Current Premium:" value="Rs. 30,000" />
+                <Field label="Add on premium:" value="Rs. 1,600" />
+                <Field label="Discount:" value="Rs. 0" />
+                <Field label="Central GST:" value="Rs. 0" />
+                <Field label="State GST:" value="Rs. 0" />
+                <Field label="Receipt no.:" value="SYS-24-000003708236" />
+                <Field label="Payment Status">
+                  <Badge label="NA" variant="solid" size="sm" color="neutral" style={styles.inlineBadge} />
+                </Field>
+                <Field label="Renewal Premium:" value="Rs. 31,600" big />
+              </View>
+            </Section>
           </View>
         </View>
       </View>
@@ -292,6 +293,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     borderRadius: radius.lg,
     flexWrap: 'wrap',
+    // `flexWrap` makes alignContent (default flex-start) position the line, not
+    // alignItems — without this the row hugs the top of the 48px minHeight.
+    alignContent: 'center',
   },
   sectionHeaderSuccess: { backgroundColor: '#059669' },
   sectionHeaderInfo: { backgroundColor: '#2563EB' },
