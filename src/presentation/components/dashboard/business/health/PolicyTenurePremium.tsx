@@ -41,6 +41,31 @@ export const PolicyTenurePremium: React.FC<PolicyTenurePremiumProps> = ({ tenure
 
   return (
     <View style={styles.card}>
+      {/* Tenure first: it drives the premium, so the figure it produces reads
+          last rather than sitting above the choice that changes it. */}
+      <View style={styles.tenureBlock}>
+        <Text style={styles.heading}>Choose Policy Tenure</Text>
+        {TENURES.map((t) => {
+          const selected = tenure === t.value;
+          return (
+            <Pressable
+              key={t.value}
+              style={[styles.tenure, selected && styles.tenureSel]}
+              onPress={() => onSelectTenure(t.value)}
+              accessibilityRole="radio"
+              accessibilityState={{ selected }}
+            >
+              <View style={styles.tenureLeft}>
+                <Radio selected={selected} onPress={() => onSelectTenure(t.value)} />
+                <Text style={styles.tenureLabel}>{t.label}</Text>
+                {t.badge && canShowPremium ? <Badge variant="solid" size="sm" color="emerald" label={t.badge} /> : null}
+              </View>
+              <Text style={[styles.tenurePrice, selected && styles.tenurePriceSel]}>Rs. {t.price}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
       <View style={styles.premiumCard}>
         <View style={styles.premiumHeader}>
           <Text style={styles.heading}>Premium Details</Text>
@@ -74,29 +99,6 @@ export const PolicyTenurePremium: React.FC<PolicyTenurePremiumProps> = ({ tenure
       {canShowPremium ? (
         <ToastGlobal variant="info" title="21 days validity." message="Quote valid till 21st Feb 2026." />
       ) : null}
-
-      <View style={styles.tenureBlock}>
-        <Text style={styles.heading}>Choose Policy Tenure</Text>
-        {TENURES.map((t) => {
-          const selected = tenure === t.value;
-          return (
-            <Pressable
-              key={t.value}
-              style={[styles.tenure, selected && styles.tenureSel]}
-              onPress={() => onSelectTenure(t.value)}
-              accessibilityRole="radio"
-              accessibilityState={{ selected }}
-            >
-              <View style={styles.tenureLeft}>
-                <Radio selected={selected} onPress={() => onSelectTenure(t.value)} />
-                <Text style={styles.tenureLabel}>{t.label}</Text>
-                {t.badge && canShowPremium ? <Badge variant="solid" size="sm" color="emerald" label={t.badge} /> : null}
-              </View>
-              <Text style={[styles.tenurePrice, selected && styles.tenurePriceSel]}>Rs. {t.price}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
     </View>
   );
 };

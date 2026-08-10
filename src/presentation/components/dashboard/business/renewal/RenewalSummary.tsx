@@ -58,7 +58,10 @@ const Section: React.FC<{
       ]}
     >
       <Text style={[styles.sectionTitle, tone !== 'muted' && styles.sectionTitleOnColor]}>{title}</Text>
-      {badge}
+      {/* Badge sets `alignSelf: 'flex-start'` so it doesn't stretch in a column;
+          in this row that pins it to the top. A wrapper hugging its height makes
+          the rule a no-op and lets `alignItems: 'center'` do its job. */}
+      {badge ? <View>{badge}</View> : null}
     </View>
     <View>{children}</View>
   </View>
@@ -168,6 +171,25 @@ export const RenewalSummary: React.FC<RenewalSummaryProps> = ({
               </View>
             </Section>
 
+            <Section
+              title="Renewal Premium Details"
+              tone="info"
+              badge={changed.includes('premium') ? updatedBadge : null}
+            >
+              <View style={styles.grid}>
+                <Field label="Current Premium:" value="Rs. 30,000" />
+                <Field label="Add on premium:" value="Rs. 1,600" />
+                <Field label="Discount:" value="Rs. 0" />
+                <Field label="Central GST:" value="Rs. 0" />
+                <Field label="State GST:" value="Rs. 0" />
+                <Field label="Receipt no.:" value="SYS-24-000003708236" />
+                <Field label="Payment Status">
+                  <Badge label="NA" variant="solid" size="sm" color="neutral" style={styles.inlineBadge} />
+                </Field>
+                <Field label="Renewal Premium:" value="Rs. 31,600" big />
+              </View>
+            </Section>
+
             <Section title="Proposer Details" badge={changed.includes('proposer') ? updatedBadge : null}>
               <View style={styles.grid}>
                 {(
@@ -247,26 +269,6 @@ export const RenewalSummary: React.FC<RenewalSummaryProps> = ({
                 <Field label="Bank name:" value="State Bank of India" />
                 <Field label="Branch:" value="Hennur" />
                 <Field label="Amount:" value="Rs. 31,600" big />
-              </View>
-            </Section>
-
-            {/* Last: the figure the agent is being asked to approve. */}
-            <Section
-              title="Renewal Premium Details"
-              tone="info"
-              badge={changed.includes('premium') ? updatedBadge : null}
-            >
-              <View style={styles.grid}>
-                <Field label="Current Premium:" value="Rs. 30,000" />
-                <Field label="Add on premium:" value="Rs. 1,600" />
-                <Field label="Discount:" value="Rs. 0" />
-                <Field label="Central GST:" value="Rs. 0" />
-                <Field label="State GST:" value="Rs. 0" />
-                <Field label="Receipt no.:" value="SYS-24-000003708236" />
-                <Field label="Payment Status">
-                  <Badge label="NA" variant="solid" size="sm" color="neutral" style={styles.inlineBadge} />
-                </Field>
-                <Field label="Renewal Premium:" value="Rs. 31,600" big />
               </View>
             </Section>
           </View>
