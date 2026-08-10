@@ -35,7 +35,7 @@ import { ProfileScreen } from './src/presentation/pages/dashboard/ProfileScreen'
 import { MyProfileScreen } from './src/presentation/pages/dashboard/MyProfileScreen';
 import { SettingsScreen } from './src/presentation/pages/dashboard/SettingsScreen';
 import { NotificationsScreen } from './src/presentation/pages/dashboard/NotificationsScreen';
-// import { DevNav } from './src/dev/DevNav';
+import { DevNav } from './src/dev/DevNav';
 
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -113,7 +113,7 @@ export default function App() {
               <Stack.Screen name="Settings" component={SettingsScreen} />
               <Stack.Screen name="Notifications" component={NotificationsScreen} />
             </Stack.Navigator>
-            {/* <DevNav navigationRef={navigationRef} /> */}
+            <DevNav navigationRef={navigationRef} />
           </NavigationContainer>
           <Loader />
         </LoaderProvider>

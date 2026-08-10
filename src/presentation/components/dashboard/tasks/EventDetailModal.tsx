@@ -229,12 +229,17 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({ visible, onC
 
         <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
           {/* Banner — pink wash fading to white, as in the task/meeting modals */}
-          <LinearGradient
-            colors={['#FDF2F8', '#FFFFFF']}
-            start={{ x: 0.5, y: 0 }}
-            end={{ x: 0.5, y: 1 }}
-            style={styles.banner}
-          >
+          {/* A plain View owns the radius, padding and layout; the gradient is a
+              background-only layer behind it. On iOS a gradient that hosts its
+              own children mis-sizes them and paints over them — that pushed this
+              banner off the right edge of the screen. */}
+          <View style={styles.banner}>
+            <LinearGradient
+              colors={['#FDF2F8', '#FFFFFF']}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
             <View style={styles.bannerTop}>
               <Text style={styles.bannerName}>{detail.name}</Text>
               {detail.occasions.map((o) => (
@@ -280,7 +285,7 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({ visible, onC
               <Text style={styles.contactText}>{detail.product}</Text>
               <Text style={styles.contactText}>{detail.policyId}</Text>
             </View>
-          </LinearGradient>
+          </View>
 
           {/* Member cards */}
           {detail.members.map((m, i) => {
@@ -460,13 +465,14 @@ const styles = StyleSheet.create({
   // keeps it inside the rounded corners on Android.
   banner: { borderRadius: radius.xl, padding: spacing.lg, gap: spacing.md, overflow: 'hidden' },
   bannerTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' },
-  bannerName: { fontFamily: fontFamilyForWeight('700'), fontSize: 18, fontWeight: '700', color: colors.textHeading },
+  // Shrinks so a long customer name wraps instead of widening the whole banner.
+  bannerName: { flexShrink: 1, fontFamily: fontFamilyForWeight('700'), fontSize: 18, fontWeight: '700', color: colors.textHeading },
   bannerActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, flexWrap: 'wrap' },
-  completeRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  completeRow: { flexShrink: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   // The outlined button is transparent by default — fill it so it reads as a
   // white chip against the banner's gradient.
   callBtn: { backgroundColor: '#FFFFFF' },
-  completeLabel: { fontFamily: typography.fontFamily, fontSize: 14, color: colors.textBody },
+  completeLabel: { flexShrink: 1, fontFamily: typography.fontFamily, fontSize: 14, color: colors.textBody },
   contactRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: spacing.lg, rowGap: spacing.xs },
   contactItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   // A step darker than muted so the contact line stays readable on the banner.

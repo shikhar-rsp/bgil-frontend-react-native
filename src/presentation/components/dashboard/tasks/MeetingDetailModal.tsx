@@ -522,12 +522,17 @@ export const MeetingDetailModal: React.FC<MeetingDetailModalProps> = ({
         <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
           {/* Banner (existing meetings only) */}
           {detail ? (
-            <LinearGradient
-              colors={bannerColors}
-              start={{ x: 0.5, y: 0 }}
-              end={{ x: 0.5, y: 1 }}
-              style={styles.banner}
-            >
+            // A plain View owns the radius, padding and layout; the gradient is a
+            // background-only layer behind it. On iOS a gradient that hosts its
+            // own children mis-sizes them and paints over them — that pushed this
+            // banner (and its priority badge) off the right edge of the screen.
+            <View style={styles.banner}>
+              <LinearGradient
+                colors={bannerColors}
+                start={{ x: 0.5, y: 0 }}
+                end={{ x: 0.5, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
               <View style={styles.rowBetween}>
                 <Text style={styles.bannerTitle}>{detail.title}</Text>
                 {detail.priority ? (
@@ -538,7 +543,7 @@ export const MeetingDetailModal: React.FC<MeetingDetailModalProps> = ({
                 <Text style={styles.metaMuted}>{detail.scheduledByLabel}</Text>
                 <Text style={styles.metaMuted}>Created on {detail.createdOn}</Text>
               </View>
-            </LinearGradient>
+            </View>
           ) : null}
 
           {showForm ? (
@@ -913,7 +918,7 @@ const styles = StyleSheet.create({
 
   banner: { borderRadius: radius.xl, padding: spacing.lg, gap: spacing.xs, overflow: 'hidden' },
   bannerTitle: { flex: 1, fontFamily: fontFamilyForWeight('600'), fontSize: 16, fontWeight: '600', color: colors.textHeading },
-  metaMuted: { fontFamily: typography.fontFamily, fontSize: 12, lineHeight: 16, color: colors.textBody },
+  metaMuted: { flexShrink: 1, fontFamily: typography.fontFamily, fontSize: 12, lineHeight: 16, color: colors.textBody },
 
   // Read-only cards
   viewCard: { borderWidth: 1, borderColor: colors.borderSubtle, borderRadius: radius.lg, padding: spacing.lg, gap: spacing.sm },

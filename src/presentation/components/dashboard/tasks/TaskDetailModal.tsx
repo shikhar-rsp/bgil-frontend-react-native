@@ -621,12 +621,17 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
         <ScrollView ref={scrollRef} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
           {/* Edit banner */}
           {isEdit && selectedTask ? (
-            <LinearGradient
-              colors={['#EFF6FF', '#FFFFFF']}
-              start={{ x: 0.5, y: 0 }}
-              end={{ x: 0.5, y: 1 }}
-              style={styles.titleCard}
-            >
+            // A plain View owns the radius, padding and layout; the gradient is a
+            // background-only layer behind it. On iOS a gradient that hosts its
+            // own children mis-sizes them and paints over them, clipping the card
+            // off the right edge of the screen.
+            <View style={styles.titleCard}>
+              <LinearGradient
+                colors={['#EFF6FF', '#FFFFFF']}
+                start={{ x: 0.5, y: 0 }}
+                end={{ x: 0.5, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
               <View style={styles.rowBetween}>
                 <Text style={styles.titleText}>
                   {taskType} - {selectedTask.customer}
@@ -639,7 +644,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
                 <Text style={styles.metaMuted}>{detail?.source}</Text>
                 <Text style={styles.metaMuted}>Created on {detail?.createdOn}</Text>
               </View>
-            </LinearGradient>
+            </View>
           ) : null}
 
           {/* Create-mode task pickers */}
@@ -954,7 +959,7 @@ const styles = StyleSheet.create({
   // Badges default to `alignSelf: 'flex-start'`; recentre against their row.
   centerBadge: { alignSelf: 'center' },
   titleText: { flex: 1, fontFamily: fontFamilyForWeight('600'), fontSize: 16, fontWeight: '600', color: colors.textHeading },
-  metaMuted: { fontFamily: typography.fontFamily, fontSize: 12, lineHeight: 16, color: colors.textBody},
+  metaMuted: { flexShrink: 1, fontFamily: typography.fontFamily, fontSize: 12, lineHeight: 16, color: colors.textBody },
 
   // Summary card
   summaryCard: { borderWidth: 1, borderColor: colors.borderSubtle, borderRadius: radius.xl, padding: spacing.lg, gap: spacing.md, backgroundColor: colors.surfaceSubtle },

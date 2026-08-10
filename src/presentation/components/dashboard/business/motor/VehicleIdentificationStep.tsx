@@ -17,6 +17,7 @@ import { RequiredField, RequiredLabel } from '../RequiredField';
 import { dashboardImages } from '../../images';
 import {
   lookupVehicle,
+  VEHICLE_TYPE_IMAGES,
   MODEL_OPTIONS,
   MAKE_OPTIONS,
   SUBTYPE_OPTIONS,
@@ -172,7 +173,7 @@ export const VehicleIdentificationStep: React.FC<VehicleIdentificationStepProps>
             ) : null}
 
             {/* Car pinned top-right; the Model/Make block clears it. */}
-            <Image source={vehicle.icon} style={styles.vehicleIcon} resizeMode="contain" />
+            <Image source={VEHICLE_TYPE_IMAGES[vehicle.type]} style={styles.vehicleIcon} resizeMode="contain" />
 
             <View style={styles.topBlock}>
               <Detail label="Model:" value={vehicle.model} big />

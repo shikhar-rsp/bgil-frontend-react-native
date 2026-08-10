@@ -17,7 +17,7 @@ import { ShareQuoteModal } from './ShareQuoteModal';
 import { PolicyFeaturesModal } from '../PolicyFeaturesModal';
 import { MOTOR_POLICY_FEATURES } from '../policyFeaturesData';
 import { Slider } from '@atlas-ds/react-native';
-import { validateRegistration, TENURE_YEAR_MAP } from './motorData';
+import { validateRegistration, lookupVehicle, DEFAULT_IDV, TENURE_YEAR_MAP } from './motorData';
 
 type VehicleType = 'registered' | 'new' | null;
 
@@ -116,7 +116,7 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
   const [vehicleManufacturingYear, setVehicleManufacturingYear] = useState(isNewInit ? '' : '2020');
   const [registrationLocation, setRegistrationLocation] = useState(isNewInit ? '' : 'Pune');
   const [registrationDate, setRegistrationDate] = useState(isNewInit ? '' : '30 Nov 2020');
-  const [vehicleIdv, setVehicleIdv] = useState('50000');
+  const [vehicleIdv, setVehicleIdv] = useState(DEFAULT_IDV);
   const [currentPolicyNcb, setCurrentPolicyNcb] = useState('0');
   const [expiringPolicyNcb, setExpiringPolicyNcb] = useState('0');
 
@@ -126,6 +126,26 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
   const [discountLoader, setDiscountLoader] = useState<DiscountLoader>([0, 0]);
 
   const [showShareModal, setShowShareModal] = useState(false);
+
+  // Registered flow: the lookup is the source of truth for vehicle details — it
+  // is what the found-vehicle card renders. Mirror it into state so downstream
+  // rules see the real vehicle, notably the manufacturing year that drives the
+  // 15-year add-on cutoff.
+  useEffect(() => {
+    if (vehicleType !== 'registered') {
+      return;
+    }
+    const vehicle = lookupVehicle(registrationNumber);
+    if (!vehicle) {
+      return;
+    }
+    setVehicleModel(vehicle.model);
+    setVehicleMake(vehicle.make);
+    setVehicleSubType(vehicle.subType);
+    setVehicleManufacturingYear(vehicle.year);
+    setRegistrationLocation(vehicle.location);
+    setRegistrationDate(vehicle.regDate);
+  }, [vehicleType, registrationNumber]);
 
   const handleVehicleTypeChange = (type: 'registered' | 'new') => {
     setVehicleType(type);
@@ -137,7 +157,7 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
       setVehicleManufacturingYear('');
       setRegistrationLocation('');
       setRegistrationDate('');
-      setVehicleIdv('50000');
+      setVehicleIdv(DEFAULT_IDV);
       setCurrentPolicyNcb('0');
       setExpiringPolicyNcb('0');
       setSelectedPlanType('');
@@ -148,7 +168,7 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
       setVehicleManufacturingYear('2020');
       setRegistrationLocation('Pune');
       setRegistrationDate('30 Nov 2020');
-      setVehicleIdv('50000');
+      setVehicleIdv(DEFAULT_IDV);
       setCurrentPolicyNcb('0');
       setExpiringPolicyNcb('0');
       setSelectedPlanType('');
@@ -223,9 +243,11 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
     setVehicleManufacturingYear('');
     setRegistrationLocation('');
     setRegistrationDate('');
-    setVehicleIdv('');
-    setCurrentPolicyNcb('');
-    setExpiringPolicyNcb('');
+    // Sliders render at 0% from the start, so an empty string would silently
+    // fail validation on a form that looks filled.
+    setVehicleIdv(DEFAULT_IDV);
+    setCurrentPolicyNcb('0');
+    setExpiringPolicyNcb('0');
     setSelectedPlanType('');
     setSelectedCustomerType('');
     setPolicyStartDate(null);

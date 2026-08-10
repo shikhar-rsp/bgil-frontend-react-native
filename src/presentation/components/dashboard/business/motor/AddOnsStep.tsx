@@ -4,7 +4,7 @@ import { Check, Warning, X } from 'phosphor-react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { Badge, Checkbox, colors, spacing, radius, typography, shadow, fontFamilyForWeight } from '@atlas-ds/react-native';
 import { HEADER_GRADIENTS, GRADIENT_LOCATIONS } from '../../sections/DashboardTopBar';
-import { MAIN_PACKAGES, TOPUP_PACKAGES } from './motorData';
+import { MAIN_PACKAGES, TOPUP_PACKAGES, isTooOldForAddOns } from './motorData';
 
 /** Same platinum ramp as the dashboard header. */
 const PLATINUM = [...HEADER_GRADIENTS.platinum];
@@ -48,16 +48,14 @@ export const AddOnsStep: React.FC<AddOnsStepProps> = ({
   const toggle = (id: string) =>
     setSelectedAddOns((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
-  const year = Number(vehicleManufacturingYear);
-  const hasValidYear = vehicleManufacturingYear.trim() !== '' && !Number.isNaN(year) && year > 1900;
-  const isOlderThan15 = hasValidYear && new Date().getFullYear() - year > 15;
+  const isOlderThan15 = isTooOldForAddOns(vehicleManufacturingYear);
 
   const countBy = (prefix: string) => selectedAddOns.filter((id) => id.startsWith(prefix)).length;
 
   return (
     <View style={styles.card}>
       <View style={styles.header}>
-        <Text style={styles.heading}>Select Add-ons?</Text>
+        <Text style={styles.heading}>Select Add-ons</Text>
         {!isOlderThan15 ? (
           <Checkbox
             size="sm"
@@ -78,7 +76,7 @@ export const AddOnsStep: React.FC<AddOnsStepProps> = ({
           <Warning size={20} color={colors.warning} />
           <Text style={styles.warnText}>
             <Text style={styles.warnBold}>Cannot select add-ons. </Text>
-            Vehicle is older than 15 years. Please refer to underwriting at the proposal stage.
+            Vehicle is older than 15 years. Please refer to underwriting at proposals.
           </Text>
           <Pressable onPress={() => setShowAgeToast(false)} hitSlop={8}>
             <X size={16} color={colors.textBody} />

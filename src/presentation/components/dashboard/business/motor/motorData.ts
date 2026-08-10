@@ -3,32 +3,79 @@ import { dashboardImages } from '../../images';
 
 /** Mock vehicle-lookup + plan/add-on data for the Two-Wheeler / Motor flow. */
 
+/** Card artwork per vehicle type — the image follows the type, not the vehicle. */
+export const VEHICLE_TYPE_IMAGES = {
+  car: dashboardImages.carPng,
+  commercial: dashboardImages.commercialPng,
+  schoolBus: dashboardImages.schoolBus,
+  // No scooter art bundled — the cycle asset stands in for it.
+  scooter: dashboardImages.cyclePng,
+  bike: dashboardImages.bulletPng,
+} satisfies Record<string, ImageSourcePropType>;
+
+export type VehicleTypeKey = keyof typeof VEHICLE_TYPE_IMAGES;
+
 export type VehicleInfo = {
-  type: string;
+  type: VehicleTypeKey;
   model: string;
   make: string;
   subType: string;
   year: string;
   location: string;
   regDate: string;
-  icon: ImageSourcePropType;
 };
 
 /** Registration numbers that resolve to a pre-filled vehicle. */
 export const VEHICLE_LOOKUP: Record<string, VehicleInfo> = {
-  KL07AB1234: { type: 'car', model: 'Swift Dzire', make: '28914v0912', subType: 'On Year', year: '2020', location: 'Pune', regDate: '30 Nov 2020', icon: dashboardImages.carPng },
-  KL07CD5678: { type: 'commercial', model: 'Commercial', make: 'CMR781299', subType: 'On Year', year: '2022', location: 'Mumbai', regDate: '14 Feb 2022', icon: dashboardImages.commercialPng },
-  KL07EF9012: { type: 'schoolBus', model: 'Tata Starbus', make: 'SBU223881', subType: 'On Year', year: '2021', location: 'Bangalore', regDate: '10 Jun 2021', icon: dashboardImages.schoolBus },
-  KL07GH3456: { type: 'scooter', model: 'Scooter', make: 'SCT992211', subType: 'On Year', year: '2023', location: 'Chennai', regDate: '05 Jan 2023', icon: dashboardImages.cyclePng },
-  KL07JK7890: { type: 'bike', model: 'Royal Enfield Classic 350', make: 'RE663388', subType: 'On Year', year: '2024', location: 'Kochi', regDate: '21 Mar 2024', icon: dashboardImages.bulletPng },
+  MH08L9834: { type: 'car', model: 'Swift Dzire', make: '28914y0912', subType: 'On Year', year: '2020', location: 'Pune', regDate: '30 Nov 2020' },
+  KL07AB1234: { type: 'car', model: 'Swift Dzire', make: '28914v0912', subType: 'On Year', year: '2020', location: 'Pune', regDate: '30 Nov 2020' },
+  KL07CD5678: { type: 'commercial', model: 'Commercial', make: 'CMR781299', subType: 'On Year', year: '2022', location: 'Mumbai', regDate: '14 Feb 2022' },
+  KL07EF9012: { type: 'schoolBus', model: 'Tata Starbus', make: 'SBU223881', subType: 'On Year', year: '2021', location: 'Bangalore', regDate: '10 Jun 2021' },
+  KL07GH3456: { type: 'scooter', model: 'Scooter', make: 'SCT992211', subType: 'On Year', year: '2023', location: 'Chennai', regDate: '05 Jan 2023' },
+  KL07JK7890: { type: 'bike', model: 'Royal Enfield Classic 350', make: 'RE663388', subType: 'On Year', year: '2024', location: 'Kochi', regDate: '21 Mar 2024' },
+  // Over 15 years old — add-ons are blocked for this one.
+  MH08L9035: { type: 'car', model: 'Maruti Alto', make: '10284k7761', subType: 'On Year', year: '2010', location: 'Pune', regDate: '18 Jun 2010' },
 };
 
 export const isVehicleFound = (registrationNumber: string): boolean =>
   Boolean(VEHICLE_LOOKUP[registrationNumber.toUpperCase()]);
 
-/** Registration format XX00X(X)0000. */
+/** Registration format XX00X(XX)0000 — MH08L9834, KL07AB1234. */
 export const validateRegistration = (val: string): boolean =>
-  /^[A-Z]{2}\d{2}[A-Z]{1,2}\d{4}$/.test(val.toUpperCase());
+  /^[A-Z]{2}\d{2}[A-Z]{1,3}\d{4}$/.test(val.toUpperCase());
+
+/** Add-ons are off the table past 15 years — underwriting handles those at proposal. */
+export const isTooOldForAddOns = (
+  manufacturingYear: string,
+  currentYear: number = new Date().getFullYear(),
+): boolean => {
+  const year = Number(manufacturingYear);
+  if (manufacturingYear.trim() === '' || Number.isNaN(year) || year <= 1900) {
+    return false;
+  }
+  return currentYear - year > 15;
+};
+
+/** IDV slider starts here (Rs. 50,000 – Rs. 15,00,000 range). */
+export const DEFAULT_IDV = '8,00,000';
+
+/** Quotes stay valid for 21 days from the day they're generated. */
+export const QUOTE_VALIDITY_DAYS = 21;
+
+// Plain table rather than Intl/toLocaleString — the month names are fixed
+// English here, and this sidesteps Hermes' locale data entirely.
+const SHORT_MONTHS = 'Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec'.split(' ');
+
+/** "31st Aug 2026" — ordinal day, short month. */
+export const formatQuoteValidity = (date: Date): string => {
+  const day = date.getDate();
+  const suffix =
+    day % 10 === 1 && day !== 11 ? 'st'
+      : day % 10 === 2 && day !== 12 ? 'nd'
+        : day % 10 === 3 && day !== 13 ? 'rd'
+          : 'th';
+  return `${day}${suffix} ${SHORT_MONTHS[date.getMonth()]} ${date.getFullYear()}`;
+};
 
 /**
  * Stand-in details for a correctly-formatted number that isn't in the mock
@@ -42,7 +89,6 @@ export const GENERIC_VEHICLE: VehicleInfo = {
   year: '2024',
   location: 'Kochi',
   regDate: '21 Mar 2024',
-  icon: dashboardImages.bulletPng,
 };
 
 /**
@@ -106,8 +152,8 @@ export const tenureOptionsFor = (planType: string): TenureOption[] => {
     case 'od':
       return [
         { label: '1 year', value: '1', price: '8,500' },
+        { label: '2 years', value: '2', price: '11,500' },
         { label: '3 years', value: '3', price: '12,500', badge: 'MAXX Saver' },
-        { label: '5 years', value: '5', price: '18,500' },
       ];
     case 'package-policy':
       return [

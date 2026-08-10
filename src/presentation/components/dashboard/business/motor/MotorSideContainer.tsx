@@ -2,7 +2,7 @@ import React, { useEffect, useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Info, Scooter } from 'phosphor-react-native';
 import { Radio, Badge, colors, spacing, radius, typography, shadow, fontFamilyForWeight } from '@atlas-ds/react-native';
-import { tenureOptionsFor } from './motorData';
+import { tenureOptionsFor, formatQuoteValidity, QUOTE_VALIDITY_DAYS } from './motorData';
 import { discountPctOf, loaderPctOf, type DiscountLoader } from './DiscountLoaderCard';
 
 interface MotorSideContainerProps {
@@ -48,6 +48,11 @@ export const MotorSideContainer: React.FC<MotorSideContainerProps> = ({
 
   const tenureOptions = useMemo(() => tenureOptionsFor(selectedPlanType), [selectedPlanType]);
 
+  const quoteValidTill = useMemo(
+    () => formatQuoteValidity(new Date(Date.now() + QUOTE_VALIDITY_DAYS * 24 * 60 * 60 * 1000)),
+    [],
+  );
+
   useEffect(() => {
     setPolicyTenure('');
   }, [selectedPlanType, setPolicyTenure]);
@@ -69,7 +74,11 @@ export const MotorSideContainer: React.FC<MotorSideContainerProps> = ({
             <View style={styles.premiumRows}>
               <Row label="Base Premium" value="Rs. 34,000" />
               <Row label="Total Add ons (3)" value="Rs. 1200" />
-              <Row label="Discount" value={`Rs. ${discountAmount.toLocaleString('en-IN')}`} valueColor={colors.success} />
+              <Row
+                label="Discount"
+                value={`${discountAmount > 0 ? '-' : ''}Rs. ${discountAmount.toLocaleString('en-IN')}`}
+                valueColor={colors.success}
+              />
               {isLoaderSelected ? (
                 <Row label="Loader" value={`Rs. ${loaderAmount.toLocaleString('en-IN')}`} valueColor={colors.dangerText} />
               ) : null}
@@ -95,7 +104,8 @@ export const MotorSideContainer: React.FC<MotorSideContainerProps> = ({
         <View style={styles.validity}>
           <Info size={22} color="#2563EB" />
           <Text style={styles.validityText}>
-            Quote valid till 21st Feb 2026.
+            <Text style={styles.validityBold}>{QUOTE_VALIDITY_DAYS} days validity. </Text>
+            Quote valid till {quoteValidTill}.
           </Text>
         </View>
       ) : null}
