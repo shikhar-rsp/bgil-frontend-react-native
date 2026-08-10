@@ -261,11 +261,12 @@ const AttendeePicker: React.FC<{ selected: Attendee[]; onChange: (next: Attendee
   const [filter, setFilter] = useState<AttendeeFilter>('all');
 
   const q = query.trim().toLowerCase();
+  // With no query the sheet lists the whole directory for the active tab, so
+  // there's something to pick from before typing.
   const results = useMemo(() => {
-    if (!q) return [];
-    return DIRECTORY.filter(
-      (p) => matchesFilter(p, filter) && (p.name.toLowerCase().includes(q) || p.id.toLowerCase().includes(q)),
-    );
+    const pool = DIRECTORY.filter((p) => matchesFilter(p, filter));
+    if (!q) return pool;
+    return pool.filter((p) => p.name.toLowerCase().includes(q) || p.id.toLowerCase().includes(q));
   }, [q, filter]);
 
   const toggle = (p: Attendee) =>
@@ -306,19 +307,12 @@ const AttendeePicker: React.FC<{ selected: Attendee[]; onChange: (next: Attendee
             ))}
           </View>
 
-          {q === '' ? (
+          {results.length === 0 ? (
             <View style={styles.pickerEmpty}>
               <RoundedIconBadge>
                 <Info size={22} color={colors.brand} />
               </RoundedIconBadge>
-              <Text style={styles.pickerEmptyText}>Search by ID or Name</Text>
-            </View>
-          ) : results.length === 0 ? (
-            <View style={styles.pickerEmpty}>
-              <RoundedIconBadge>
-                <Info size={22} color={colors.brand} />
-              </RoundedIconBadge>
-              <Text style={styles.pickerEmptyStrong}>No one matches "{query.trim()}"</Text>
+              {q === '' ? null : <Text style={styles.pickerEmptyStrong}>No one matches "{query.trim()}"</Text>}
               <Text style={styles.pickerEmptyText}>Search by ID or Name</Text>
             </View>
           ) : (
@@ -749,8 +743,8 @@ export const MeetingDetailModal: React.FC<MeetingDetailModalProps> = ({
                       </View>
                     </View>
                     <View style={styles.reschedActions}>
-                      <Button label="Cancel" variant="secondaryGray" size="sm" onPress={() => setShowRescheduleForm(false)} />
-                      <Button label="Confirm" variant="primary" size="sm" disabled={!canRequest} onPress={confirmReschedule} />
+                      <Button label="Confirm" variant="primary" size="sm" fullWidth disabled={!canRequest} onPress={confirmReschedule} />
+                      <Button label="Cancel" variant="secondaryGray" size="sm" fullWidth onPress={() => setShowRescheduleForm(false)} />
                     </View>
                   </View>
                 ) : requested ? (
@@ -788,40 +782,40 @@ export const MeetingDetailModal: React.FC<MeetingDetailModalProps> = ({
           ) : null}
         </ScrollView>
 
-        {/* Footer */}
+        {/* Footer — one full-width action per row, primary on top */}
         <View style={[styles.footer, { paddingBottom: insets.bottom + spacing.md }]}>
           {isEdit ? (
             <>
-              <Button label="Cancel Meeting" variant="secondaryDestructive" onPress={() => setShowCancelConfirm(true)} />
               <Button
                 label="Update"
                 variant="primary"
+                fullWidth
                 disabled={!isDirty}
                 onPress={() => {
                   onUpdate?.();
                   setShowUpdateToast(true);
                 }}
-                style={styles.footerPrimary}
+              />
+              <Button
+                label="Cancel Meeting"
+                variant="secondaryDestructive"
+                fullWidth
+                onPress={() => setShowCancelConfirm(true)}
               />
             </>
           ) : isCreate ? (
             <>
-              <Button label="Cancel" variant="secondaryGray" onPress={onClose} />
               <Button
                 label="Schedule meeting"
                 variant="primary"
+                fullWidth
                 disabled={!canSchedule}
                 onPress={() => setShowConfirm(true)}
-                style={styles.footerPrimary}
               />
+              <Button label="Cancel" variant="secondaryGray" fullWidth onPress={onClose} />
             </>
           ) : !showRescheduleForm && !requested ? (
-            <Button
-              label="Request Reschedule"
-              variant="secondary"
-              onPress={openRescheduleForm}
-              style={styles.footerPrimary}
-            />
+            <Button label="Request Reschedule" variant="secondary" fullWidth onPress={openRescheduleForm} />
           ) : null}
         </View>
       </View>
@@ -968,7 +962,8 @@ const styles = StyleSheet.create({
   },
   reschedHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   reschedTitle: { fontFamily: fontFamilyForWeight('600'), fontSize: 15, fontWeight: '600', color: colors.textHeading },
-  reschedActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: spacing.sm },
+  // Stacked like the footer — Confirm on top, each spanning the form's width.
+  reschedActions: { alignItems: 'stretch', gap: spacing.sm },
   requestedInline: { backgroundColor: '#EFF6FF', borderRadius: radius.lg, padding: spacing.md },
   changeLink: { fontFamily: fontFamilyForWeight('500'), fontSize: 14, fontWeight: '500', color: colors.brand },
 
@@ -1033,17 +1028,15 @@ const styles = StyleSheet.create({
 
   pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
 
+  // Actions stack, one full-width button per row.
   footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    alignItems: 'stretch',
     gap: spacing.md,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
     borderTopWidth: 1,
     borderTopColor: colors.borderSubtle,
   },
-  footerPrimary: { minWidth: 120 },
 
   confirmText: { fontFamily: typography.fontFamily, fontSize: 15, lineHeight: 22, color: colors.textBody, textAlign: 'center' },
 

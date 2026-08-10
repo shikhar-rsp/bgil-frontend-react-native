@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { ListChecks } from 'phosphor-react-native';
-import { Button, BottomNav, colors, spacing, typography, type BottomNavItem } from '@atlas-ds/react-native';
+import { Button, BottomNav, MoreMenu, colors, spacing, typography, type BottomNavItem } from '@atlas-ds/react-native';
 import { DashboardTopBar, HEADER_GRADIENTS } from '../../components/dashboard/sections/DashboardTopBar';
 import { QuickQuotes } from '../../components/dashboard/sections/QuickQuotes';
 import { YourToolkit } from '../../components/dashboard/sections/YourToolkit';
 import { SearchPanel } from '../../components/dashboard/sections/SearchPanel';
+import { buildMoreMenuItems } from '../../components/dashboard/sections/moreMenuItems';
 import {
   TraineeInsights,
   Leaderboard,
@@ -48,6 +49,10 @@ export const TraineeScreen: React.FC<AuthScreenProps<'Trainee'>> = ({ navigation
   const [homeTab, setHomeTab] = useState('tools');
   const [searchOpen, setSearchOpen] = useState(false);
   const [bookOpen, setBookOpen] = useState(false);
+  // The "More" tab opens a popup above the nav instead of switching surface.
+  const [moreOpen, setMoreOpen] = useState(false);
+  // None of the tiles has a trainee surface yet, so each just dismisses.
+  const moreItems = buildMoreMenuItems(() => setMoreOpen(false));
 
   const openProfile = () =>
     navigation.navigate('Profile', {
@@ -100,11 +105,27 @@ export const TraineeScreen: React.FC<AuthScreenProps<'Trainee'>> = ({ navigation
         )}
       </View>
 
+      {/* Rendered before the nav so the bar stays above the popup's scrim. */}
+      <MoreMenu visible={moreOpen} onClose={() => setMoreOpen(false)} items={moreItems} />
+
       <BottomNav
         items={NAV_ITEMS}
-        activeKey={selectedItem}
-        onChange={setSelectedItem}
-        center={{ onPress: () => setSelectedItem('MyAI'), accessibilityLabel: 'MyAI assistant' }}
+        activeKey={moreOpen ? 'More' : selectedItem}
+        onChange={(id) => {
+          if (id === 'More') {
+            setMoreOpen((open) => !open);
+            return;
+          }
+          setMoreOpen(false);
+          setSelectedItem(id);
+        }}
+        center={{
+          onPress: () => {
+            setMoreOpen(false);
+            setSelectedItem('MyAI');
+          },
+          accessibilityLabel: 'MyAI assistant',
+        }}
       />
 
 

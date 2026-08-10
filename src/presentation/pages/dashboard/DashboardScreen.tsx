@@ -9,7 +9,7 @@ import {
   type NativeScrollEvent,
 } from 'react-native';
 import { ListChecks } from 'phosphor-react-native';
-import { Button, BottomNav, colors, spacing, typography, type BottomNavItem } from '@atlas-ds/react-native';
+import { Button, BottomNav, MoreMenu, colors, spacing, typography, type BottomNavItem } from '@atlas-ds/react-native';
 import { DashboardTopBar, HEADER_GRADIENTS } from '../../components/dashboard/sections/DashboardTopBar';
 import { YourInsights } from '../../components/dashboard/sections/YourInsights';
 import { QuickQuotes } from '../../components/dashboard/sections/QuickQuotes';
@@ -20,6 +20,7 @@ import { TasksScreen, type TasksTab } from '../../components/dashboard/tasks/Tas
 import { NotesSheet } from '../../components/dashboard/tasks/NotesSheet';
 import { WhatsNew } from '../../components/dashboard/sections/WhatsNew';
 import { SearchPanel } from '../../components/dashboard/sections/SearchPanel';
+import { buildMoreMenuItems } from '../../components/dashboard/sections/moreMenuItems';
 import { ObboardingModal } from '../../components/dashboard/sections/ObboardingModal';
 import { BusinessScreen, type QuoteRequest } from './BusinessScreen';
 import {
@@ -89,6 +90,8 @@ const DashboardScreenInner: React.FC<AuthScreenProps<'Dashboard'>> = ({ navigati
   const [quoteRequest, setQuoteRequest] = useState<QuoteRequest | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
+  // The "More" tab opens a popup above the nav instead of switching surface.
+  const [moreOpen, setMoreOpen] = useState(false);
   // Shown on every dashboard entry, matching the web.
   const [showOnboarding, setShowOnboarding] = useState(true);
   const [tourActive, setTourActive] = useState(false);
@@ -208,6 +211,22 @@ const DashboardScreenInner: React.FC<AuthScreenProps<'Dashboard'>> = ({ navigati
     setSelectedItem(id);
   };
 
+  // Tasks and Notes have somewhere to go; the rest belong to a later porting
+  // phase and just dismiss the popup.
+  const moreItems = buildMoreMenuItems(
+    (key) => {
+      setMoreOpen(false);
+      if (key === 'tasks') {
+        setHideNav(false);
+        setTasksTab('tasks');
+        handleSelectItem('Tasks');
+      } else if (key === 'notes') {
+        setNotesOpen(true);
+      }
+    },
+    { notes: true },
+  );
+
   return (
     <View ref={rootRef} collapsable={false} style={styles.safe}>
       <DashboardTopBar
@@ -217,8 +236,6 @@ const DashboardScreenInner: React.FC<AuthScreenProps<'Dashboard'>> = ({ navigati
         onBackPress={() => businessBackRef.current?.()}
         onSearchPress={() => setSearchOpen(true)}
         onNotificationsPress={() => navigation.navigate('Notifications')}
-        showNotes={selectedItem === 'Tasks'}
-        onNotesPress={() => setNotesOpen(true)}
         tabs={selectedItem === 'Home' ? HOME_TABS : selectedItem === 'Tasks' ? TASKS_TABS : undefined}
         activeTab={selectedItem === 'Tasks' ? tasksTab : homeTab}
         onTabChange={selectedItem === 'Tasks' ? (v) => setTasksTab(v as TasksTab) : setHomeTab}
@@ -312,15 +329,34 @@ const DashboardScreenInner: React.FC<AuthScreenProps<'Dashboard'>> = ({ navigati
 
       {/* The create-quote FAB belongs to the Business tab only — BusinessScreen
           renders its own on its landing view. */}
+      {/* The popup floats above the nav, so it renders before it — the bar and
+          its centre button stay above the scrim and interactive. */}
       {!hideNav ? (
-        <WalkthroughTarget id="bottom-nav">
-          <BottomNav
-            items={NAV_ITEMS}
-            activeKey={selectedItem}
-            onChange={(id) => { setHideNav(false); handleSelectItem(id); }}
-            center={{ onPress: () => handleSelectItem('MyAI'), accessibilityLabel: 'MyAI assistant' }}
-          />
-        </WalkthroughTarget>
+        <>
+          <MoreMenu visible={moreOpen} onClose={() => setMoreOpen(false)} items={moreItems} />
+          <WalkthroughTarget id="bottom-nav">
+            <BottomNav
+              items={NAV_ITEMS}
+              activeKey={moreOpen ? 'More' : selectedItem}
+              onChange={(id) => {
+                if (id === 'More') {
+                  setMoreOpen((open) => !open);
+                  return;
+                }
+                setMoreOpen(false);
+                setHideNav(false);
+                handleSelectItem(id);
+              }}
+              center={{
+                onPress: () => {
+                  setMoreOpen(false);
+                  handleSelectItem('MyAI');
+                },
+                accessibilityLabel: 'MyAI assistant',
+              }}
+            />
+          </WalkthroughTarget>
+        </>
       ) : null}
 
 

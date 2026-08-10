@@ -228,8 +228,13 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({ visible, onC
         </View>
 
         <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
-          {/* Banner */}
-          <View style={styles.banner}>
+          {/* Banner — pink wash fading to white, as in the task/meeting modals */}
+          <LinearGradient
+            colors={['#FDF2F8', '#FFFFFF']}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+            style={styles.banner}
+          >
             <View style={styles.bannerTop}>
               <Text style={styles.bannerName}>{detail.name}</Text>
               {detail.occasions.map((o) => (
@@ -255,6 +260,7 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({ visible, onC
                 size="sm"
                 leadingIcon={<Phone size={16} color={colors.textBody} />}
                 onPress={() => undefined}
+                style={styles.callBtn}
               />
             </View>
 
@@ -274,7 +280,7 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({ visible, onC
               <Text style={styles.contactText}>{detail.product}</Text>
               <Text style={styles.contactText}>{detail.policyId}</Text>
             </View>
-          </View>
+          </LinearGradient>
 
           {/* Member cards */}
           {detail.members.map((m, i) => {
@@ -358,15 +364,16 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({ visible, onC
         </ScrollView>
 
         {/* Footer */}
+        {/* Stacked — one full-width action per row, primary on top. */}
         <View style={[styles.footer, { paddingBottom: insets.bottom + spacing.md }]}>
-          <Button label="Cancel" variant="secondaryGray" onPress={() => finish(false)} />
           <Button
             label="Confirm"
             variant="primary"
+            fullWidth
             disabled={!canConfirm}
             onPress={() => setShowSendConfirm(true)}
-            style={styles.footerPrimary}
           />
+          <Button label="Cancel" variant="secondaryGray" fullWidth onPress={() => finish(false)} />
         </View>
       </View>
 
@@ -449,15 +456,21 @@ const styles = StyleSheet.create({
   body: { padding: spacing.lg, gap: spacing.lg, paddingBottom: spacing.xxl },
 
   // Banner
-  banner: { backgroundColor: '#FDF2F8', borderRadius: radius.xl, padding: spacing.lg, gap: spacing.md },
+  // Background comes from the LinearGradient the banner renders as; `overflow`
+  // keeps it inside the rounded corners on Android.
+  banner: { borderRadius: radius.xl, padding: spacing.lg, gap: spacing.md, overflow: 'hidden' },
   bannerTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' },
   bannerName: { fontFamily: fontFamilyForWeight('700'), fontSize: 18, fontWeight: '700', color: colors.textHeading },
   bannerActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, flexWrap: 'wrap' },
   completeRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  // The outlined button is transparent by default — fill it so it reads as a
+  // white chip against the banner's gradient.
+  callBtn: { backgroundColor: '#FFFFFF' },
   completeLabel: { fontFamily: typography.fontFamily, fontSize: 14, color: colors.textBody },
   contactRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: spacing.lg, rowGap: spacing.xs },
   contactItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  contactText: { fontFamily: typography.fontFamily, fontSize: 12, lineHeight: 16, color: colors.textMuted },
+  // A step darker than muted so the contact line stays readable on the banner.
+  contactText: { fontFamily: typography.fontFamily, fontSize: 12, lineHeight: 16, color: colors.textBody },
 
   // Member card
   memberCard: {
@@ -469,7 +482,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     padding: spacing.md,
   },
-  memberIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  // Rounded square (8px), not a circle — matches the policy icon below.
+  memberIcon: { width: 36, height: 36, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' },
   memberInfo: { flex: 1, gap: 2 },
   memberName: { fontFamily: fontFamilyForWeight('600'), fontSize: 14, fontWeight: '600', color: colors.textHeading },
   memberMeta: { fontFamily: typography.fontFamily, fontSize: 12, lineHeight: 17, color: colors.textMuted },
@@ -503,18 +517,15 @@ const styles = StyleSheet.create({
   policyName: { fontFamily: fontFamilyForWeight('600'), fontSize: 13, fontWeight: '600', color: colors.textHeading },
   policyDesc: { fontFamily: typography.fontFamily, fontSize: 12, lineHeight: 17, color: colors.textMuted },
 
-  // Footer
+  // Footer — the two actions stack, one full-width button per row.
   footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    alignItems: 'stretch',
     gap: spacing.md,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
     borderTopWidth: 1,
     borderTopColor: colors.borderSubtle,
   },
-  footerPrimary: { minWidth: 120 },
 
   // Send-confirm sheet body
   ringOuter: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#EFF6FF', alignItems: 'center', justifyContent: 'center' },

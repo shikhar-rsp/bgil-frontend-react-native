@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Pressable, StatusBar, Platform, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
-import { Bell, CaretLeft, Notepad } from 'phosphor-react-native';
+import { Bell, CaretLeft } from 'phosphor-react-native';
 import {
   Button,
   SegmentedControl,
@@ -36,9 +36,6 @@ interface DashboardTopBarProps {
   onBackPress?: () => void;
   onSearchPress: () => void;
   onNotificationsPress: () => void;
-  /** Show a "Notes" button in the header (e.g. on the Tasks tab). */
-  showNotes?: boolean;
-  onNotesPress?: () => void;
   /** Segmented control options — omit to hide the strip (e.g. off the Home tab). */
   tabs?: SegmentedOption[];
   activeTab?: string;
@@ -58,8 +55,6 @@ export const DashboardTopBar: React.FC<DashboardTopBarProps> = ({
   onBackPress,
   onSearchPress,
   onNotificationsPress,
-  showNotes = false,
-  onNotesPress,
   tabs,
   activeTab,
   onTabChange,
@@ -118,17 +113,6 @@ export const DashboardTopBar: React.FC<DashboardTopBarProps> = ({
           </View>
         </Pressable>
 
-        {showNotes ? (
-          <Button
-            variant="secondaryGray"
-            size="md"
-            label="Notes"
-            leadingIcon={<Notepad size={18} color={colors.textBody} />}
-            onPress={onNotesPress}
-            style={styles.notesButton}
-          />
-        ) : null}
-
         <View style={styles.bellWrap}>
           <Button
             iconOnly
@@ -163,7 +147,6 @@ const styles = StyleSheet.create({
   searchWrap: { flex: 1 },
   bellWrap: { position: 'relative' },
   bellButton: { backgroundColor: colors.surface },
-  notesButton: { backgroundColor: colors.surface },
   notifDot: {
     position: 'absolute',
     top: 4,

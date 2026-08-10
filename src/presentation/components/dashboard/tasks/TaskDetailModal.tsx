@@ -879,21 +879,22 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
           </View>
         </ScrollView>
 
-        {/* Footer */}
+        {/* Footer — one full-width action per row, primary on top */}
         <View style={[styles.footer, { paddingBottom: insets.bottom + spacing.md }]}>
           {isEdit ? (
             <>
+              <Button label="Update" variant="primary" fullWidth disabled={!canSubmit} onPress={handleUpdate} />
               <Button
                 label="Delete Task"
                 variant="secondaryDestructive"
+                fullWidth
                 onPress={() => setShowDeleteConfirm(true)}
               />
-              <Button label="Update" variant="primary" disabled={!canSubmit} onPress={handleUpdate} style={styles.footerPrimary} />
             </>
           ) : (
             <>
-              <Button label="Cancel" variant="secondaryGray" onPress={handleClose} />
-              <Button label="Create task" variant="primary" disabled={!canSubmit} onPress={handleClose} style={styles.footerPrimary} />
+              <Button label="Create task" variant="primary" fullWidth disabled={!canSubmit} onPress={handleClose} />
+              <Button label="Cancel" variant="secondaryGray" fullWidth onPress={handleClose} />
             </>
           )}
         </View>
@@ -1078,17 +1079,15 @@ const styles = StyleSheet.create({
   channelCheck: { position: 'absolute', top: spacing.sm, right: spacing.sm },
   channelLabel: { fontFamily: typography.fontFamily, fontSize: 12, lineHeight: 16, color: colors.textBody },
 
+  // Actions stack, one full-width button per row.
   footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    alignItems: 'stretch',
     gap: spacing.md,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
     borderTopWidth: 1,
     borderTopColor: colors.borderSubtle,
   },
-  footerPrimary: { minWidth: 120 },
 
   confirmText: {
     fontFamily: typography.fontFamily,

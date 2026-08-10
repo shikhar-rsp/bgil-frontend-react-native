@@ -126,8 +126,16 @@ interface EventRow {
   sent: boolean;
 }
 
+/** Device today as `dd/mm/yyyy` — the format the event rows carry. */
+const TODAY_DATE = (() => {
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()}`;
+})();
+
 const EVENTS: EventRow[] = [
-  { id: '1', customer: 'Ankit Sharma', date: '04/08/2026', occasions: ['Birthday'], status: 'Pending', sent: false },
+  // Dated today so the "Today's event" filter has something to match.
+  { id: '1', customer: 'Ankit Sharma', date: TODAY_DATE, occasions: ['Birthday'], status: 'Pending', sent: false },
   { id: '2', customer: 'Priya Sharma', date: '01/11/2026', occasions: ['Member Birthday'], status: 'Completed', sent: true },
   { id: '3', customer: 'Arijit Kumar', date: '14/11/2026', occasions: ['Multiple Birthday'], status: 'Completed', sent: true },
   { id: '4', customer: 'Nikhil Patel', date: '15/11/2026', occasions: ['Birthday'], status: 'Pending', sent: false },
@@ -229,44 +237,31 @@ const MEETING_FILTER_GROUPS: FilterGroup[] = [
 ];
 
 // ---------------------------------------------------------------------------
-// Calendar-view fixtures (August '26, keyed by day-of-month)
+// Calendar-view derivation (keyed by day-of-month)
 // ---------------------------------------------------------------------------
 
-/** Day-of-month the calendar treats as "today" (device clock; matches MonthCalendar). */
-const TASK_TODAY = new Date().getDate();
-
-const TASK_CALENDAR: MonthEvents = {
-  1: [{ label: 'Priti Sinha', color: 'orange' }, { label: 'Gargi Kawalkar', color: 'violet' }],
-  3: [{ label: 'Maya Kaya', color: 'orange' }],
-  4: [
-    { label: 'Maya Kaya', color: 'orange', done: true },
-    { label: 'Gargi Kawalkar', color: 'violet' },
-    { label: 'Ankit Sharma', color: 'orange' },
-  ],
-  5: [{ label: 'Maya Kaya', color: 'orange' }, { label: 'Gargi Kawalkar', color: 'violet' }],
-  7: [{ label: 'Gargi Kawalkar', color: 'violet', done: true }],
-  8: [
-    { label: 'Shantanu Jain', color: 'rose' },
-    { label: 'Gargi Kawalkar', color: 'violet' },
-    { label: 'Sagar Parikh', color: 'orange' },
-    { label: 'Neha Sharma', color: 'rose' },
-    { label: 'Priti Sinha', color: 'orange' },
-  ],
-  9: [
-    { label: 'Priti Sinha', color: 'orange' },
-    { label: 'Gargi Kawalkar', color: 'violet' },
-    { label: 'Neha Sharma', color: 'rose' },
-  ],
-  10: [{ label: 'Priti Sinha', color: 'orange' }, { label: 'Maya Kaya', color: 'orange', done: true }],
-  12: [
-    { label: 'Priti Sinha', color: 'orange' },
-    { label: 'Maya Kaya', color: 'orange', done: true },
-    { label: 'Gargi Kawalkar', color: 'violet' },
-  ],
-  13: [{ label: 'Gargi Kawalkar', color: 'violet', done: true }],
-  14: [{ label: 'Maya Kaya', color: 'orange' }, { label: 'Gargi Kawalkar', color: 'violet' }],
-  15: [{ label: 'Maya Kaya', color: 'orange' }],
+/** Day-of-month a task is due on, read from its "due in" label ("Today",
+ *  "2 days", "3 Days ago") relative to the device clock. */
+const taskDay = (dueIn: string): number => {
+  const now = new Date();
+  const label = dueIn.trim().toLowerCase();
+  if (label === 'today') return now.getDate();
+  const match = label.match(/^(\d+)\s*day/);
+  const days = match ? Number(match[1]) : 0;
+  const delta = label.includes('ago') ? -days : days;
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate() + delta).getDate();
 };
+
+// Calendar chips are derived from the (filtered) task list so both views show
+// the same rows and a tapped chip opens that task. Coloured by category; the
+// `id` links each chip back to its TASKS row, `done` marks closed tasks.
+const buildTaskCalendar = (tasks: TaskRow[]): MonthEvents =>
+  tasks.reduce<MonthEvents>((acc, t) => {
+    const day = taskDay(t.dueIn);
+    if (!acc[day]) acc[day] = [];
+    acc[day].push({ label: t.customer, color: CATEGORY_COLOR[t.category], done: t.status === 'Closed', id: t.id });
+    return acc;
+  }, {});
 
 /** Day-of-month from an event's `dd/mm/yyyy` date. */
 const eventDay = (date: string): number => {
@@ -504,6 +499,29 @@ const ListShell: React.FC<{
     setFilterOpen(true);
   };
 
+  // Calendar / Table toggle. Table view gives it its own row above the search
+  // box; calendar view (no search box, no range picker) pairs it with Filter.
+  const viewToggle = (fullWidth: boolean) => (
+    <SegmentedControl
+      size="sm"
+      fullWidth={fullWidth}
+      value={view}
+      onChange={(v) => changeView(v as 'table' | 'calendar')}
+      options={[
+        {
+          label: 'Calendar',
+          value: 'calendar',
+          icon: <CalendarBlank size={16} color={view === 'calendar' ? colors.brandPressed : colors.textBody} />,
+        },
+        {
+          label: 'Table',
+          value: 'table',
+          icon: <TableIcon size={16} color={view === 'table' ? colors.brandPressed : colors.textBody} />,
+        },
+      ]}
+    />
+  );
+
   return (
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       {/* Everything lives inside one shadowed card. */}
@@ -523,7 +541,7 @@ const ListShell: React.FC<{
           ))}
         </ScrollView>
 
-        {/* View toggles */}
+        {/* Quick filters */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.toolRow}>
           <Tag
             label={todayLabel}
@@ -541,34 +559,22 @@ const ListShell: React.FC<{
               onPress={() => onQuick(quick === 'completed' ? null : 'completed')}
             />
           ) : null}
-          <SegmentedControl
-            size="sm"
-            fullWidth={false}
-            value={view}
-            onChange={(v) => changeView(v as 'table' | 'calendar')}
-            options={[
-              {
-                label: 'Calendar',
-                value: 'calendar',
-                icon: <CalendarBlank size={16} color={view === 'calendar' ? colors.brandPressed : colors.textBody} />,
-              },
-              {
-                label: 'Table',
-                value: 'table',
-                icon: <TableIcon size={16} color={view === 'table' ? colors.brandPressed : colors.textBody} />,
-              },
-            ]}
-          />
         </ScrollView>
 
-        {/* Search — table view only; the calendar has its own month stepper. */}
-        {isCalendar ? null : <SearchBar value={search} onChangeText={onSearch} placeholder="Search" />}
+        {/* View toggle + search — table view only; the calendar has no search
+            (it's browsed by scrolling) and carries its toggle on the row below. */}
+        {isCalendar ? null : (
+          <>
+            {viewToggle(true)}
+            <SearchBar value={search} onChangeText={onSearch} placeholder="Search" />
+          </>
+        )}
 
         {/* Date range + filter share a row so both fit within the card. The
             range picker is table-only — the calendar already scopes by month —
-            so in calendar view the filter button sits alone at the right. */}
-        <View style={[styles.filterRow, isCalendar && styles.filterRowEnd]}>
-          {isCalendar ? null : (
+            so in calendar view the view toggle takes its place on the left. */}
+        <View style={[styles.filterRow, isCalendar && styles.filterRowSplit]}>
+          {isCalendar ? viewToggle(false) : (
             <DatePicker
               mode="range"
               startDate={rangeStart}
@@ -723,22 +729,9 @@ const TasksList: React.FC<{
     });
   }, [category, search, quick, filters]);
 
-  // Calendar cells honour the same category + quick-filter chips as the table.
-  // When the full filter set (incl. priority/source) empties the table, empty
-  // the calendar too so its in-month empty state shows.
-  const calendarEvents = useMemo<MonthEvents>(() => {
-    if (data.length === 0) return {};
-    const wantColor = category !== 'all' ? CATEGORY_COLOR[category] : null;
-    const result: MonthEvents = {};
-    for (const [day, evs] of Object.entries(TASK_CALENDAR)) {
-      if (quick === 'today' && Number(day) !== TASK_TODAY) continue;
-      const kept = evs.filter(
-        (e) => (!wantColor || e.color === wantColor) && (quick !== 'completed' || e.done),
-      );
-      if (kept.length) result[Number(day)] = kept;
-    }
-    return result;
-  }, [data, category, quick]);
+  // The calendar shows the same filtered set as the table — every filter
+  // (category, quick chips, priority/source, search) applies to both.
+  const calendarEvents = useMemo(() => buildTaskCalendar(data), [data]);
 
   return (
     <>
@@ -760,7 +753,7 @@ const TasksList: React.FC<{
         {view === 'calendar' ? (
           <MonthCalendar
             events={calendarEvents}
-            onEventPress={() => setDetail(detailFor(TASKS[0]))}
+            onEventPress={(ev) => setDetail(detailFor(TASKS.find((t) => t.id === ev.id) ?? TASKS[0]))}
             emptyState={
               <ListEmpty
                 title="No tasks found"
@@ -822,6 +815,7 @@ const EventsList: React.FC = () => {
     return EVENTS.filter((e) => {
       if (category === 'birthday' && !e.occasions.some((o) => o.includes('Birthday'))) return false;
       if (category === 'anniversary' && !e.occasions.includes('Anniversary')) return false;
+      if (quick === 'today' && e.date !== TODAY_DATE) return false;
       if (quick === 'completed' && e.status !== 'Completed') return false;
       if (q && !e.customer.toLowerCase().includes(q)) return false;
       return true;
@@ -1323,8 +1317,8 @@ const styles = StyleSheet.create({
 
   // Date range + filter on one row; the date field flexes, the filter hugs.
   filterRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  // Calendar view drops the range picker, so the filter button aligns right.
-  filterRowEnd: { justifyContent: 'flex-end' },
+  // Calendar view drops the range picker: the view toggle sits left, filter right.
+  filterRowSplit: { justifyContent: 'space-between' },
   dateFlex: { flex: 1 },
 
   // Table inset within the card with a small top margin; it scrolls sideways

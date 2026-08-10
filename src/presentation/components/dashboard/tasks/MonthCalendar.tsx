@@ -1,6 +1,14 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { CaretLeft, CaretRight, CheckCircle } from 'phosphor-react-native';
+import {
+  View,
+  Text,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+} from 'react-native';
+import { CheckCircle } from 'phosphor-react-native';
 import {
   BADGE_DOT_COLORS,
   BadgeDot,
@@ -62,6 +70,16 @@ const DOT_COLOR: Record<AccentColor, BadgeDotColor> = {
   rose: 'rose',
 };
 
+// Months reachable by scrolling the grid — the current one plus the rest of
+// the rolling year.
+const MONTHS_SHOWN = 12;
+
+// Every month is drawn as a full 6-row grid so all pages are the same height —
+// that's what lets the grid page cleanly from one month to the next.
+const WEEK_ROWS = 6;
+const DAY_CELL_HEIGHT = 58;
+const GRID_HEIGHT = WEEK_ROWS * DAY_CELL_HEIGHT;
+
 interface Cell {
   day: number;
   inMonth: boolean;
@@ -80,17 +98,21 @@ function buildCells(year: number, month: number): Cell[] {
     cells.push({ day: d, inMonth: true });
   }
   let next = 1;
-  while (cells.length % 7 !== 0) {
+  while (cells.length < WEEK_ROWS * 7) {
     cells.push({ day: next++, inMonth: false });
   }
   return cells;
 }
 
 /**
- * Month calendar with a compact day grid. The `events` map is applied to the
- * reference month (August '26); navigating to other months shows an empty grid.
- * The seven columns share the phone width — a day's events show as category
- * dots, and tapping the day opens the bottom sheet with the labelled list.
+ * Month calendar with a compact day grid. There is no month stepper: the grid
+ * itself scrolls vertically and pages from one month to the next, inside a
+ * fixed-height card, so the surrounding screen keeps its length. The header
+ * above it names whichever month the grid has settled on. The `events` map is
+ * applied to the reference month (the current one); later months show an empty
+ * grid. The seven columns share the phone width — a day's events show as
+ * category dots, and tapping the day opens the bottom sheet with the labelled
+ * list.
  */
 export const MonthCalendar: React.FC<{
   events: MonthEvents;
@@ -99,56 +121,57 @@ export const MonthCalendar: React.FC<{
    *  e.g. a filter combination that matches nothing. */
   emptyState?: React.ReactNode;
 }> = ({ events, onEventPress, emptyState }) => {
-  const [view, setView] = useState({ year: TODAY.year, month: TODAY.month });
   // The day whose full event list is shown in the "+N more" bottom sheet.
-  const [sheetDay, setSheetDay] = useState<{ day: number; events: MonthEvent[] } | null>(null);
+  const [sheetDay, setSheetDay] = useState<{ day: number; month: number; events: MonthEvent[] } | null>(
+    null,
+  );
+  // Which month page the grid has scrolled to — drives the header label only.
+  const [index, setIndex] = useState(0);
 
-  const weeks = useMemo(() => {
-    const cells = buildCells(view.year, view.month);
-    const rows: Cell[][] = [];
-    for (let i = 0; i < cells.length; i += 7) {
-      rows.push(cells.slice(i, i + 7));
-    }
-    return rows;
-  }, [view]);
-
-  const step = (delta: number) => {
-    setView((v) => {
-      const m = v.month + delta;
-      if (m < 0) return { year: v.year - 1, month: 11 };
-      if (m > 11) return { year: v.year + 1, month: 0 };
-      return { year: v.year, month: m };
-    });
-  };
+  // The current month first, then the following ones — scrolling down walks
+  // forward through the year.
+  const months = useMemo(
+    () =>
+      Array.from({ length: MONTHS_SHOWN }, (_, i) => {
+        const absolute = TODAY.month + i;
+        const year = TODAY.year + Math.floor(absolute / 12);
+        const month = absolute % 12;
+        const cells = buildCells(year, month);
+        const weeks: Cell[][] = [];
+        for (let c = 0; c < cells.length; c += 7) {
+          weeks.push(cells.slice(c, c + 7));
+        }
+        return { year, month, weeks };
+      }),
+    [],
+  );
 
   // No matching events at all — the consumer's filters emptied the set.
   const showEmpty = !!emptyState && Object.keys(events).length === 0;
-  const isReferenceMonth = view.year === TODAY.year && view.month === TODAY.month;
-  const eventsFor = (cell: Cell): MonthEvent[] =>
-    isReferenceMonth && cell.inMonth ? events[cell.day] ?? [] : [];
-  const isToday = (cell: Cell) => isReferenceMonth && cell.inMonth && cell.day === TODAY.day;
+
+  const visible = months[Math.min(index, months.length - 1)];
+
+  // The grid pages by its own height, so the settled page is the month on show.
+  const onSettle = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const next = Math.round(e.nativeEvent.contentOffset.y / GRID_HEIGHT);
+    setIndex(Math.max(0, Math.min(next, months.length - 1)));
+  };
 
   return (
     <>
     <View style={styles.wrap}>
-      {/* Month header (fixed — doesn't scroll with the grid) */}
+      {/* Month header — names the month the grid has scrolled to */}
       <View style={styles.header}>
-        <Pressable onPress={() => step(-1)} hitSlop={8} accessibilityRole="button" accessibilityLabel="Previous month">
-          <CaretLeft size={18} color={colors.textBody} weight="bold" />
-        </Pressable>
         <Text style={styles.monthLabel}>
-          {MONTHS[view.month]} '{String(view.year).slice(-2)}
+          {MONTHS[visible.month]} '{String(visible.year).slice(-2)}
         </Text>
-        <Pressable onPress={() => step(1)} hitSlop={8} accessibilityRole="button" accessibilityLabel="Next month">
-          <CaretRight size={18} color={colors.textBody} weight="bold" />
-        </Pressable>
       </View>
 
       {showEmpty ? (
         <View style={styles.calendarEmpty}>{emptyState}</View>
       ) : (
       <View>
-        {/* Weekday header row */}
+        {/* Weekday header row — fixed; only the grid below it scrolls */}
         <View style={styles.weekdayRow}>
           {WEEKDAYS.map((d) => (
             <View key={d} style={styles.weekdayCell}>
@@ -157,49 +180,71 @@ export const MonthCalendar: React.FC<{
           ))}
         </View>
 
-        {/* Day grid */}
-        {weeks.map((week, wi) => (
-          <View key={wi} style={styles.weekRow}>
-            {week.map((cell, ci) => {
-              const dayEvents = eventsFor(cell);
-              const today = isToday(cell);
-              const dots = dayEvents.slice(0, MAX_DOTS);
-              const overflow = dayEvents.length - dots.length;
-              const hasEvents = dayEvents.length > 0;
-              return (
-                <Pressable
-                  key={ci}
-                  // Labels don't fit a 1/7-width cell, so the day itself opens
-                  // the sheet that lists them.
-                  onPress={hasEvents ? () => setSheetDay({ day: cell.day, events: dayEvents }) : undefined}
-                  disabled={!hasEvents}
-                  accessibilityRole={hasEvents ? 'button' : undefined}
-                  accessibilityLabel={
-                    hasEvents ? `${cell.day} — show all ${dayEvents.length} events` : undefined
-                  }
-                  style={[styles.dayCell, !cell.inMonth && styles.dayCellMuted, today && styles.dayCellToday]}
-                >
-                  <View style={styles.dayNumberRow}>
-                    {today ? (
-                      <View style={styles.todayBadge}>
-                        <Text style={styles.todayNumber}>{cell.day}</Text>
-                      </View>
-                    ) : (
-                      <Text style={[styles.dayNumber, !cell.inMonth && styles.dayNumberMuted]}>{cell.day}</Text>
-                    )}
-                  </View>
+        {/* Day grid — one full-height page per month */}
+        <ScrollView
+          style={styles.grid}
+          pagingEnabled
+          nestedScrollEnabled
+          showsVerticalScrollIndicator={false}
+          onMomentumScrollEnd={onSettle}
+          onScrollEndDrag={onSettle}
+        >
+          {months.map(({ year, month, weeks }) => {
+            const isReferenceMonth = year === TODAY.year && month === TODAY.month;
+            const eventsFor = (cell: Cell): MonthEvent[] =>
+              isReferenceMonth && cell.inMonth ? events[cell.day] ?? [] : [];
+            const isToday = (cell: Cell) => isReferenceMonth && cell.inMonth && cell.day === TODAY.day;
 
-                  <View style={styles.dotRow}>
-                    {dots.map((ev, i) => (
-                      <BadgeDot key={i} size="sm" color={DOT_COLOR[ev.color]} />
-                    ))}
-                    {overflow > 0 ? <Text style={styles.moreText}>+{overflow}</Text> : null}
+            return (
+              <View key={`${year}-${month}`} style={styles.gridPage}>
+                {weeks.map((week, wi) => (
+                  <View key={wi} style={styles.weekRow}>
+                    {week.map((cell, ci) => {
+                      const dayEvents = eventsFor(cell);
+                      const today = isToday(cell);
+                      const dots = dayEvents.slice(0, MAX_DOTS);
+                      const overflow = dayEvents.length - dots.length;
+                      const hasEvents = dayEvents.length > 0;
+                      return (
+                        <Pressable
+                          key={ci}
+                          // Labels don't fit a 1/7-width cell, so the day itself opens
+                          // the sheet that lists them.
+                          onPress={
+                            hasEvents ? () => setSheetDay({ day: cell.day, month, events: dayEvents }) : undefined
+                          }
+                          disabled={!hasEvents}
+                          accessibilityRole={hasEvents ? 'button' : undefined}
+                          accessibilityLabel={
+                            hasEvents ? `${cell.day} — show all ${dayEvents.length} events` : undefined
+                          }
+                          style={[styles.dayCell, !cell.inMonth && styles.dayCellMuted, today && styles.dayCellToday]}
+                        >
+                          <View style={styles.dayNumberRow}>
+                            {today ? (
+                              <View style={styles.todayBadge}>
+                                <Text style={styles.todayNumber}>{cell.day}</Text>
+                              </View>
+                            ) : (
+                              <Text style={[styles.dayNumber, !cell.inMonth && styles.dayNumberMuted]}>{cell.day}</Text>
+                            )}
+                          </View>
+
+                          <View style={styles.dotRow}>
+                            {dots.map((ev, i) => (
+                              <BadgeDot key={i} size="sm" color={DOT_COLOR[ev.color]} />
+                            ))}
+                            {overflow > 0 ? <Text style={styles.moreText}>+{overflow}</Text> : null}
+                          </View>
+                        </Pressable>
+                      );
+                    })}
                   </View>
-                </Pressable>
-              );
-            })}
-          </View>
-        ))}
+                ))}
+              </View>
+            );
+          })}
+        </ScrollView>
       </View>
       )}
     </View>
@@ -208,7 +253,7 @@ export const MonthCalendar: React.FC<{
     <BottomSheet
       visible={sheetDay !== null}
       onClose={() => setSheetDay(null)}
-      title={sheetDay ? `${MONTHS[view.month]} ${sheetDay.day}` : undefined}
+      title={sheetDay ? `${MONTHS[sheetDay.month]} ${sheetDay.day}` : undefined}
     >
       <View style={styles.sheetList}>
         {(sheetDay?.events ?? []).map((ev, i) => {
@@ -254,6 +299,10 @@ const styles = StyleSheet.create({
     gap: spacing.xl,
     paddingVertical: spacing.md,
   },
+  // The scrolling area: exactly one month tall, so `pagingEnabled` snaps a
+  // whole month at a time and the card never grows with the months below.
+  grid: { height: GRID_HEIGHT },
+  gridPage: { height: GRID_HEIGHT },
   monthLabel: { fontFamily: fontFamilyForWeight('600'), fontSize: 16, fontWeight: '600', color: colors.textHeading },
 
   calendarEmpty: {
@@ -279,7 +328,8 @@ const styles = StyleSheet.create({
   // Seven columns share the phone width — no sideways scroll.
   dayCell: {
     flex: 1,
-    minHeight: 58,
+    // Fixed (not min) so six rows measure exactly one page.
+    height: DAY_CELL_HEIGHT,
     paddingVertical: spacing.xs,
     paddingHorizontal: 2,
     gap: 3,

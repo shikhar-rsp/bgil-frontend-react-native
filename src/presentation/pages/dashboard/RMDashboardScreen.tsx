@@ -4,6 +4,7 @@ import { ArrowLeft, ListChecks } from 'phosphor-react-native';
 import {
   BottomNav,
   Button,
+  MoreMenu,
   ToastGlobal,
   colors,
   spacing,
@@ -18,6 +19,7 @@ import { YourInsights } from '../../components/dashboard/sections/YourInsights';
 import { AssistantInsights } from '../../components/dashboard/sections/AssistantInsights';
 import { TodaysTasks } from '../../components/dashboard/sections/TodaysTasks';
 import { SearchPanel } from '../../components/dashboard/sections/SearchPanel';
+import { buildMoreMenuItems } from '../../components/dashboard/sections/moreMenuItems';
 import {
   GoalsSheet,
   ConsolidatedPremium,
@@ -73,6 +75,10 @@ export const RMDashboardScreen: React.FC<AuthScreenProps<'RMDashboard'>> = ({ na
   const [agentNav, setAgentNav] = useState('Home');
   const [agentTab, setAgentTab] = useState('tools');
   const [searchOpen, setSearchOpen] = useState(false);
+  // The "More" tab opens a popup above the nav instead of switching surface.
+  const [moreOpen, setMoreOpen] = useState(false);
+  // Agent view is read-only here, so every tile just dismisses the popup.
+  const moreItems = buildMoreMenuItems(() => setMoreOpen(false));
 
   const openProfile = () =>
     navigation.navigate('Profile', {
@@ -151,11 +157,27 @@ export const RMDashboardScreen: React.FC<AuthScreenProps<'RMDashboard'>> = ({ na
           )}
         </View>
 
+        {/* Rendered before the nav so the bar stays above the popup's scrim. */}
+        <MoreMenu visible={moreOpen} onClose={() => setMoreOpen(false)} items={moreItems} />
+
         <BottomNav
           items={NAV_ITEMS}
-          activeKey={agentNav}
-          onChange={setAgentNav}
-          center={{ onPress: () => setAgentNav('MyAI'), accessibilityLabel: 'MyAI assistant' }}
+          activeKey={moreOpen ? 'More' : agentNav}
+          onChange={(id) => {
+            if (id === 'More') {
+              setMoreOpen((open) => !open);
+              return;
+            }
+            setMoreOpen(false);
+            setAgentNav(id);
+          }}
+          center={{
+            onPress: () => {
+              setMoreOpen(false);
+              setAgentNav('MyAI');
+            },
+            accessibilityLabel: 'MyAI assistant',
+          }}
         />
 
         <SearchPanel visible={searchOpen} onClose={() => setSearchOpen(false)} />
