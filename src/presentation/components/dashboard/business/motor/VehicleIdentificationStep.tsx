@@ -134,7 +134,16 @@ export const VehicleIdentificationStep: React.FC<VehicleIdentificationStepProps>
               <Dropdown placeholder="Select sub type" value={vehicleSubType || null} options={SUBTYPE_OPTIONS} onChange={setVehicleSubType} />
             </RequiredField>
             <RequiredField label="Year of manufacturing">
-              <Dropdown placeholder="Select year" value={vehicleManufacturingYear || null} options={YEAR_OPTIONS} onChange={setVehicleManufacturingYear} />
+              {/* 20-odd years back to 2005 — a 3-up grid plus search beats
+                  scrolling one row at a time. */}
+              <Dropdown
+                placeholder="Select year"
+                value={vehicleManufacturingYear || null}
+                options={YEAR_OPTIONS}
+                onChange={setVehicleManufacturingYear}
+                searchable
+                columns={3}
+              />
             </RequiredField>
             <Textfield label="Enter Registration Number" value={registrationNumber} onChangeText={(t) => setRegistrationNumber(t.toUpperCase())} placeholder="Enter vehicle registration" />
             <Dropdown label="Registration Location" placeholder="Enter City" value={registrationLocation || null} options={LOCATION_OPTIONS} onChange={setRegistrationLocation} />

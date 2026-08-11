@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { CaretDown, CaretUp, CheckSquare, Square } from 'phosphor-react-native';
 import { BottomSheet } from '../BottomSheet';
+import { SearchBar } from '../SearchBar';
 import { Tag } from '../Tag';
 import {
   colors,
@@ -52,9 +53,28 @@ export interface DropdownProps {
   disabled?: boolean;
   /** Max height before the list starts scrolling (default 320). */
   maxHeight?: number;
+  /**
+   * Adds a search field above the options and filters them by label as the user
+   * types. Worth turning on once the list is long enough that scanning it beats
+   * typing — a year or city picker, not a three-item one.
+   */
+  searchable?: boolean;
+  /**
+   * Lay the options out as a grid of this many columns instead of one row per
+   * option. Only sensible for short labels (years, sizes); long labels wrap and
+   * the grid stops paying for itself. Default 1.
+   */
+  columns?: number;
   /** Style override on the outer container. */
   style?: object;
 }
+
+/** Rows of the grid kept on screen; the rest are a scroll away. */
+const GRID_VISIBLE_ROWS = 3;
+/** One cell: 8+8 padding, a 20px line, 1+1 border. */
+const GRID_CELL_HEIGHT = spacing.sm * 2 + 20 + 2;
+const GRID_VIEWPORT_HEIGHT =
+  GRID_CELL_HEIGHT * GRID_VISIBLE_ROWS + spacing.sm * (GRID_VISIBLE_ROWS - 1);
 
 /**
  * Dropdown (Single Select) — an input-style trigger that opens an anchored
@@ -86,9 +106,16 @@ export const Dropdown: React.FC<DropdownProps> = ({
   error = false,
   disabled = false,
   maxHeight = 320,
+  searchable = false,
+  columns = 1,
   style,
 }) => {
   const [open, setOpen] = React.useState(false);
+  const [query, setQuery] = React.useState('');
+
+  const q = query.trim().toLowerCase();
+  const visibleOptions = q ? options.filter((o) => o.label.toLowerCase().includes(q)) : options;
+  const isGrid = columns > 1;
 
   const values = selectedValues ?? [];
   const selectedOption = options.find((o) => o.value === value) ?? null;
@@ -109,6 +136,8 @@ export const Dropdown: React.FC<DropdownProps> = ({
 
   const openMenu = () => {
     if (disabled) return;
+    // Each opening starts from the full list rather than the last search.
+    setQuery('');
     setOpen(true);
   };
 
@@ -136,6 +165,54 @@ export const Dropdown: React.FC<DropdownProps> = ({
         : [styles.inputDefault, inputShadowDefault];
 
   const iconColor = disabled ? colors.textDisabled : error ? colors.danger : colors.textBody;
+
+  const optionList = (
+    <View style={[styles.list, isGrid && styles.grid]}>
+      {visibleOptions.map((opt) => {
+        const selected = isSelected(opt);
+        return (
+          <Pressable
+            key={opt.value}
+            onPress={() => select(opt)}
+            disabled={opt.disabled}
+            accessibilityRole={multiple ? 'checkbox' : 'button'}
+            accessibilityState={{ selected, checked: selected, disabled: !!opt.disabled }}
+            style={({ pressed }) => [
+              styles.row,
+              // Cells share the row: a basis just under 100/columns leaves
+              // room for the gaps, and flexGrow spreads what's left over.
+              isGrid && [styles.gridCell, { flexBasis: `${100 / columns - 5}%` }],
+              selected && styles.rowSelected,
+              pressed && !opt.disabled && !selected && styles.rowPressed,
+              opt.disabled && styles.rowDisabled,
+            ]}
+          >
+            {multiple &&
+              (selected ? (
+                <CheckSquare size={20} color={colors.brand} weight="fill" />
+              ) : (
+                <Square size={20} color={colors.border} weight="regular" />
+              ))}
+            {opt.icon != null && <View style={styles.iconSlot}>{opt.icon}</View>}
+            <Text
+              style={[
+                styles.rowLabel,
+                isGrid && styles.gridLabel,
+                selected && styles.rowLabelSelected,
+                opt.disabled && styles.rowLabelDisabled,
+              ]}
+              numberOfLines={1}
+            >
+              {opt.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+      {visibleOptions.length === 0 ? (
+        <Text style={styles.empty}>No matches for "{query.trim()}"</Text>
+      ) : null}
+    </View>
+  );
 
   return (
     <View style={[styles.container, style]}>
@@ -185,46 +262,34 @@ export const Dropdown: React.FC<DropdownProps> = ({
         visible={open}
         onClose={() => setOpen(false)}
         title={label ?? undefined}
-        contentMinHeight={maxHeight}
+        // A grid brings its own scroll viewport, so the sheet hugs it instead of
+        // reserving a taller slot.
+        contentMinHeight={isGrid ? 0 : maxHeight}
       >
-        <View style={styles.list}>
-          {options.map((opt) => {
-            const selected = isSelected(opt);
-            return (
-              <Pressable
-                key={opt.value}
-                onPress={() => select(opt)}
-                disabled={opt.disabled}
-                accessibilityRole={multiple ? 'checkbox' : 'button'}
-                accessibilityState={{ selected, checked: selected, disabled: !!opt.disabled }}
-                style={({ pressed }) => [
-                  styles.row,
-                  selected && styles.rowSelected,
-                  pressed && !opt.disabled && !selected && styles.rowPressed,
-                  opt.disabled && styles.rowDisabled,
-                ]}
-              >
-                {multiple &&
-                  (selected ? (
-                    <CheckSquare size={20} color={colors.brand} weight="fill" />
-                  ) : (
-                    <Square size={20} color={colors.border} weight="regular" />
-                  ))}
-                {opt.icon != null && <View style={styles.iconSlot}>{opt.icon}</View>}
-                <Text
-                  style={[
-                    styles.rowLabel,
-                    selected && styles.rowLabelSelected,
-                    opt.disabled && styles.rowLabelDisabled,
-                  ]}
-                  numberOfLines={1}
-                >
-                  {opt.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+        {searchable ? (
+          <SearchBar
+            value={query}
+            onChangeText={setQuery}
+            onClear={() => setQuery('')}
+            placeholder="Search"
+            style={styles.search}
+          />
+        ) : null}
+
+        {isGrid ? (
+          // Its own viewport: three rows stay on screen and the rest scroll
+          // inside it, which also keeps the search field pinned above.
+          <ScrollView
+            style={styles.gridViewport}
+            nestedScrollEnabled
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {optionList}
+          </ScrollView>
+        ) : (
+          optionList
+        )}
       </BottomSheet>
     </View>
   );
@@ -303,6 +368,30 @@ const styles = StyleSheet.create({
   },
   list: {
     gap: spacing.sm, // 8px between rows per Figma `layout_D2MHOO`
+  },
+  search: { marginBottom: spacing.sm },
+  // maxHeight, not height — a filtered list shorter than the viewport shrinks
+  // instead of leaving dead space under it.
+  gridViewport: { maxHeight: GRID_VIEWPORT_HEIGHT },
+  grid: { flexDirection: 'row', flexWrap: 'wrap' },
+  // Grid cells are tappable targets in their own right, so they carry the
+  // border the single-column rows get from their full width.
+  gridCell: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+  },
+  gridLabel: { flex: 0, textAlign: 'center' },
+  empty: {
+    // Spans the row so it stays centred in grid mode too.
+    width: '100%',
+    fontFamily: typography.fontFamily,
+    fontSize: 14,
+    lineHeight: 20,
+    color: colors.textMuted,
+    paddingVertical: spacing.md,
+    textAlign: 'center',
   },
   // layout_HHG9UX — row, padding 8×12, gap 8
   row: {

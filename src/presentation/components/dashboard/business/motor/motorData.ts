@@ -117,7 +117,16 @@ export const PLAN_TYPE_OPTIONS = [
 export const MODEL_OPTIONS = ['Swift', 'Baleno', 'i20'].map((v) => ({ label: v, value: v }));
 export const MAKE_OPTIONS = ['Maruti', 'Hyundai', 'Tata', 'Honda'].map((v) => ({ label: v, value: v }));
 export const SUBTYPE_OPTIONS = ['Hatchback', 'Sedan', 'SUV', 'MUV'].map((v) => ({ label: v, value: v }));
-export const YEAR_OPTIONS = ['2026', '2025', '2024', '2023', '2022'].map((v) => ({ label: v, value: v }));
+/**
+ * Manufacturing years for the new-vehicle form, newest first. Runs back to 2005
+ * so the manually-entered flow can reach vehicles past the 15-year add-on
+ * cutoff (`isTooOldForAddOns`), same as a registered one.
+ */
+const OLDEST_MANUFACTURING_YEAR = 2005;
+export const YEAR_OPTIONS = Array.from(
+  { length: new Date().getFullYear() - OLDEST_MANUFACTURING_YEAR + 1 },
+  (_, i) => String(new Date().getFullYear() - i),
+).map((v) => ({ label: v, value: v }));
 export const LOCATION_OPTIONS = ['Mumbai', 'Delhi', 'Bangalore', 'Chennai'].map((v) => ({ label: v, value: v }));
 export const NCB_OPTIONS = ['0', '20', '25', '35', '45', '50'].map((v) => ({ label: `${v}%`, value: v }));
 

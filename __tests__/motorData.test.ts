@@ -3,6 +3,7 @@ import {
   formatQuoteValidity,
   lookupVehicle,
   validateRegistration,
+  YEAR_OPTIONS,
 } from '../src/presentation/components/dashboard/business/motor/motorData';
 
 describe('isTooOldForAddOns', () => {
@@ -21,6 +22,16 @@ describe('isTooOldForAddOns', () => {
   it('fires for the aged demo vehicle', () => {
     expect(isTooOldForAddOns(lookupVehicle('mh08l9035')!.year, 2026)).toBe(true);
     expect(isTooOldForAddOns(lookupVehicle('MH08L9834')!.year, 2026)).toBe(false);
+  });
+});
+
+describe('YEAR_OPTIONS', () => {
+  it('lets a manually entered vehicle reach past the 15-year cutoff', () => {
+    const now = new Date().getFullYear();
+    const years = YEAR_OPTIONS.map((o) => o.value);
+    expect(years[0]).toBe(String(now));
+    expect(years[years.length - 1]).toBe('2005');
+    expect(years.some((y) => isTooOldForAddOns(y, now))).toBe(true);
   });
 });
 
