@@ -1,16 +1,13 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { Check, CheckCircle, Shield, ShieldStar, SketchLogo } from 'phosphor-react-native';
+import { CheckCircle, Shield, ShieldStar, SketchLogo, XCircle } from 'phosphor-react-native';
 import {
   Accordion,
   Checkbox,
   Dropdown,
   DatePicker,
   Radio,
-  SegmentedControl,
-  Slider,
-  Textfield,
   Badge,
   colors,
   spacing,
@@ -20,14 +17,17 @@ import {
   fontFamilyForWeight,
 } from '@atlas-ds/react-native';
 import { RequiredField } from './RequiredField';
+import { WhoIsCovered } from './WhoIsCovered';
+import { CriticalIllnessPlans } from './CriticalIllnessPlans';
+import { SheetSelect } from './SheetSelect';
 import {
   PLAN_OPTIONS,
-  COUNT_OPTIONS,
   SUB_PLANS,
-  SUM_INSURED_MIN,
-  SUM_INSURED_MAX,
-  formatIndianCurrency,
-  numericOnly,
+  BASE_SUB_PLAN,
+  SUM_INSURED_OPTIONS,
+  formatRupees,
+  rupeeAmount,
+  type Coverage,
   type Member,
   type MemberDatum,
   type SubPlan,
@@ -40,12 +40,10 @@ interface PlanDetailsStepProps {
   setSelectedPlan: (val: string) => void;
   planType: string;
   setPlanType: (val: string) => void;
-  adults: string;
-  setAdults: (val: string) => void;
-  seniorCitizens: string;
-  setSeniorCitizens: (val: string) => void;
-  childrenCount: string;
-  setChildrenCount: (val: string) => void;
+  coverage: Coverage;
+  setCoverageCount: (id: string, count: number) => void;
+  oldestMemberDOB: Date | null;
+  setOldestMemberDOB: (date: Date | null) => void;
   startDate: Date | null;
   setStartDate: (date: Date | null) => void;
   endDate: Date | null;
@@ -59,6 +57,19 @@ interface PlanDetailsStepProps {
   updateMember: (id: string, field: keyof MemberDatum, value: MemberDatum[keyof MemberDatum]) => void;
   keepSumInsuredSame: boolean;
   toggleKeepSumInsuredSame: () => void;
+  /** Every member detail is filled in, so the sub-plan cards can quote a price. */
+  priceReady: boolean;
+  wantsCriticalIllness: string;
+  setWantsCriticalIllness: (val: string) => void;
+  grossMonthlyIncome: string;
+  setGrossMonthlyIncome: (val: string) => void;
+  occupation: string;
+  setOccupation: (val: string) => void;
+  hasDisability: string;
+  setHasDisability: (val: string) => void;
+  selectedCriticalPlans: string[];
+  toggleCriticalPlan: (id: string) => void;
+  onDownloadBrochure: () => void;
 }
 
 /**
@@ -91,12 +102,10 @@ export const PlanDetailsStep: React.FC<PlanDetailsStepProps> = ({
   setSelectedPlan,
   planType,
   setPlanType,
-  adults,
-  setAdults,
-  seniorCitizens,
-  setSeniorCitizens,
-  childrenCount,
-  setChildrenCount,
+  coverage,
+  setCoverageCount,
+  oldestMemberDOB,
+  setOldestMemberDOB,
   startDate,
   setStartDate,
   endDate,
@@ -110,13 +119,23 @@ export const PlanDetailsStep: React.FC<PlanDetailsStepProps> = ({
   updateMember,
   keepSumInsuredSame,
   toggleKeepSumInsuredSame,
+  priceReady,
+  wantsCriticalIllness,
+  setWantsCriticalIllness,
+  grossMonthlyIncome,
+  setGrossMonthlyIncome,
+  occupation,
+  setOccupation,
+  hasDisability,
+  setHasDisability,
+  selectedCriticalPlans,
+  toggleCriticalPlan,
+  onDownloadBrochure,
 }) => (
   <View style={styles.wrap}>
     {section === 'plan' ? (
     <View style={styles.card}>
       <Text style={styles.heading}>Plan Details</Text>
-      <Dropdown label="Select Policy Plan" options={PLAN_OPTIONS} value={selectedPlan} onChange={setSelectedPlan} />
-
       <View>
         <Text style={styles.label}>Select plan type <Text style={styles.asterisk}>*</Text></Text>
         <View style={styles.planTypeRow}>
@@ -135,6 +154,8 @@ export const PlanDetailsStep: React.FC<PlanDetailsStepProps> = ({
         </View>
       </View>
 
+      <Dropdown label="Select Policy Plan" options={PLAN_OPTIONS} value={selectedPlan} onChange={setSelectedPlan} />
+
       <View style={styles.dates}>
         <RequiredField label="Policy start date">
           <DatePicker placeholder="Select start date" value={startDate} onChange={setStartDate} />
@@ -142,6 +163,20 @@ export const PlanDetailsStep: React.FC<PlanDetailsStepProps> = ({
         <RequiredField label="Policy end date">
           <DatePicker placeholder="Select end date" value={endDate} onChange={setEndDate} />
         </RequiredField>
+
+        {/* Floater is one shared cover, so the amount is picked with the plan
+            rather than per member. */}
+        {planType === 'floater' ? (
+          <RequiredField label="Total sum insured">
+            <SheetSelect
+              placeholder="Select sum insured"
+              sheetTitle="Total sum insured"
+              options={SUM_INSURED_OPTIONS}
+              value={sumInsured}
+              onChange={setSumInsured}
+            />
+          </RequiredField>
+        ) : null}
       </View>
     </View>
     ) : null}
@@ -150,47 +185,24 @@ export const PlanDetailsStep: React.FC<PlanDetailsStepProps> = ({
     <>
     {planType !== '' ? (
       <>
-        {planType === 'floater' ? (
-          <View style={styles.card}>
-            <Text style={styles.heading}>Select sum insured</Text>
-            <Text style={styles.sub}>The selected amount will be the same for all members of the policy.</Text>
-            <Textfield
-              value={formatIndianCurrency(sumInsured)}
-              onChangeText={(t) => setSumInsured(numericOnly(t))}
-              placeholder="Rs."
-              keyboardType="number-pad"
-            />
-            <Slider
-              min={SUM_INSURED_MIN}
-              max={SUM_INSURED_MAX}
-              value={Number(sumInsured) || SUM_INSURED_MIN}
-              onChange={(val) => typeof val === 'number' && setSumInsured(String(val))}
-            />
-          </View>
-        ) : null}
+        <WhoIsCovered
+          planType={planType}
+          coverage={coverage}
+          setCoverageCount={setCoverageCount}
+          oldestMemberDOB={oldestMemberDOB}
+          setOldestMemberDOB={setOldestMemberDOB}
+        />
 
-        <View style={styles.card}>
-          <Text style={styles.heading}>Member Details</Text>
-          {planType === 'individual' && members.length > 0 ? (
+        {planType === 'individual' && members.length > 0 ? (
+          <View style={styles.card}>
+            <Text style={styles.heading}>Member Details</Text>
             <Checkbox
               size="sm"
               checked={keepSumInsuredSame}
               onChange={toggleKeepSumInsuredSame}
               label="Keep Sum Insured same for all"
             />
-          ) : null}
-          <Text style={styles.label}>Select adults <Text style={styles.asterisk}>*</Text></Text>
-          <SegmentedControl size="sm" value={adults} onChange={setAdults} options={COUNT_OPTIONS} />
-          {planType === 'individual' ? (
-            <>
-              <Text style={styles.label}>Select senior citizens</Text>
-              <SegmentedControl size="sm" value={seniorCitizens} onChange={setSeniorCitizens} options={COUNT_OPTIONS} />
-            </>
-          ) : null}
-          <Text style={styles.label}>Select children</Text>
-          <SegmentedControl size="sm" value={childrenCount} onChange={setChildrenCount} options={COUNT_OPTIONS} />
 
-          {planType === 'individual' && members.length > 0 ? (
             <View style={styles.members}>
               {members.map((member, idx) => {
                 const md = memberData[member.id] || { dob: null, sumInsured: '' };
@@ -210,11 +222,12 @@ export const PlanDetailsStep: React.FC<PlanDetailsStepProps> = ({
                         />
                       </RequiredField>
                       <RequiredField label="Sum Insured">
-                        <Textfield
-                          value={formatIndianCurrency(md.sumInsured || '')}
-                          onChangeText={(t) => updateMember(member.id, 'sumInsured', numericOnly(t))}
-                          placeholder="Rs."
-                          keyboardType="number-pad"
+                        <SheetSelect
+                          placeholder="Select sum insured"
+                          sheetTitle="Sum insured"
+                          options={SUM_INSURED_OPTIONS}
+                          value={md.sumInsured || ''}
+                          onChange={(val) => updateMember(member.id, 'sumInsured', val)}
                         />
                       </RequiredField>
                     </View>
@@ -222,8 +235,8 @@ export const PlanDetailsStep: React.FC<PlanDetailsStepProps> = ({
                 );
               })}
             </View>
-          ) : null}
-        </View>
+          </View>
+        ) : null}
       </>
     ) : null}
 
@@ -266,14 +279,52 @@ export const PlanDetailsStep: React.FC<PlanDetailsStepProps> = ({
                   <Text style={styles.subPlanName}>{sp.name}</Text>
                   <Badge variant="solid" size="sm" color={sp.badgeColor} label={sp.badge} />
                 </View>
-                <Text style={styles.subPlanTagline}>Lorem ipsum dolor sit amet</Text>
+
+                {/* Premiums stay blanked out until every member detail is in —
+                    a price quoted off half-filled member data would be wrong. */}
+                {priceReady ? (
+                  <>
+                    {/* "Rs." stays regular; only the amount is medium. */}
+                    <Text style={styles.subPlanPrice}>
+                      <Text style={styles.subPlanPriceCurrency}>Rs. </Text>
+                      {rupeeAmount(sp.premium)}
+                    </Text>
+                    <Text style={styles.subPlanPriceNote}>
+                      for 1 yr · {formatRupees(sp.premium)}/yr
+                    </Text>
+                    {sp.premium > BASE_SUB_PLAN.premium ? (
+                      <Badge
+                        variant="light"
+                        size="sm"
+                        color={sp.badgeColor}
+                        label={`+${formatRupees(sp.premium - BASE_SUB_PLAN.premium)} over ${BASE_SUB_PLAN.name}`}
+                        style={styles.subPlanUplift}
+                      />
+                    ) : null}
+                  </>
+                ) : (
+                  <>
+                    <Text style={styles.subPlanPriceEmpty}>
+                      <Text style={styles.subPlanPriceCurrency}>Rs. </Text>
+                      --
+                    </Text>
+                    <Text style={styles.subPlanPriceNote}>Add more details for price</Text>
+                  </>
+                )}
               </View>
               <View style={styles.benefits}>
                 <Text style={styles.benefitsHeading}>What you get</Text>
                 {sp.benefits.map((b, i) => (
                   <View key={i} style={styles.benefitRow}>
-                    <CheckCircle size={13} color={colors.textBody} />
-                    <Text style={styles.benefitText}>{b}</Text>
+                    {b.excluded ? (
+                      <XCircle size={16} color={colors.danger} />
+                    ) : (
+                      <CheckCircle size={16} color={colors.success} />
+                    )}
+                    <Text style={[styles.benefitText, b.excluded && styles.benefitTextExcluded]}>
+                      {b.label}:{' '}
+                      <Text style={[styles.benefitValue, b.excluded && styles.benefitTextExcluded]}>{b.value}</Text>
+                    </Text>
                   </View>
                 ))}
               </View>
@@ -282,6 +333,20 @@ export const PlanDetailsStep: React.FC<PlanDetailsStepProps> = ({
         })}
       </View>
     </View>
+
+    <CriticalIllnessPlans
+      wantsCriticalIllness={wantsCriticalIllness}
+      setWantsCriticalIllness={setWantsCriticalIllness}
+      grossMonthlyIncome={grossMonthlyIncome}
+      setGrossMonthlyIncome={setGrossMonthlyIncome}
+      occupation={occupation}
+      setOccupation={setOccupation}
+      hasDisability={hasDisability}
+      setHasDisability={setHasDisability}
+      selectedPlans={selectedCriticalPlans}
+      togglePlan={toggleCriticalPlan}
+      onDownloadBrochure={onDownloadBrochure}
+    />
 
     </>
     ) : null}
@@ -297,7 +362,7 @@ const styles = StyleSheet.create({
   asterisk: { color: colors.dangerText },
   planTypeRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
   planType: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderWidth: 1, borderColor: colors.borderSubtle, borderRadius: radius.lg, padding: spacing.md },
-  planTypeSel: { borderColor: '#3B82F6', backgroundColor: '#EFF6FF' },
+  planTypeSel: { borderColor: colors.brand, backgroundColor: '#EFF6FF' },
   planTypeLabel: { fontFamily: typography.fontFamily, fontSize: 15, color: colors.textHeading },
   dates: { gap: spacing.md },
   members: { gap: spacing.md, marginTop: spacing.sm },
@@ -313,9 +378,19 @@ const styles = StyleSheet.create({
   subPlanIcon: { width: 32, height: 32, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
   subPlanTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.xs },
   subPlanName: { fontFamily: typography.fontFamily, fontSize: 22, fontWeight: '500', color: colors.textHeading },
-  subPlanTagline: { fontFamily: typography.fontFamily, fontSize: 14, color: colors.textBody },
+  subPlanPrice: { fontFamily: fontFamilyForWeight('500'), fontSize: 28, lineHeight: 34, fontWeight: '500', color: colors.textHeading, marginTop: spacing.xs },
+  subPlanPriceCurrency: { fontFamily: typography.fontFamily, fontWeight: '400' },
+  // Same size as the quoted figure so the card doesn't resize once priced.
+  subPlanPriceEmpty: { fontFamily: fontFamilyForWeight('500'), fontSize: 26, lineHeight: 34, fontWeight: '500', color: colors.textDisabled, marginTop: spacing.xs },
+  // Negative top margin cancels the header's row gap, so the note sits tight
+  // under the figure it annotates rather than reading as the next row.
+  subPlanPriceNote: { fontFamily: typography.fontFamily, fontSize: 12, lineHeight: 16, color: colors.textMuted, marginTop: -spacing.xs },
+  subPlanUplift: { marginTop: spacing.xxs },
   benefits: { gap: spacing.sm, paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.borderSubtle },
-  benefitsHeading: { fontFamily: typography.fontFamily, fontSize: 14, fontWeight: '500', color: colors.textHeading },
-  benefitRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  benefitText: { fontFamily: typography.fontFamily, fontSize: 14, color: colors.textBody },
+  benefitsHeading: { fontFamily: fontFamilyForWeight('500'), fontSize: 14, fontWeight: '500', color: colors.textHeading },
+  // `flex-start` so the icon stays on the first line when the row wraps.
+  benefitRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
+  benefitText: { flex: 1, fontFamily: typography.fontFamily, fontSize: 14, lineHeight: 20, color: colors.textBody },
+  benefitTextExcluded: { color: colors.textMuted },
+  benefitValue: { fontFamily: fontFamilyForWeight('500'), fontWeight: '500', color: colors.textHeading },
 });

@@ -12,7 +12,14 @@ import { ProposerDetailsStep } from './ProposerDetailsStep';
 import { AddOnsStep } from './AddOnsStep';
 import { PreviewStep } from './PreviewStep';
 import { PolicyTenurePremium } from './PolicyTenurePremium';
-import { buildMembers, planValueForProduct, type MemberDatum } from './healthData';
+import {
+  TENURES,
+  buildMembers,
+  criticalPlansFor,
+  planValueForProduct,
+  type Coverage,
+  type MemberDatum,
+} from './healthData';
 
 const STEPS = [
   { label: 'Plan' },
@@ -23,8 +30,6 @@ const STEPS = [
   { label: 'Preview' },
 ];
 
-/** Policy years per tenure option offered on the premium step. */
-const TENURE_YEARS: Record<string, number> = { '1y': 1, '2y': 2, '3y': 3 };
 
 interface HealthGuardProps {
   productName: string;
@@ -96,12 +101,20 @@ export const HealthGuard: React.FC<HealthGuardProps> = ({
   const [selectedPlan, setSelectedPlan] = useState(() => planValueForProduct(productName));
   const [planType, setPlanType] = useState('');
   const [subPlan, setSubPlan] = useState('');
-  const [adults, setAdults] = useState('0');
-  const [seniorCitizens, setSeniorCitizens] = useState('0');
-  const [childrenCount, setChildrenCount] = useState('0');
+  // "Who is covered?" — relation id → how many of that relation are covered.
+  const [coverage, setCoverage] = useState<Coverage>({});
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [sumInsured, setSumInsured] = useState('');
+  // Floater only — the eldest life covered, which the floater is priced on.
+  const [oldestMemberDOB, setOldestMemberDOB] = useState<Date | null>(null);
+
+  // Critical illness / PA add-on plans offered under the sub-plan tiers.
+  const [wantsCriticalIllness, setWantsCriticalIllness] = useState('');
+  const [grossMonthlyIncome, setGrossMonthlyIncome] = useState('');
+  const [occupation, setOccupation] = useState('');
+  const [hasDisability, setHasDisability] = useState('');
+  const [selectedCriticalPlans, setSelectedCriticalPlans] = useState<string[]>([]);
 
   const [proposerIsMember, setProposerIsMember] = useState(false);
   const [proposerName, setProposerName] = useState('');
@@ -147,7 +160,7 @@ export const HealthGuard: React.FC<HealthGuardProps> = ({
     setPincode('590001');
     setCity('Delhi');
     setState('Delhi');
-    setAdults('0');
+    setCoverage({});
     setSumInsured('500000');
     setTenure('3y');
     setStartDate(s);
@@ -170,7 +183,7 @@ export const HealthGuard: React.FC<HealthGuardProps> = ({
   // same way the motor flow's `calculatePolicyEndDate` does.
   const selectTenure = (value: string) => {
     setTenure(value);
-    const years = TENURE_YEARS[value];
+    const years = TENURES.find((t) => t.value === value)?.years;
     if (!startDate || !years) {
       return;
     }
@@ -180,9 +193,23 @@ export const HealthGuard: React.FC<HealthGuardProps> = ({
   };
 
   const members = useMemo(
-    () => buildMembers(proposerIsMember, proposerName, Number(adults), Number(seniorCitizens), Number(childrenCount)),
-    [proposerIsMember, proposerName, adults, seniorCitizens, childrenCount],
+    () => buildMembers(proposerIsMember, proposerName, coverage, planType),
+    [proposerIsMember, proposerName, coverage, planType],
   );
+
+  const setCoverageCount = (id: string, count: number) =>
+    setCoverage((prev) => ({ ...prev, [id]: Math.max(0, count) }));
+
+  const toggleCriticalPlan = (id: string) =>
+    setSelectedCriticalPlans((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
+
+  // Declaring a disability withdraws some plans — drop any already picked, so a
+  // hidden card can't stay in the quote.
+  const selectHasDisability = (value: string) => {
+    setHasDisability(value);
+    const offered = criticalPlansFor(value).map((p) => p.id);
+    setSelectedCriticalPlans((prev) => prev.filter((id) => offered.includes(id)));
+  };
 
   const updateMember = (id: string, field: keyof MemberDatum, value: MemberDatum[keyof MemberDatum]) => {
     setMemberData((prev) => {
@@ -225,12 +252,28 @@ export const HealthGuard: React.FC<HealthGuardProps> = ({
   };
 
   // Step 1: plan type + dates. Step 2: members + sub plan. Step 3: proposer.
-  const planStepValid = planType !== '' && startDate !== null && endDate !== null;
-  const membersStepValid =
-    subPlan !== '' &&
+  const planStepValid =
+    planType !== '' &&
+    startDate !== null &&
+    endDate !== null &&
+    // Floater picks its shared cover on this step, alongside the dates.
+    (planType !== 'floater' || sumInsured !== '');
+  // Everything the premium is priced off — the sub-plan cards stay blank until
+  // this holds, and the step needs a tier picked on top of it.
+  const memberDetailsComplete =
+    members.length > 0 &&
     (planType === 'floater'
-      ? sumInsured !== ''
-      : members.length > 0 && members.every((m) => memberData[m.id]?.dob && memberData[m.id]?.sumInsured));
+      ? oldestMemberDOB !== null
+      : members.every((m) => memberData[m.id]?.dob && memberData[m.id]?.sumInsured));
+  // The critical-illness question is required; answering "yes" pulls in the
+  // income/occupation fields and the disability question it reveals.
+  const criticalIllnessValid =
+    wantsCriticalIllness === 'no' ||
+    (wantsCriticalIllness === 'yes' &&
+      grossMonthlyIncome !== '' &&
+      occupation !== '' &&
+      hasDisability !== '');
+  const membersStepValid = subPlan !== '' && memberDetailsComplete && criticalIllnessValid;
   const proposerStepValid = proposerName !== '' && proposerDOB !== null && annualIncome !== '' && pincode.length === 6;
 
   const canProceed =
@@ -273,12 +316,10 @@ export const HealthGuard: React.FC<HealthGuardProps> = ({
             setSelectedPlan={setSelectedPlan}
             planType={planType}
             setPlanType={setPlanType}
-            adults={adults}
-            setAdults={setAdults}
-            seniorCitizens={seniorCitizens}
-            setSeniorCitizens={setSeniorCitizens}
-            childrenCount={childrenCount}
-            setChildrenCount={setChildrenCount}
+            coverage={coverage}
+            setCoverageCount={setCoverageCount}
+            oldestMemberDOB={oldestMemberDOB}
+            setOldestMemberDOB={setOldestMemberDOB}
             startDate={startDate}
             setStartDate={setStartDate}
             endDate={endDate}
@@ -292,6 +333,18 @@ export const HealthGuard: React.FC<HealthGuardProps> = ({
             updateMember={updateMember}
             keepSumInsuredSame={keepSumInsuredSame}
             toggleKeepSumInsuredSame={toggleKeepSumInsuredSame}
+            priceReady={memberDetailsComplete}
+            wantsCriticalIllness={wantsCriticalIllness}
+            setWantsCriticalIllness={setWantsCriticalIllness}
+            grossMonthlyIncome={grossMonthlyIncome}
+            setGrossMonthlyIncome={setGrossMonthlyIncome}
+            occupation={occupation}
+            setOccupation={setOccupation}
+            hasDisability={hasDisability}
+            setHasDisability={selectHasDisability}
+            selectedCriticalPlans={selectedCriticalPlans}
+            toggleCriticalPlan={toggleCriticalPlan}
+            onDownloadBrochure={handleDownloadBrochure}
           />
         ) : currentStep === 3 ? (
           <ProposerDetailsStep
@@ -323,7 +376,17 @@ export const HealthGuard: React.FC<HealthGuardProps> = ({
             setFloaterAddOns={setFloaterAddOns}
           />
         ) : currentStep === 5 ? (
-          <PolicyTenurePremium tenure={tenure} onSelectTenure={selectTenure} />
+          <PolicyTenurePremium
+            tenure={tenure}
+            onSelectTenure={selectTenure}
+            subPlan={subPlan}
+            planType={planType}
+            members={members}
+            memberData={memberData}
+            sumInsured={sumInsured}
+            oldestMemberDOB={oldestMemberDOB}
+            floaterAddOns={floaterAddOns}
+          />
         ) : (
           <PreviewStep
             productName={productName}
