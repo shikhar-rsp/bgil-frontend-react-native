@@ -18,6 +18,22 @@ export const BOTTOM_SHEET_HEADER_ICON_SIZE = 32;
 /** Recommended glyph size inside the featured-icon badge (20px per Figma). */
 export const BOTTOM_SHEET_HEADER_GLYPH_SIZE = 20;
 
+/** Outer diameter of the `ring` featured-icon badge. */
+const RING_OUTER_SIZE = 44;
+
+/**
+ * Featured-icon badge shape. `square` is the Figma "Light Featured icon";
+ * `ring` is the concentric double-circle used by the task/empty-state badges.
+ */
+export type FeaturedIconShape = 'square' | 'ring';
+
+/**
+ * Inner-ring tint. The accent palette only carries a 50-level (`lightBg`) and a
+ * 500-level (`solidBg`), so the mid step is the solid colour at low alpha over
+ * the outer ring — just enough separation to read as two rings.
+ */
+const ringInnerBg = (solidBg: string) => `${solidBg}0D`;
+
 export interface BottomSheetAction {
   label: string;
   onPress: () => void;
@@ -34,6 +50,7 @@ export interface BottomSheetPage {
   key: string;
   icon?: React.ReactNode;
   featuredIconColor?: AccentColor;
+  featuredIconShape?: FeaturedIconShape;
   title?: string;
   subtitle?: string;
   content?: React.ReactNode;
@@ -62,6 +79,11 @@ export interface BottomSheetProps {
   icon?: React.ReactNode;
   /** Accent tint of the featured-icon badge. Default `blue` (#EFF6FF). */
   featuredIconColor?: AccentColor;
+  /**
+   * `square` (default) — the Figma Light Featured icon. `ring` — the concentric
+   * double-circle badge, for sheets that want the softer confirmation look.
+   */
+  featuredIconShape?: FeaturedIconShape;
   /** Title text — Heading 2 / SemiBold per Figma. */
   title?: string;
   /** Subtitle/supporting copy — Body 2 / Regular per Figma. */
@@ -147,6 +169,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   onClose,
   icon,
   featuredIconColor = 'blue',
+  featuredIconShape = 'square',
   title,
   subtitle,
   children,
@@ -221,6 +244,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   // APIs can coexist on one instance.
   const pIcon = page ? page.icon : icon;
   const pIconColor = page?.featuredIconColor ?? featuredIconColor;
+  const pIconShape = page?.featuredIconShape ?? featuredIconShape;
   const pTitle = page ? page.title : title;
   const pSubtitle = page ? page.subtitle : subtitle;
   const pContent = page ? page.content : children;
@@ -287,11 +311,17 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
         >
         {(pIcon || pTitle || pSubtitle) && (
           <View style={styles.headerRow}>
-            {pIcon && (
+            {pIcon && (pIconShape === 'ring' ? (
+              <View style={[styles.ringOuter, { backgroundColor: accent[pIconColor].lightBg }]}>
+                <View style={[styles.ringInner, { backgroundColor: ringInnerBg(accent[pIconColor].solidBg) }]}>
+                  {pIcon}
+                </View>
+              </View>
+            ) : (
               <View style={[styles.iconBadge, { backgroundColor: accent[pIconColor].lightBg }]}>
                 {pIcon}
               </View>
-            )}
+            ))}
             {(pTitle || pSubtitle) && (
               <View style={styles.textGroup}>
                 {!!pTitle && <Text style={styles.title}>{pTitle}</Text>}
@@ -440,6 +470,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.sm,
+  },
+  // `ring` shape: 44px outer circle at the accent's 50-level, holding a 32px
+  // inner circle one step darker — the same badge the task screens hand-roll.
+  ringOuter: {
+    width: RING_OUTER_SIZE,
+    height: RING_OUTER_SIZE,
+    borderRadius: RING_OUTER_SIZE / 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.sm,
+  },
+  ringInner: {
+    width: BOTTOM_SHEET_HEADER_ICON_SIZE,
+    height: BOTTOM_SHEET_HEADER_ICON_SIZE,
+    borderRadius: BOTTOM_SHEET_HEADER_ICON_SIZE / 2,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   textGroup: {
     alignSelf: 'stretch',

@@ -266,13 +266,12 @@ export const HealthGuard: React.FC<HealthGuardProps> = ({
       ? oldestMemberDOB !== null
       : members.every((m) => memberData[m.id]?.dob && memberData[m.id]?.sumInsured));
   // The critical-illness question is required; answering "yes" pulls in the
-  // income/occupation fields and the disability question it reveals.
+  // income/occupation fields. The disability card renders either way, so its
+  // question is required regardless of that answer.
   const criticalIllnessValid =
-    wantsCriticalIllness === 'no' ||
-    (wantsCriticalIllness === 'yes' &&
-      grossMonthlyIncome !== '' &&
-      occupation !== '' &&
-      hasDisability !== '');
+    hasDisability !== '' &&
+    (wantsCriticalIllness === 'no' ||
+      (wantsCriticalIllness === 'yes' && grossMonthlyIncome !== '' && occupation !== ''));
   const membersStepValid = subPlan !== '' && memberDetailsComplete && criticalIllnessValid;
   const proposerStepValid = proposerName !== '' && proposerDOB !== null && annualIncome !== '' && pincode.length === 6;
 
@@ -391,11 +390,9 @@ export const HealthGuard: React.FC<HealthGuardProps> = ({
           <PreviewStep
             productName={productName}
             planType={planType}
-            subPlan={subPlan}
             proposerName={proposerName}
             proposerDOB={proposerDOB}
             members={members}
-            memberData={memberData}
           />
         )}
       </ScrollView>

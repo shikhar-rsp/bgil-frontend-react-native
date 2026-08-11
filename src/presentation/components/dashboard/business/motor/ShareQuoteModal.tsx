@@ -54,6 +54,7 @@ export const ShareQuoteModal: React.FC<ShareQuoteModalProps> = ({
       onClose={onClose}
       icon={<CheckCircle size={20} color="#65A30D" weight="regular" />}
       featuredIconColor="lime"
+      featuredIconShape="ring"
       title={title}
       subtitle={subtitle}
       contentMinHeight={0}

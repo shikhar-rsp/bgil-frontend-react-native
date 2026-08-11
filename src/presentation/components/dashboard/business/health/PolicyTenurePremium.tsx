@@ -79,6 +79,9 @@ export const PolicyTenurePremium: React.FC<PolicyTenurePremiumProps> = ({
 
   return (
     <View style={styles.card}>
+      {canShowPremium ? (
+        <ToastGlobal variant="info" title="21 days validity." message="Quote valid till 21st Feb 2026." />
+      ) : null}
       {/* Tenure first: it drives the premium, so the figure it produces reads
           last rather than sitting above the choice that changes it. */}
       <View style={styles.tenureBlock}>
@@ -96,6 +99,7 @@ export const PolicyTenurePremium: React.FC<PolicyTenurePremiumProps> = ({
             tenure: t.value,
           });
           return (
+            
             <Pressable
               key={t.value}
               style={[styles.tenure, selected && styles.tenureSel]}
@@ -189,9 +193,7 @@ export const PolicyTenurePremium: React.FC<PolicyTenurePremiumProps> = ({
         )}
       </View>
 
-      {canShowPremium ? (
-        <ToastGlobal variant="info" title="21 days validity." message="Quote valid till 21st Feb 2026." />
-      ) : null}
+      
     </View>
   );
 };

@@ -107,10 +107,10 @@ const YesNo: React.FC<{ value: string; onChange: (val: string) => void }> = ({ v
 /**
  * Critical Illness / PA add-on plans, offered under the sub-plan tiers.
  *
- * The income + occupation fields and the whole Pre-existing disability card
- * hang off the first answer — they only mean anything once the customer wants
- * these covers. Plan selection is multi-select, unlike the single-choice sub
- * plan above it.
+ * The income + occupation fields hang off the first answer — they only mean
+ * anything once the customer wants these covers. The Pre-existing disability
+ * card is independent of it and always renders. Plan selection is multi-select,
+ * unlike the single-choice sub plan above it.
  */
 export const CriticalIllnessPlans: React.FC<CriticalIllnessPlansProps> = ({
   wantsCriticalIllness,
@@ -159,75 +159,79 @@ export const CriticalIllnessPlans: React.FC<CriticalIllnessPlansProps> = ({
       ) : null}
     </View>
 
-    {wantsCriticalIllness === 'yes' ? (
-      <View style={styles.card}>
-        <Text style={styles.heading}>Pre-existing disability</Text>
-        <View style={styles.field}>
-          <RequiredLabel text="Does the customer have any pre-existing disability?" />
-          <YesNo value={hasDisability} onChange={setHasDisability} />
-        </View>
-
-        <View style={styles.plansHead}>
-          <Text style={styles.plansTitle}>Customised plans for you</Text>
-          {criticalPlansFor(hasDisability).length > 1 ? (
-            <Text style={styles.plansHint}>Multiple plans can be selected</Text>
-          ) : null}
-        </View>
-
-        <View style={styles.plans}>
-          {criticalPlansFor(hasDisability).map((plan) => {
-            const selected = selectedPlans.includes(plan.id);
-            return (
-              <Pressable
-                key={plan.id}
-                style={[styles.plan, selected && styles.planSel]}
-                onPress={() => togglePlan(plan.id)}
-                accessibilityRole="checkbox"
-                accessibilityState={{ checked: selected }}
-              >
-                {/* Gradient block carries the identity + price; the covers
-                    below sit on the card's own surface. */}
-                <View style={styles.planHead}>
-                  <PlanTopGradient id={`plan-top-${plan.id}`} />
-                  <View style={styles.planTop}>
-                    {/* Its own press target, so downloading doesn't also
-                        toggle the plan. */}
-                    <Button
-                      label="Brochure"
-                      variant="tertiary"
-                      size="sm"
-                      onPress={onDownloadBrochure}
-                      leadingIcon={<DownloadSimple size={14} color={colors.brand} />}
-                    />
-                    <Checkbox size="sm" checked={selected} onChange={() => togglePlan(plan.id)} />
-                  </View>
-
-                  <Text style={styles.planName}>{plan.name}</Text>
-                  <Text style={styles.planPrice}>
-                    <Text style={styles.planPriceCurrency}>Rs. </Text>
-                    {rupeeAmount(plan.premium)}
-                  </Text>
-                  <Text style={styles.planTax}>Inclusive of all taxes</Text>
-                </View>
-
-                <View style={styles.planCovers}>
-                  <View>
-                    <Text style={styles.coverLabel}>Death Sum Insured</Text>
-                    <Text style={styles.coverValue}>{formatRupees(plan.deathSumInsured)}</Text>
-                  </View>
-                  {plan.ptdSumInsured ? (
-                    <View>
-                      <Text style={styles.coverLabel}>PTD Sum Insured</Text>
-                      <Text style={styles.coverValue}>{formatRupees(plan.ptdSumInsured)}</Text>
-                    </View>
-                  ) : null}
-                </View>
-              </Pressable>
-            );
-          })}
-        </View>
+    <View style={styles.card}>
+      <Text style={styles.heading}>Pre-existing disability</Text>
+      <View style={styles.field}>
+        <RequiredLabel text="Does the customer have any pre-existing disability?" />
+        <YesNo value={hasDisability} onChange={setHasDisability} />
       </View>
-    ) : null}
+
+      {/* The list is tailored to the answer, so it only means anything once
+          one is given — blank until then rather than showing the full set. */}
+      {hasDisability !== '' ? (
+        <>
+          <View style={styles.plansHead}>
+            <Text style={styles.plansTitle}>Customised plans for you</Text>
+            {criticalPlansFor(hasDisability).length > 1 ? (
+              <Text style={styles.plansHint}>Multiple plans can be selected</Text>
+            ) : null}
+          </View>
+
+          <View style={styles.plans}>
+            {criticalPlansFor(hasDisability).map((plan) => {
+              const selected = selectedPlans.includes(plan.id);
+              return (
+                <Pressable
+                  key={plan.id}
+                  style={[styles.plan, selected && styles.planSel]}
+                  onPress={() => togglePlan(plan.id)}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: selected }}
+                >
+                  {/* Gradient block carries the identity + price; the covers
+                      below sit on the card's own surface. */}
+                  <View style={styles.planHead}>
+                    <PlanTopGradient id={`plan-top-${plan.id}`} />
+                    <View style={styles.planTop}>
+                      {/* Its own press target, so downloading doesn't also
+                          toggle the plan. */}
+                      <Button
+                        label="Brochure"
+                        variant="tertiary"
+                        size="sm"
+                        onPress={onDownloadBrochure}
+                        leadingIcon={<DownloadSimple size={14} color={colors.brand} />}
+                      />
+                      <Checkbox size="sm" checked={selected} onChange={() => togglePlan(plan.id)} />
+                    </View>
+
+                    <Text style={styles.planName}>{plan.name}</Text>
+                    <Text style={styles.planPrice}>
+                      <Text style={styles.planPriceCurrency}>Rs. </Text>
+                      {rupeeAmount(plan.premium)}
+                    </Text>
+                    <Text style={styles.planTax}>Inclusive of all taxes</Text>
+                  </View>
+
+                  <View style={styles.planCovers}>
+                    <View>
+                      <Text style={styles.coverLabel}>Death Sum Insured</Text>
+                      <Text style={styles.coverValue}>{formatRupees(plan.deathSumInsured)}</Text>
+                    </View>
+                    {plan.ptdSumInsured ? (
+                      <View>
+                        <Text style={styles.coverLabel}>PTD Sum Insured</Text>
+                        <Text style={styles.coverValue}>{formatRupees(plan.ptdSumInsured)}</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+        </>
+      ) : null}
+    </View>
   </>
 );
 

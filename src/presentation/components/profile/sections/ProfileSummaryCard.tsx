@@ -58,7 +58,15 @@ export const ProfileSummaryCard: React.FC<ProfileSummaryCardProps> = ({
 
       <View style={styles.nameRow}>
         <Text style={styles.name}>{profile.displayName}</Text>
-        <Badge label={profile.roleTag} variant="light" color="brand" size="sm" />
+        {/* Badge defaults to alignSelf 'flex-start' (so it doesn't stretch in a
+            column); in this row that pins it to the top of the 28px name line. */}
+        <Badge
+          label={profile.roleTag}
+          variant="light"
+          color="brand"
+          size="sm"
+          style={styles.roleBadge}
+        />
       </View>
 
       <View style={styles.actions}>
@@ -112,6 +120,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
   },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' },
+  roleBadge: { alignSelf: 'center' },
   name: {
     fontFamily: fontFamilyForWeight('500'),
     fontSize: 24,

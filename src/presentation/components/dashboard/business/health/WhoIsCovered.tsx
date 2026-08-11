@@ -113,8 +113,9 @@ export const WhoIsCovered: React.FC<WhoIsCoveredProps> = ({
       ))}
 
       {/* Floater is priced off the eldest life covered — collected here since
-          the plan has no per-member accordions. */}
-      {planType === 'floater' ? (
+          the plan has no per-member accordions. Nothing to date until at least
+          one life is picked, so it stays hidden while the selection is empty. */}
+      {planType === 'floater' && selected > 0 ? (
         <RequiredField label="Oldest Member DOB">
           <DatePicker placeholder="Select DOB" value={oldestMemberDOB} onChange={setOldestMemberDOB} />
         </RequiredField>
