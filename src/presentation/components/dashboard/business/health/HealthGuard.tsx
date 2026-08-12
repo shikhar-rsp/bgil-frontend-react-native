@@ -88,7 +88,9 @@ export const HealthGuard: React.FC<HealthGuardProps> = ({
         onExit();
         return;
       }
-      if (stepRef.current > 1) {
+      // Preview is the end of the flow, not a stage — Back there leaves for the
+      // Business screen rather than reopening the premium step.
+      if (stepRef.current > 1 && stepRef.current !== 6) {
         setCurrentStep(stepRef.current - 1);
         return;
       }
@@ -119,6 +121,8 @@ export const HealthGuard: React.FC<HealthGuardProps> = ({
   const [proposerIsMember, setProposerIsMember] = useState(false);
   const [proposerName, setProposerName] = useState('');
   const [proposerDOB, setProposerDOB] = useState<Date | null>(null);
+  // Floater only — see `ProposerDetailsStep`.
+  const [proposerGender, setProposerGender] = useState('');
   const [annualIncome, setAnnualIncome] = useState('');
   const [pincode, setPincode] = useState('');
   const [city, setCity] = useState('');
@@ -273,7 +277,13 @@ export const HealthGuard: React.FC<HealthGuardProps> = ({
     (wantsCriticalIllness === 'no' ||
       (wantsCriticalIllness === 'yes' && grossMonthlyIncome !== '' && occupation !== ''));
   const membersStepValid = subPlan !== '' && memberDetailsComplete && criticalIllnessValid;
-  const proposerStepValid = proposerName !== '' && proposerDOB !== null && annualIncome !== '' && pincode.length === 6;
+  const proposerStepValid =
+    proposerName !== '' &&
+    proposerDOB !== null &&
+    annualIncome !== '' &&
+    pincode.length === 6 &&
+    // Gender is only on the form for floater.
+    (planType !== 'floater' || proposerGender !== '');
 
   const canProceed =
     currentStep === 1 ? planStepValid :
@@ -347,12 +357,15 @@ export const HealthGuard: React.FC<HealthGuardProps> = ({
           />
         ) : currentStep === 3 ? (
           <ProposerDetailsStep
+            planType={planType}
             proposerIsMember={proposerIsMember}
             setProposerIsMember={setProposerIsMember}
             proposerName={proposerName}
             setProposerName={setProposerName}
             proposerDOB={proposerDOB}
             setProposerDOB={setProposerDOB}
+            proposerGender={proposerGender}
+            setProposerGender={setProposerGender}
             annualIncome={annualIncome}
             setAnnualIncome={setAnnualIncome}
             pincode={pincode}

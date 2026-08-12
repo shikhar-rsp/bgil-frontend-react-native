@@ -49,7 +49,8 @@ const Row: React.FC<{ label: string; value: string; valueColor?: string }> = ({ 
  * "Save x%" badge.
  *
  * Every figure comes off the selected sub-plan's premium (see `computePremium`),
- * so the tenure list, the rows and the member-wise split all agree. The premium
+ * so the tenure list, the rows and the member-wise split (individual only) all
+ * agree. The premium
  * breakdown and the validity banner unlock only once a tenure is picked — the
  * web flow gates them the same way (`canShowPremium`). Tenure prices stay
  * visible throughout so they can be compared before choosing.
@@ -112,10 +113,15 @@ export const PolicyTenurePremium: React.FC<PolicyTenurePremiumProps> = ({
                 <Text style={styles.tenureLabel}>{t.label}</Text>
                 {t.discount > 0 ? (
                   <Badge
-                    variant="solid"
+                    // Tinted until the tenure is picked, so only the selected
+                    // row carries a solid accent.
+                    variant={selected ? 'solid' : 'light'}
                     size="sm"
                     color="emerald"
                     label={`Save ${Math.round(t.discount * 100)}%`}
+                    // Badge's own `alignSelf: flex-start` wins over the row's
+                    // `alignItems: center`, so re-centre it against the label.
+                    style={styles.tenureBadge}
                   />
                 ) : null}
               </View>
@@ -156,7 +162,9 @@ export const PolicyTenurePremium: React.FC<PolicyTenurePremiumProps> = ({
               <Row label="Discount" value={`-${formatRupees(0)}`} valueColor={colors.success} />
             </View>
 
-            {quote.breakdown.length > 0 ? (
+            {/* A floater is one shared cover priced on the eldest life, so there
+                is no per-member split to show. */}
+            {planType !== 'floater' && quote.breakdown.length > 0 ? (
               <Accordion label="Member-wise breakdown" style={styles.breakdownCard}>
                 <View style={styles.breakdownRows}>
                   {quote.breakdown.map((m) => (
@@ -205,6 +213,7 @@ const styles = StyleSheet.create({
   tenure: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, padding: spacing.md, borderWidth: 1, borderColor: colors.borderSubtle, borderRadius: radius.xl },
   tenureSel: { borderColor: '#3B82F6', backgroundColor: '#EFF6FF' },
   tenureLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexShrink: 1 },
+  tenureBadge: { alignSelf: 'center' },
   tenureLabel: { fontFamily: typography.fontFamily, fontSize: 14, color: colors.textHeading },
   tenureRight: { alignItems: 'flex-end' },
   tenurePrice: { fontFamily: fontFamilyForWeight('500'), fontSize: 18, lineHeight: 24, fontWeight: '500', color: colors.textBody },

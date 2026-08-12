@@ -238,6 +238,13 @@ export const formatIndianCurrency = (value: string): string => {
 
 export const numericOnly = (value: string): string => value.replace(/\D/g, '');
 
+/** Proposer gender — asked on floater quotes, which are priced on one life. */
+export const GENDER_OPTIONS = [
+  { label: 'Male', value: 'male' },
+  { label: 'Female', value: 'female' },
+  { label: 'Transgender', value: 'transgender' },
+];
+
 /* ── Critical illness & PA ──────────────────────────────────────────────── */
 
 export const INCOME_OPTIONS = [500000, 1000000, 1500000, 2000000, 2500000, 5000000].map((v) => ({

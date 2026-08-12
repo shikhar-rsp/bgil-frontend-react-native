@@ -2,15 +2,20 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Checkbox, Textfield, DatePicker, colors, spacing, radius, shadow, fontFamilyForWeight } from '@atlas-ds/react-native';
 import { RequiredField } from './RequiredField';
-import { formatIndianCurrency, numericOnly } from './healthData';
+import { SheetSelect } from './SheetSelect';
+import { formatIndianCurrency, numericOnly, GENDER_OPTIONS } from './healthData';
 
 interface ProposerDetailsStepProps {
+  /** Gender is only asked on floater quotes. */
+  planType: string;
   proposerIsMember: boolean;
   setProposerIsMember: (val: boolean) => void;
   proposerName: string;
   setProposerName: (val: string) => void;
   proposerDOB: Date | null;
   setProposerDOB: (date: Date | null) => void;
+  proposerGender: string;
+  setProposerGender: (val: string) => void;
   annualIncome: string;
   setAnnualIncome: (val: string) => void;
   pincode: string;
@@ -22,12 +27,15 @@ interface ProposerDetailsStepProps {
 }
 
 export const ProposerDetailsStep: React.FC<ProposerDetailsStepProps> = ({
+  planType,
   proposerIsMember,
   setProposerIsMember,
   proposerName,
   setProposerName,
   proposerDOB,
   setProposerDOB,
+  proposerGender,
+  setProposerGender,
   annualIncome,
   setAnnualIncome,
   pincode,
@@ -55,6 +63,19 @@ export const ProposerDetailsStep: React.FC<ProposerDetailsStepProps> = ({
       <RequiredField label="Date of Birth">
         <DatePicker placeholder="Select DOB" value={proposerDOB} onChange={setProposerDOB} />
       </RequiredField>
+      {/* A floater is priced on the proposer's own life, so it needs the gender
+          too; individual plans carry it per member instead. */}
+      {planType === 'floater' ? (
+        <RequiredField label="Gender">
+          <SheetSelect
+            placeholder="Select gender"
+            sheetTitle="Gender"
+            options={GENDER_OPTIONS}
+            value={proposerGender}
+            onChange={setProposerGender}
+          />
+        </RequiredField>
+      ) : null}
       <RequiredField label="Annual Family Income">
         <Textfield
           value={annualIncome ? formatIndianCurrency(annualIncome) : ''}
