@@ -13,6 +13,8 @@ interface QuoteFooterProps {
   onProceed?: () => void;
   onShareQuote?: () => void;
   onConvertToProposal?: () => void;
+  /** Adds a Reset control beside the forward action. Omitted = no Reset shown. */
+  onReset?: () => void;
 }
 
 /**
@@ -32,6 +34,7 @@ export const QuoteFooter: React.FC<QuoteFooterProps> = ({
   onProceed,
   onShareQuote,
   onConvertToProposal,
+  onReset,
 }) => {
   // The wizards hide the bottom nav, so this bar is the screen's bottom edge.
   const paddingBottom = useBottomActionInset();
@@ -53,12 +56,16 @@ export const QuoteFooter: React.FC<QuoteFooterProps> = ({
         onPress={onProceed}
         fullWidth
       />
+      {onReset ? (
+        <Button label="Reset" variant="secondaryGray" onPress={onReset} fullWidth />
+      ) : null}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   bar: {
+    gap: spacing.md,
     backgroundColor: colors.surface,
     padding: spacing.lg,
   },

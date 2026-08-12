@@ -43,6 +43,7 @@ export const dashboardImages: Record<string, ImageSourcePropType> = {
   aiIcon2: require('../../../../assets/images/ai-icon-2.png'),
   carPng: require('../../../../assets/images/car_png.png'),
   cyclePng: require('../../../../assets/images/cycle_png.png'),
+  scooterPng: require('../../../../assets/images/scooter_png.png'),
   commercialPng: require('../../../../assets/images/commercial_png.png'),
   schoolBus: require('../../../../assets/images/school_bus.png'),
   bulletPng: require('../../../../assets/images/bullet_png.png'),

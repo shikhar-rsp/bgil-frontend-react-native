@@ -12,7 +12,7 @@ import { IssuedPolicy } from '../../components/dashboard/business/IssuedPolicy';
 import { TwoWheelerInsurance } from '../../components/dashboard/business/motor/TwoWheelerInsurance';
 import { VehicleTypeModal } from '../../components/dashboard/business/motor/VehicleTypeModal';
 /** Motor products route to the Two-Wheeler / Motor flow; others to Health Guard. */
-import { MOTOR_PRODUCTS } from '../../components/dashboard/business/motor/motorData';
+import { MOTOR_PRODUCTS } from '../../components/dashboard/business/motor/motorQuoteData';
 import { WalkthroughTarget } from '../../components/dashboard/walkthrough/WalkthroughContext';
 import { RENEWALS } from '../../components/dashboard/business/businessData';
 import type { Policy, Renewal } from '../../components/dashboard/business/businessData';

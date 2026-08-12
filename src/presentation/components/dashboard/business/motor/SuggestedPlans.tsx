@@ -1,183 +1,208 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
+import { CheckCircle, XCircle, ShieldCheck, CrownSimple, Shield, type IconProps } from 'phosphor-react-native';
+import { Radio, colors, spacing, radius, typography, fontFamilyForWeight } from '@atlas-ds/react-native';
+import { MotorCard, motorColors } from './motorUi';
 import {
-  CheckCircle,
-  ShieldCheck,
-  CrownSimple,
-  Shield as ShieldIcon,
-  type IconProps,
-} from 'phosphor-react-native';
-import { Radio, colors, spacing, radius, typography, fontFamilyForWeight, shadow } from '@atlas-ds/react-native';
+  ADD_ONS,
+  formatRupees,
+  priceReadyMadeQuote,
+  READY_MADE_EXCLUSION_ORDER,
+  READY_MADE_QUOTES,
+  type PlanId,
+  type ReadyMadeQuote,
+  type VehicleRecord,
+} from './motorQuoteData';
 
-type PlanTheme = {
-  icon: React.ComponentType<IconProps>;
+interface QuoteTheme {
+  Icon: React.ComponentType<IconProps>;
   iconColor: string;
   iconBg: string;
-  priceColor: string;
-  /** End colour of the card's white→tint gradient. */
-  gradientTo: string;
-  selectedBorder: string;
-};
-
-type Plan = {
-  id: string;
-  name: string;
   price: string;
-  addOnTotal: string;
-  covered: string[];
-  theme: PlanTheme;
+  card: string;
+  border: string;
+  selectedBorder: string;
+  splitBg: string;
+}
+
+/** Premium is the highlighted middle tier — crown, warm treatment. */
+const THEMES: Record<ReadyMadeQuote['theme'], QuoteTheme> = {
+  eco: {
+    Icon: ShieldCheck,
+    iconColor: '#2563EB',
+    iconBg: '#EFF6FF',
+    price: '#1D4ED8',
+    card: '#FFFFFF',
+    border: '#E2E8F0',
+    selectedBorder: '#3B82F6',
+    splitBg: '#EFF6FF',
+  },
+  premium: {
+    Icon: CrownSimple,
+    iconColor: '#D97706',
+    iconBg: '#FFFBEB',
+    price: '#D97706',
+    card: '#FFFBF5',
+    border: '#FED7AA',
+    selectedBorder: '#FB923C',
+    splitBg: '#FEF3E7',
+  },
+  super: {
+    Icon: Shield,
+    iconColor: '#0D9488',
+    iconBg: '#F0FDFA',
+    price: '#0D9488',
+    card: '#FFFFFF',
+    border: '#CCFBF1',
+    selectedBorder: '#22C55E',
+    splitBg: '#F0FDFA',
+  },
 };
 
-const PLANS: Plan[] = [
-  {
-    id: 'eco',
-    name: 'Eco Plan',
-    price: 'Rs. 1,700',
-    addOnTotal: 'Rs. 800',
-    covered: [
-      'Eco Assure Repair Protection',
-      'Personal Baggage Cover',
-      'Personal Baggage Cover',
-      'Personal Baggage Cover',
-    ],
-    theme: {
-      icon: ShieldCheck,
-      iconColor: '#2563EB',
-      iconBg: '#EFF6FF',
-      priceColor: '#1D4ED8',
-      gradientTo: '#EFF6FF',
-      selectedBorder: '#3B82F6',
-    },
-  },
-  {
-    id: 'premium',
-    name: 'Premium Plan',
-    price: 'Rs. 3,500',
-    addOnTotal: 'Rs. 1500',
-    covered: [
-      'Eco Assure Repair Protection',
-      'Personal Baggage Cover',
-      'Personal Baggage Cover',
-      'Personal Baggage Cover',
-    ],
-    theme: {
-      icon: CrownSimple,
-      iconColor: '#D97706',
-      iconBg: '#FFFBEB',
-      priceColor: '#D97706',
-      gradientTo: '#FFF7ED',
-      selectedBorder: '#FB923C',
-    },
-  },
-  {
-    id: 'mid',
-    name: 'Mid Plan',
-    price: 'Rs. 1,500',
-    addOnTotal: 'Rs. 1000',
-    covered: [
-      'Eco Assure Repair Protection',
-      'Personal Baggage Cover',
-      'Personal Baggage Cover',
-      'Personal Baggage Cover',
-    ],
-    theme: {
-      icon: ShieldIcon,
-      iconColor: '#0D9488',
-      iconBg: '#F0FDFA',
-      priceColor: '#0D9488',
-      gradientTo: '#F0FDFA',
-      selectedBorder: '#22C55E',
-    },
-  },
-];
+const addOnLabel = (id: string): string =>
+  ADD_ONS.find((addOn) => addOn.id === id)?.label ?? id;
+
+const Figure: React.FC<{ label: string; value: string }> = ({ label, value }) => (
+  <View style={styles.figure}>
+    <Text style={styles.figureLabel}>{label}</Text>
+    <Text style={styles.figureValue}>{value}</Text>
+  </View>
+);
 
 interface SuggestedPlansProps {
   selectedPlan: string;
   setSelectedPlan: (val: string) => void;
+  vehicle: VehicleRecord;
+  planId: PlanId;
+  ncbPercent: number;
 }
 
-export const SuggestedPlans: React.FC<SuggestedPlansProps> = ({ selectedPlan, setSelectedPlan }) => (
-  <View style={styles.card}>
-    <Text style={styles.heading}>Suggested plans</Text>
-    <View style={styles.plans}>
-      {PLANS.map((plan) => {
-        const selected = selectedPlan === plan.id;
-        const { theme } = plan;
-        const Icon = theme.icon;
-        return (
-          <Pressable
-            key={plan.id}
-            onPress={() => setSelectedPlan(plan.id)}
-            accessibilityRole="radio"
-            accessibilityState={{ selected }}
-            style={[
-              styles.plan,
-              { borderColor: selected ? theme.selectedBorder : colors.borderSubtle },
-            ]}
-          >
+export const SuggestedPlans: React.FC<SuggestedPlansProps> = ({
+  selectedPlan,
+  setSelectedPlan,
+  vehicle,
+  planId,
+  ncbPercent,
+}) => (
+  <MotorCard title="Ready-made quotes">
+    {READY_MADE_QUOTES.map((quote) => {
+      const isSelected = selectedPlan === quote.id;
+      const theme = THEMES[quote.theme];
+      const premium = priceReadyMadeQuote(quote, vehicle, planId, ncbPercent);
 
-            {/* White → tint gradient behind the card content. */}
-            {selected && (
-              <LinearGradient
-                colors={['#FFFFFF', theme.gradientTo]}
-                style={StyleSheet.absoluteFill}
-              />
-            )}
+      const excluded = READY_MADE_EXCLUSION_ORDER.filter(
+        (id) => !quote.addOnIds.includes(id),
+      );
 
-
-            <View style={styles.planTop}>
-              <View style={[styles.planIcon, { backgroundColor: theme.iconBg }]}>
-                <Icon size={20} color={theme.iconColor} weight="regular" />
-              </View>
-              <Radio selected={selected} onPress={() => setSelectedPlan(plan.id)} />
+      return (
+        <Pressable
+          key={quote.id}
+          onPress={() => setSelectedPlan(quote.id)}
+          accessibilityRole="radio"
+          accessibilityState={{ selected: isSelected }}
+          style={({ pressed }) => [
+            styles.card,
+            {
+              backgroundColor: theme.card,
+              borderColor: isSelected ? theme.selectedBorder : theme.border,
+            },
+            pressed && styles.pressed,
+          ]}
+        >
+          <View style={styles.head}>
+            <View style={[styles.iconBox, { backgroundColor: theme.iconBg }]}>
+              <theme.Icon size={20} color={theme.iconColor} />
             </View>
 
-            <Text style={styles.planName}>{plan.name}</Text>
+            <Radio selected={isSelected} size="md" />
+          </View>
 
-            <View style={styles.priceRow}>
-              <Text style={[styles.price, { color: theme.priceColor }]}>{plan.price}</Text>
-              <Text style={[styles.priceUnit, { color: theme.priceColor }]}> / Year</Text>
+          <View>
+            <Text style={styles.name}>{quote.name}</Text>
+            <Text style={[styles.price, { color: theme.price }]}>
+              Rs. {formatRupees(premium.total)}
+            </Text>
+            <Text style={styles.priceNote}>for 1 year, incl. 18% GST</Text>
+          </View>
+
+          <View style={[styles.split, { backgroundColor: theme.splitBg }]}>
+            <Figure
+              label="Own Damage"
+              value={premium.ownDamage ? `Rs. ${formatRupees(premium.ownDamage.net)}` : 'NA'}
+            />
+            <Figure
+              label="Third Party"
+              value={premium.thirdParty ? `Rs. ${formatRupees(premium.thirdParty.net)}` : 'NA'}
+            />
+          </View>
+
+          <View style={styles.keyFigures}>
+            <View style={styles.keyRow}>
+              <Text style={styles.keyLabel}>IDV / total-loss payout</Text>
+              <Text style={styles.keyValue}>
+                {premium.idv === null ? 'NA' : `₹${formatRupees(premium.idv)}`}
+              </Text>
             </View>
 
-            <Text style={styles.addOnTotal}>Add on total: {plan.addOnTotal}</Text>
-            <View style={styles.divider} />
-            <Text style={styles.coveredHeading}>What's covered</Text>
+            <View style={styles.keyRow}>
+              <Text style={styles.keyLabel}>NCB applied</Text>
+              <Text style={styles.keyValue}>{ncbPercent}%</Text>
+            </View>
 
-            {plan.covered.map((item, i) => (
-              <View key={i} style={styles.coveredRow}>
-                <CheckCircle size={16} color={colors.textBody} />
-                <Text style={styles.coveredText}>{item}</Text>
+            <View style={styles.keyRow}>
+              <Text style={styles.keyLabel}>Customer pays per claim</Text>
+              <Text style={styles.keyValue}>
+                {quote.excess > 0 ? `Rs. ${formatRupees(quote.excess)}` : 'Nothing'}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.covered}>
+            <Text style={styles.coveredTitle}>What's covered</Text>
+
+            {quote.addOnIds.map((id) => (
+              <View key={id} style={styles.coverRow}>
+                <CheckCircle size={16} color={motorColors.tick} />
+                <Text style={styles.coverIncluded}>{addOnLabel(id)}</Text>
               </View>
             ))}
-          </Pressable>
-        );
-      })}
-    </View>
-  </View>
+
+            {excluded.map((id) => (
+              <View key={id} style={styles.coverRow}>
+                <XCircle size={16} color={motorColors.alert} />
+                <Text style={styles.coverExcluded}>{addOnLabel(id)}</Text>
+              </View>
+            ))}
+          </View>
+        </Pressable>
+      );
+    })}
+  </MotorCard>
 );
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.lg, gap: spacing.lg, ...shadow.lg },
-  heading: { fontFamily: fontFamilyForWeight('500'), fontSize: 20, fontWeight: '500', color: colors.textHeading },
-  plans: { gap: spacing.md },
-  // overflow:hidden keeps the gradient inside the rounded border.
-  plan: {
-    borderWidth: 1,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    gap: spacing.sm,
-    overflow: 'hidden',
-  },
-  planTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-  planIcon: { width: 36, height: 36, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' },
-  planName: { fontFamily: fontFamilyForWeight('500'), fontSize: 13, fontWeight: '500', color: colors.textHeading },
-  priceRow: { flexDirection: 'row', alignItems: 'baseline' },
-  price: { fontFamily: fontFamilyForWeight('500'), fontSize: 24, fontWeight: '500' },
-  priceUnit: { fontFamily: fontFamilyForWeight('500'), fontSize: 20, fontWeight: '500' },
-  addOnTotal: { fontFamily: typography.fontFamily, fontSize: 12, color: colors.textMuted },
-  divider: { height: 1, backgroundColor: colors.borderSubtle, marginVertical: spacing.xs },
-  coveredHeading: { fontFamily: fontFamilyForWeight('500'), fontSize: 13, fontWeight: '600', color: colors.textBody },
-  coveredRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  coveredText: { fontFamily: typography.fontFamily, fontSize: 12, color: colors.textBody },
+  card: { borderWidth: 1, borderRadius: radius.xl, padding: spacing.lg, gap: spacing.lg },
+  pressed: { opacity: 0.9 },
+  head: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
+  iconBox: { width: 32, height: 32, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' },
+
+  name: { fontFamily: fontFamilyForWeight('500'), fontSize: 14, lineHeight: 20, fontWeight: '500', color: colors.textHeading },
+  price: { fontFamily: fontFamilyForWeight('600'), fontSize: 28, lineHeight: 36, fontWeight: '600' },
+  priceNote: { fontFamily: typography.fontFamily, fontSize: 12, lineHeight: 16, color: '#64748B' },
+
+  split: { flexDirection: 'row', gap: spacing.sm, borderRadius: radius.lg, padding: spacing.md },
+  figure: { flex: 1, gap: 2 },
+  figureLabel: { fontFamily: typography.fontFamily, fontSize: 12, lineHeight: 16, color: '#64748B' },
+  figureValue: { fontFamily: fontFamilyForWeight('500'), fontSize: 14, lineHeight: 20, fontWeight: '500', color: colors.textHeading },
+
+  keyFigures: { gap: spacing.sm, paddingBottom: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.borderSubtle },
+  keyRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
+  keyLabel: { flex: 1, fontFamily: typography.fontFamily, fontSize: 12, lineHeight: 16, color: '#64748B' },
+  keyValue: { fontFamily: fontFamilyForWeight('500'), fontSize: 12, lineHeight: 16, fontWeight: '500', color: colors.textHeading },
+
+  covered: { gap: spacing.sm },
+  coveredTitle: { fontFamily: fontFamilyForWeight('500'), fontSize: 14, lineHeight: 20, fontWeight: '500', color: colors.textBody },
+  coverRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  coverIncluded: { flex: 1, fontFamily: typography.fontFamily, fontSize: 12, color: colors.textBody },
+  coverExcluded: { flex: 1, fontFamily: typography.fontFamily, fontSize: 12, color: colors.textMuted },
 });

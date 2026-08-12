@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Textfield, colors, spacing, radius, typography, shadow, fontFamilyForWeight } from '@atlas-ds/react-native';
+import { Textfield, colors, spacing, radius, shadow, fontFamilyForWeight } from '@atlas-ds/react-native';
 import { RequiredField } from '../RequiredField';
 
 interface ProposerDetailsProps {

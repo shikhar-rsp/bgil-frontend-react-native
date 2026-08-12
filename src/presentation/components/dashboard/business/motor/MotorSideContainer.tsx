@@ -1,175 +1,226 @@
-import React, { useEffect, useMemo } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 import { Info, Scooter } from 'phosphor-react-native';
-import { Radio, Badge, colors, spacing, radius, typography, shadow, fontFamilyForWeight } from '@atlas-ds/react-native';
-import { tenureOptionsFor, formatQuoteValidity, QUOTE_VALIDITY_DAYS } from './motorData';
-import { discountPctOf, loaderPctOf, type DiscountLoader } from './DiscountLoaderCard';
+import { colors, spacing, radius, typography, fontFamilyForWeight } from '@atlas-ds/react-native';
+import { MotorCard, motorColors, SummaryRow } from './motorUi';
+import {
+  formatQuoteValidity,
+  formatRupees,
+  GST_RATE,
+  QUOTE_VALIDITY_DAYS,
+  type PremiumBreakup,
+} from './motorQuoteData';
 
-interface MotorSideContainerProps {
-  isFormValid: boolean;
-  /**
-   * Whether the premium breakdown can be shown: the vehicle is identified
-   * (registered) or its details are filled in (new), *and* a plan type is
-   * selected. Narrower than `isFormValid`, which also needs proposer details.
-   */
-  showPremiumDetails: boolean;
-  policyTenure: string;
-  setPolicyTenure: (val: string) => void;
-  policyStartDate: Date | null;
-  selectedPlanType: string;
-  calculatePolicyEndDate: (startDate: Date | null, tenure: string) => void;
-  /** `[discount, loader]` ends of the Discount/Loader slider. */
-  discountLoader: DiscountLoader;
-}
-
-const Row: React.FC<{ label: string; value: string; valueColor?: string }> = ({ label, value, valueColor }) => (
-  <View style={styles.premiumRow}>
-    <Text style={styles.premiumLabel}>{label}</Text>
-    <Text style={[styles.premiumValue, valueColor ? { color: valueColor } : null]}>{value}</Text>
+const Row: React.FC<{
+  label: string;
+  value: string;
+  emphasis?: boolean;
+  tone?: 'default' | 'positive' | 'negative';
+}> = ({ label, value, emphasis, tone = 'default' }) => (
+  <View style={styles.row}>
+    <Text style={emphasis ? styles.rowLabelStrong : styles.rowLabel}>{label}</Text>
+    <Text
+      style={[
+        styles.rowValue,
+        tone === 'positive' && styles.positive,
+        tone === 'negative' && styles.negative,
+      ]}
+    >
+      {value}
+    </Text>
   </View>
 );
 
+const SectionHeader: React.FC<{ title: string; note: string }> = ({ title, note }) => (
+  <View style={styles.sectionHeader}>
+    <Text style={styles.sectionTitle}>{title}</Text>
+    <Text style={styles.sectionNote}>{note}</Text>
+  </View>
+);
+
+interface MotorSideContainerProps {
+  /** `null` until a vehicle has been found — the panel shows its empty state. */
+  premium: PremiumBreakup | null;
+  /** Tenure the premium is quoted for, e.g. "1 year". */
+  tenureLabel?: string;
+}
+
 export const MotorSideContainer: React.FC<MotorSideContainerProps> = ({
-  isFormValid,
-  showPremiumDetails,
-  policyTenure,
-  setPolicyTenure,
-  policyStartDate,
-  selectedPlanType,
-  calculatePolicyEndDate,
-  discountLoader,
+  premium,
+  tenureLabel = '1 year',
 }) => {
-  // The two slider ends are independent, so a quote can carry both at once.
-  const discountPct = discountPctOf(discountLoader);
-  const loaderPct = loaderPctOf(discountLoader);
-  const discountAmount = discountPct * 160;
-  const loaderAmount = loaderPct * 120;
-  const isLoaderSelected = loaderPct > 0;
-
-  const tenureOptions = useMemo(() => tenureOptionsFor(selectedPlanType), [selectedPlanType]);
-
-  const quoteValidTill = useMemo(
-    () => formatQuoteValidity(new Date(Date.now() + QUOTE_VALIDITY_DAYS * 24 * 60 * 60 * 1000)),
-    [],
+  const quoteValidTill = formatQuoteValidity(
+    new Date(Date.now() + QUOTE_VALIDITY_DAYS * 24 * 60 * 60 * 1000),
   );
 
-  useEffect(() => {
-    setPolicyTenure('');
-  }, [selectedPlanType, setPolicyTenure]);
-
   return (
-    <View style={styles.card}>
-      
-
-      <View style={styles.premiumCard}>
-        <View style={styles.premiumHeader}>
-          <Text style={styles.heading}>Premium Details</Text>
-        </View>
-        {showPremiumDetails ? (
-          <View style={styles.premiumBody}>
-            <View style={styles.sumInsured}>
-              <Text style={styles.sumLabel}>Sum Insured</Text>
-              <Text style={styles.sumValue}>Rs. 15,00,000</Text>
-            </View>
-            <View style={styles.premiumRows}>
-              <Row label="Base Premium" value="Rs. 34,000" />
-              <Row label="Total Add ons (3)" value="Rs. 1200" />
-              <Row
-                label="Discount"
-                value={`${discountAmount > 0 ? '-' : ''}Rs. ${discountAmount.toLocaleString('en-IN')}`}
-                valueColor={colors.success}
-              />
-              {isLoaderSelected ? (
-                <Row label="Loader" value={`Rs. ${loaderAmount.toLocaleString('en-IN')}`} valueColor={colors.dangerText} />
-              ) : null}
-              <Row label="Central GST" value="0" />
-              <Row label="State GST" value="0" />
-            </View>
-            <View style={styles.totalBar}>
-              <Text style={styles.totalLabel}>Total Premium</Text>
-              <Text style={styles.totalValue}>Rs. 34,000</Text>
-            </View>
-          </View>
-        ) : (
-          <View style={styles.empty}>
-            <View style={styles.emptyIcon}>
-              <Scooter size={28} color={colors.textBody} />
-            </View>
-            <Text style={styles.emptyText}>Please select a plan to see premium details!</Text>
-          </View>
-        )}
+    <MotorCard>
+      <View style={styles.validity}>
+        <Info size={20} color={motorColors.infoIcon} />
+        <Text style={styles.validityText}>
+          <Text style={styles.validityStrong}>{QUOTE_VALIDITY_DAYS} days validity.</Text>{' '}
+          Quote valid till {quoteValidTill}.
+        </Text>
       </View>
 
-      {selectedPlanType && policyTenure ? (
-        <View style={styles.validity}>
-          <Info size={22} color="#2563EB" />
-          <Text style={styles.validityText}>
-            <Text style={styles.validityBold}>{QUOTE_VALIDITY_DAYS} days validity. </Text>
-            Quote valid till {quoteValidTill}.
+      <Text style={styles.heading}>Premium Breakup</Text>
+
+      {!premium ? (
+        <View style={styles.empty}>
+          <View style={styles.emptyIcon}>
+            <Scooter size={28} color={colors.textBody} />
+          </View>
+          <Text style={styles.emptyText}>
+            Please enter vehicle registration no. to start.
           </Text>
         </View>
-      ) : null}
+      ) : (
+        <>
+          <SummaryRow
+            label="IDV"
+            caption="Maximum claim on total loss"
+            value={premium.idv === null ? 'NA' : `Rs. ${formatRupees(premium.idv)}`}
+          />
 
-      {selectedPlanType ? (
-        <View style={styles.tenureBlock}>
-          <Text style={styles.heading}>Choose Policy Tenure</Text>
-          {tenureOptions.map((t) => {
-            const selected = policyTenure === t.value;
-            return (
-              <Pressable
-                key={t.value}
-                style={[styles.tenure, selected && styles.tenureSel]}
-                onPress={() => {
-                  setPolicyTenure(t.value);
-                  calculatePolicyEndDate(policyStartDate, t.value);
-                }}
-                accessibilityRole="radio"
-                accessibilityState={{ selected }}
-              >
-                <View style={styles.tenureLeft}>
-                  <Radio selected={selected} onPress={() => setPolicyTenure(t.value)} />
-                  <Text style={styles.tenureLabel}>{t.label}</Text>
-                  {t.badge && isFormValid ? <Badge variant="solid" size="sm" color="emerald" label={t.badge} /> : null}
-                </View>
-                <Text style={[styles.tenurePrice, selected && styles.tenurePriceSel]}>
-                  {isFormValid ? `Rs. ${t.price}` : '-'}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      ) : null}
-    </View>
+          {premium.ownDamage ? (
+            <View style={styles.section}>
+              <SectionHeader
+                title="Own Damage"
+                note={`${tenureLabel} • priced by insurer`}
+              />
+
+              <Row
+                label="Basic own damage premium"
+                value={`Rs. ${formatRupees(premium.ownDamage.basic)}`}
+              />
+
+              <Row
+                label={`Add-ons (${premium.ownDamage.addOnCount})`}
+                value={`Rs. ${formatRupees(premium.ownDamage.addOns)}`}
+              />
+
+              {premium.ownDamage.ncbPercent > 0 ? (
+                <Row
+                  label={`Less: No Claim Bonus @ ${premium.ownDamage.ncbPercent}%`}
+                  value={`−Rs. ${formatRupees(premium.ownDamage.ncbAmount)}`}
+                  tone="positive"
+                />
+              ) : null}
+
+              <Row
+                label="Net own damage premium"
+                value={`Rs. ${formatRupees(premium.ownDamage.net)}`}
+                emphasis
+              />
+            </View>
+          ) : null}
+
+          {premium.thirdParty ? (
+            <View style={styles.section}>
+              <SectionHeader title="Third Party" note="IRDAI notified • fixed" />
+
+              <Row
+                label="Basic third-party liability"
+                value={`Rs. ${formatRupees(premium.thirdParty.basic)}`}
+              />
+
+              <Row
+                label="PA cover, owner-driver ₹15 lakh"
+                value={`Rs. ${formatRupees(premium.thirdParty.paCover)}`}
+              />
+
+              <Row
+                label="Net third-party premium"
+                value={`Rs. ${formatRupees(premium.thirdParty.net)}`}
+                emphasis
+              />
+            </View>
+          ) : null}
+
+          <View style={styles.section}>
+            {premium.adjustment !== 0 ? (
+              <Row
+                label={premium.adjustment < 0 ? 'Discount' : 'Loader'}
+                value={`${premium.adjustment < 0 ? '−' : '+'}Rs. ${formatRupees(
+                  Math.abs(premium.adjustment),
+                )}`}
+                tone={premium.adjustment < 0 ? 'positive' : 'negative'}
+              />
+            ) : null}
+
+            <Row
+              label="Net premium"
+              value={`Rs. ${formatRupees(premium.netPremium)}`}
+              emphasis
+            />
+
+            <Row
+              label={`GST @ ${Math.round(GST_RATE * 100)}%`}
+              value={`Rs. ${formatRupees(premium.gst)}`}
+            />
+          </View>
+
+          <View style={styles.totalBar}>
+            <Text style={styles.totalLabel}>Total Premium</Text>
+            <Text style={styles.totalValue}>Rs. {formatRupees(premium.total)}</Text>
+          </View>
+        </>
+      )}
+    </MotorCard>
   );
 };
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.borderSubtle, borderRadius: radius.xl, padding: spacing.lg, gap: spacing.xl, ...shadow.lg },
-  validity: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: '#EFF6FF', borderRadius: radius.lg, padding: spacing.md },
-  validityText: { flex: 1, fontFamily: typography.fontFamily, fontSize: 14, color: colors.textBody },
-  validityBold: { fontWeight: '500', color: colors.textHeading },
-  tenureBlock: { gap: spacing.md },
-  heading: { fontFamily: fontFamilyForWeight('500'), fontSize: 20, fontWeight: '500', color: colors.textHeading },
-  tenure: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: spacing.md, borderWidth: 1, borderColor: colors.borderSubtle, borderRadius: radius.xl },
-  tenureSel: { borderColor: '#3B82F6', backgroundColor: '#EFF6FF' },
-  tenureLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexShrink: 1 },
-  tenureLabel: { fontFamily: typography.fontFamily, fontSize: 14, color: colors.textHeading },
-  tenurePrice: { fontFamily: typography.fontFamily, fontSize: 18, fontWeight: '500', color: colors.textBody },
-  tenurePriceSel: { color: colors.textHeading },
-  premiumCard: { borderWidth: 1, borderColor: '#BFDBFE', borderRadius: radius.xl, overflow: 'hidden' },
-  premiumHeader: { padding: spacing.md, backgroundColor: '#EFF6FF' },
-  premiumBody: { padding: spacing.md, gap: spacing.md },
-  sumInsured: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surfaceSubtle, borderRadius: radius.lg, padding: spacing.md },
-  sumLabel: { fontFamily: typography.fontFamily, fontSize: 14, color: colors.textHeading },
-  sumValue: { fontFamily: typography.fontFamily, fontSize: 16, fontWeight: '500', color: colors.textHeading },
-  premiumRows: { gap: spacing.sm },
-  premiumRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  premiumLabel: { fontFamily: typography.fontFamily, fontSize: 14, color: colors.textBody },
-  premiumValue: { fontFamily: typography.fontFamily, fontSize: 14, color: colors.textHeading },
-  totalBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: colors.success, borderRadius: radius.lg, padding: spacing.md },
-  totalLabel: { fontFamily: typography.fontFamily, fontSize: 14, fontWeight: '500', color: colors.textOnBrand },
-  totalValue: { fontFamily: typography.fontFamily, fontSize: 22, fontWeight: '500', color: colors.textOnBrand },
-  empty: { alignItems: 'center', justifyContent: 'center', gap: spacing.md, padding: spacing.lg, minHeight: 200 },
-  emptyIcon: { padding: spacing.md, borderRadius: radius.lg, backgroundColor: colors.surfaceSubtle },
-  emptyText: { fontFamily: typography.fontFamily, fontSize: 14, color: colors.textMuted, textAlign: 'center' },
+  validity: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+    padding: spacing.md,
+    borderRadius: radius.lg,
+    backgroundColor: motorColors.infoFill,
+  },
+  validityText: {
+    flex: 1,
+    fontFamily: typography.fontFamily,
+    fontSize: 14,
+    lineHeight: 20,
+    color: colors.textHeading,
+  },
+  validityStrong: { fontFamily: fontFamilyForWeight('500'), fontWeight: '500' },
+
+  heading: {
+    fontFamily: fontFamilyForWeight('500'),
+    fontSize: 20,
+    lineHeight: 24,
+    fontWeight: '500',
+    color: colors.textHeading,
+  },
+
+  empty: { alignItems: 'center', justifyContent: 'center', gap: spacing.lg, paddingVertical: spacing.xxl },
+  emptyIcon: { padding: spacing.lg, borderRadius: radius.lg, backgroundColor: colors.surfaceSubtle },
+  emptyText: { fontFamily: typography.fontFamily, fontSize: 14, color: '#64748B', textAlign: 'center' },
+
+  section: { gap: spacing.md, paddingTop: spacing.lg, borderTopWidth: 1, borderTopColor: colors.borderSubtle },
+  sectionHeader: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: spacing.md },
+  sectionTitle: { fontFamily: fontFamilyForWeight('500'), fontSize: 16, lineHeight: 24, fontWeight: '500', color: colors.textHeading },
+  sectionNote: { fontFamily: typography.fontFamily, fontSize: 12, lineHeight: 16, color: '#64748B', textAlign: 'right' },
+
+  row: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md },
+  rowLabel: { flex: 1, fontFamily: typography.fontFamily, fontSize: 14, lineHeight: 20, color: colors.textBody },
+  rowLabelStrong: { flex: 1, fontFamily: fontFamilyForWeight('500'), fontSize: 14, lineHeight: 20, fontWeight: '500', color: colors.textHeading },
+  rowValue: { fontFamily: fontFamilyForWeight('500'), fontSize: 14, lineHeight: 20, fontWeight: '500', color: colors.textHeading, textAlign: 'right' },
+  positive: { color: motorColors.discount },
+  negative: { color: motorColors.loader },
+
+  totalBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+    padding: spacing.lg,
+    borderRadius: radius.lg,
+    backgroundColor: motorColors.total,
+  },
+  totalLabel: { fontFamily: fontFamilyForWeight('500'), fontSize: 14, lineHeight: 20, fontWeight: '500', color: colors.textOnBrand },
+  totalValue: { fontFamily: fontFamilyForWeight('600'), fontSize: 24, lineHeight: 32, fontWeight: '600', color: colors.textOnBrand },
 });

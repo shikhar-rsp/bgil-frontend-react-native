@@ -1,13 +1,54 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { Check, Warning, X } from 'phosphor-react-native';
-import LinearGradient from 'react-native-linear-gradient';
-import { Badge, Checkbox, colors, spacing, radius, typography, shadow, fontFamilyForWeight } from '@atlas-ds/react-native';
-import { HEADER_GRADIENTS, GRADIENT_LOCATIONS } from '../../sections/DashboardTopBar';
-import { MAIN_PACKAGES, TOPUP_PACKAGES, isTooOldForAddOns } from './motorData';
+import { Checkbox, colors, spacing, radius, typography, fontFamilyForWeight } from '@atlas-ds/react-native';
+import { MotorCard, motorColors } from './motorUi';
+import {
+  ADD_ONS,
+  formatRupees,
+  isAddOnAvailable,
+  isTooOldForAddOns,
+  type AddOn,
+} from './motorQuoteData';
 
-/** Same platinum ramp as the dashboard header. */
-const PLATINUM = [...HEADER_GRADIENTS.platinum];
+const AddOnRow: React.FC<{
+  addOn: AddOn;
+  isSelected: boolean;
+  isAvailable: boolean;
+  onToggle: () => void;
+}> = ({ addOn, isSelected, isAvailable, onToggle }) => (
+  <Pressable
+    onPress={isAvailable ? onToggle : undefined}
+    disabled={!isAvailable}
+    accessibilityRole="checkbox"
+    accessibilityState={{ checked: isSelected, disabled: !isAvailable }}
+    style={[
+      styles.row,
+      !isAvailable
+        ? styles.rowDisabled
+        : isSelected
+          ? styles.rowSelected
+          : styles.rowDefault,
+    ]}
+  >
+    <View style={styles.rowBody}>
+      {/* The row is the touch target — the box only reflects state. */}
+      <Checkbox checked={isSelected && isAvailable} disabled={!isAvailable} size="sm" />
+
+      <View style={styles.rowText}>
+        <Text style={isAvailable ? styles.label : styles.labelDisabled}>
+          {addOn.label}
+        </Text>
+        <Text style={isAvailable ? styles.description : styles.labelDisabled}>
+          {addOn.description}
+        </Text>
+      </View>
+    </View>
+
+    <Text style={isAvailable ? styles.price : styles.labelDisabled}>
+      {isAvailable ? `+ Rs. ${formatRupees(addOn.price)}` : '--'}
+    </Text>
+  </Pressable>
+);
 
 interface AddOnsStepProps {
   selectedAddOns: string[];
@@ -15,140 +56,103 @@ interface AddOnsStepProps {
   vehicleManufacturingYear: string;
 }
 
-const AddOnRow: React.FC<{ label: string; price: string; selected: boolean; onPress: () => void }> = ({
-  label,
-  price,
-  selected,
-  onPress,
-}) => (
-  <Pressable
-    style={[styles.addonRow, selected && styles.addonRowSel]}
-    onPress={onPress}
-    accessibilityRole="checkbox"
-    accessibilityState={{ checked: selected }}
-  >
-    <View style={styles.addonLeft}>
-      <View style={[styles.checkbox, selected && styles.checkboxSel]}>
-        {selected ? <Check size={12} color="#FFFFFF" weight="bold" /> : null}
-      </View>
-      <Text style={styles.addonLabel}>{label}</Text>
-    </View>
-    <Text style={styles.addonPrice}>{price}</Text>
-  </Pressable>
-);
-
 export const AddOnsStep: React.FC<AddOnsStepProps> = ({
   selectedAddOns,
   setSelectedAddOns,
   vehicleManufacturingYear,
 }) => {
-  const [showAgeToast, setShowAgeToast] = useState(true);
-  const [noAddOns, setNoAddOns] = useState(false);
+  const [doNotWantAddOns, setDoNotWantAddOns] = useState(false);
 
-  const toggle = (id: string) =>
-    setSelectedAddOns((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  const isOlderThan15Years = isTooOldForAddOns(vehicleManufacturingYear);
 
-  const isOlderThan15 = isTooOldForAddOns(vehicleManufacturingYear);
+  const toggleAddOn = (id: string) =>
+    setSelectedAddOns((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
+    );
 
-  const countBy = (prefix: string) => selectedAddOns.filter((id) => id.startsWith(prefix)).length;
+  // Selections made before the vehicle turned out to be ineligible would
+  // otherwise keep billing in the premium breakup.
+  useEffect(() => {
+    setSelectedAddOns((prev) =>
+      prev.filter((id) => {
+        const addOn = ADD_ONS.find((item) => item.id === id);
+        return addOn ? isAddOnAvailable(addOn, vehicleManufacturingYear) : false;
+      }),
+    );
+  }, [vehicleManufacturingYear, setSelectedAddOns]);
 
   return (
-    <View style={styles.card}>
-      <View style={styles.header}>
-        <Text style={styles.heading}>Select Add-ons</Text>
-        {!isOlderThan15 ? (
-          <Checkbox
-            size="sm"
-            checked={noAddOns}
-            onChange={(next) => {
-              setNoAddOns(next);
-              if (next) {
-                setSelectedAddOns([]);
+    <MotorCard
+      title="Select Add-ons"
+      action={
+        <Pressable
+          onPress={() =>
+            setDoNotWantAddOns((prev) => {
+              const next = !prev;
+              // Choosing "do not want add-ons" clears any selections.
+              if (next) setSelectedAddOns([]);
+              return next;
+            })
+          }
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: doNotWantAddOns }}
+          style={styles.optOut}
+        >
+          {/* Same as the NCB tiles: `Checkbox` aligns itself to flex-start for
+              its labelled case, which would override this row's centring. */}
+          <Checkbox checked={doNotWantAddOns} size="sm" style={styles.optOutBox} />
+          <Text style={styles.optOutLabel}>Do not want Add-ons</Text>
+        </Pressable>
+      }
+    >
+      {doNotWantAddOns ? null : (
+        <View style={styles.list}>
+          {ADD_ONS.map((addOn) => (
+            <AddOnRow
+              key={addOn.id}
+              addOn={addOn}
+              isAvailable={
+                !isOlderThan15Years && isAddOnAvailable(addOn, vehicleManufacturingYear)
               }
-            }}
-            label="Do not want add-ons"
-          />
-        ) : null}
-      </View>
-
-      {isOlderThan15 && showAgeToast ? (
-        <View style={styles.warnToast}>
-          <Warning size={20} color={colors.warning} />
-          <Text style={styles.warnText}>
-            <Text style={styles.warnBold}>Cannot select add-ons. </Text>
-            Vehicle is older than 15 years. Please refer to underwriting at proposals.
-          </Text>
-          <Pressable onPress={() => setShowAgeToast(false)} hitSlop={8}>
-            <X size={16} color={colors.textBody} />
-          </Pressable>
+              isSelected={selectedAddOns.includes(addOn.id)}
+              onToggle={() => toggleAddOn(addOn.id)}
+            />
+          ))}
         </View>
-      ) : null}
-
-      {!isOlderThan15 && !noAddOns ? (
-        <View style={styles.packages}>
-          <View style={styles.packageCard}>
-            {/* Background-only gradient — on iOS it paints over its own children. */}
-            <View style={styles.packageHeader}>
-              <LinearGradient useAngle angle={104} colors={PLATINUM} locations={GRADIENT_LOCATIONS} style={StyleSheet.absoluteFill} />
-              <Text style={styles.packageTitle}>Main Packages</Text>
-              <Badge variant="solid" size="sm" color="neutral" label={String(countBy('main-'))} />
-            </View>
-            <View style={styles.packageList}>
-              {MAIN_PACKAGES.map((pkg, i) => (
-                <AddOnRow
-                  key={pkg}
-                  label={pkg}
-                  price="+ Rs. 1200"
-                  selected={selectedAddOns.includes(`main-${i}`)}
-                  onPress={() => toggle(`main-${i}`)}
-                />
-              ))}
-            </View>
-          </View>
-
-          <View style={styles.packageCard}>
-            <View style={styles.packageHeader}>
-              <LinearGradient useAngle angle={104} colors={PLATINUM} locations={GRADIENT_LOCATIONS} style={StyleSheet.absoluteFill} />
-              <Text style={styles.packageTitle}>Top-up Packages</Text>
-              <Badge variant="solid" size="sm" color="neutral" label={String(countBy('topup-'))} />
-            </View>
-            <View style={styles.packageList}>
-              {TOPUP_PACKAGES.map((pkg, i) => (
-                <AddOnRow
-                  key={pkg}
-                  label={pkg}
-                  price="+ Rs. 1200"
-                  selected={selectedAddOns.includes(`topup-${i}`)}
-                  onPress={() => toggle(`topup-${i}`)}
-                />
-              ))}
-            </View>
-          </View>
-        </View>
-      ) : null}
-    </View>
+      )}
+    </MotorCard>
   );
 };
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.borderSubtle, borderRadius: radius.xl, padding: spacing.lg, gap: spacing.lg, ...shadow.lg },
-  // Checkbox sits under the title, not beside it.
-  header: { gap: spacing.sm },
-  heading: { fontFamily: fontFamilyForWeight('500'), fontSize: 20, fontWeight: '500', color: colors.textHeading },
-  warnToast: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: '#FFFBEB', borderRadius: radius.lg, padding: spacing.md },
-  warnText: { flex: 1, fontFamily: typography.fontFamily, fontSize: 13, color: colors.textBody },
-  warnBold: { fontWeight: '500', color: colors.textHeading },
-  packages: { gap: spacing.md },
-  packageCard: { borderWidth: 1, borderColor: '#C7D2FE', borderRadius: radius.lg, padding: spacing.md, gap: spacing.md },
-  // Platinum gradient background; overflow keeps it inside the rounded corners.
-  packageHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderRadius: radius.sm, padding: spacing.md, overflow: 'hidden' },
-  packageTitle: { fontFamily: fontFamilyForWeight('500'), fontSize: 16, fontWeight: '500', color: colors.textHeading },
-  packageList: { gap: spacing.sm },
-  addonRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: spacing.md, borderWidth: 1, borderColor: colors.borderSubtle, borderRadius: radius.lg },
-  addonRowSel: { borderColor: '#3B82F6', backgroundColor: '#EFF6FF' },
-  addonLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, flex: 1 },
-  checkbox: { width: 18, height: 18, borderRadius: radius.xs, borderWidth: 1, borderColor: '#D1D5DB', alignItems: 'center', justifyContent: 'center' },
-  checkboxSel: { backgroundColor: colors.brand, borderColor: colors.brand },
-  addonLabel: { fontFamily: typography.fontFamily, fontSize: 14, color: colors.textHeading, flex: 1 },
-  addonPrice: { fontFamily: typography.fontFamily, fontSize: 14, color: colors.textBody },
+  optOut: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  optOutBox: { alignSelf: 'center' },
+  optOutLabel: { fontFamily: typography.fontFamily, fontSize: 14, color: colors.textHeading },
+
+  list: { gap: spacing.md },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.lg,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderRadius: radius.lg,
+  },
+  rowDefault: { borderColor: colors.borderSubtle, backgroundColor: colors.surface },
+  rowSelected: { borderColor: motorColors.selectedBorder, backgroundColor: motorColors.infoFill },
+  rowDisabled: { borderColor: colors.borderSubtle, backgroundColor: motorColors.disabledFill },
+
+  rowBody: { flex: 1, flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
+  rowText: { flex: 1 },
+  label: { fontFamily: typography.fontFamily, fontSize: 14, lineHeight: 20, color: colors.textHeading },
+  description: { fontFamily: typography.fontFamily, fontSize: 14, lineHeight: 20, color: '#64748B' },
+  labelDisabled: { fontFamily: typography.fontFamily, fontSize: 14, lineHeight: 20, color: colors.textMuted },
+  price: {
+    fontFamily: fontFamilyForWeight('500'),
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '500',
+    color: colors.textHeading,
+  },
 });

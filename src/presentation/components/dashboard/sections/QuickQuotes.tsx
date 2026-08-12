@@ -23,7 +23,7 @@ import {
 } from '@atlas-ds/react-native';
 import { dashboardImages } from '../images';
 import { CustomizeModal, type CustomizeOption } from './CustomizeModal';
-import { MOTOR_PRODUCTS } from '../business/motor/motorData';
+import { MOTOR_PRODUCTS } from '../business/motor/motorQuoteData';
 import {
   VehicleTypeOptions,
   VEHICLE_TYPE_TITLE,

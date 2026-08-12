@@ -1,23 +1,45 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
-import { Toast, colors, spacing, radius, fontFamilyForWeight, shadow } from '@atlas-ds/react-native';
-import { MotorHeader, motorPolicyTitle } from './MotorHeader';
+import { Toast, colors, spacing, typography } from '@atlas-ds/react-native';
+import { MotorHeader, motorPolicyTitle, motorWheelerLabel } from './MotorHeader';
 import { VehicleTypeModal } from './VehicleTypeModal';
 import { VehicleIdentificationStep } from './VehicleIdentificationStep';
+import { NoClaimBonusCard } from './NoClaimBonusCard';
+import { VehicleIdvCard } from './VehicleIdvCard';
 import { PlanDetailsStep } from './PlanDetailsStep';
-import { AddOnsStep } from './AddOnsStep';
 import { SuggestedPlans } from './SuggestedPlans';
-import { DiscountLoaderCard, type DiscountLoader } from './DiscountLoaderCard';
+import { AddOnsStep } from './AddOnsStep';
 import { ProposerDetails } from './ProposerDetails';
+import { DiscountLoaderCard } from './DiscountLoaderCard';
+import { Suggestions } from './Suggestions';
 import { MotorSideContainer } from './MotorSideContainer';
 import { PreviewStep } from './PreviewStep';
+import { MotorCard } from './motorUi';
 import { QuoteFooter } from '../QuoteFooter';
 import { WizardStepper } from '../WizardStepper';
 import { ShareQuoteModal } from './ShareQuoteModal';
 import { PolicyFeaturesModal } from '../PolicyFeaturesModal';
 import { MOTOR_POLICY_FEATURES } from '../policyFeaturesData';
-import { Slider } from '@atlas-ds/react-native';
-import { validateRegistration, lookupVehicle, DEFAULT_IDV, TENURE_YEAR_MAP } from './motorData';
+import {
+  calculatePremium,
+  findVehicle,
+  getDaysExpired,
+  getNcbSlab,
+  getPrefetchedPolicyPeriod,
+  getVehicleAgeBucket,
+  isVehicleFound,
+  planAllowsDiscountLoader,
+  planSupportsAddOns,
+  validateRegistration,
+  formatShortDate,
+  DEFAULT_IDV,
+  NO_PRIOR_POLICY_NCB,
+  PLAN_OPTIONS,
+  READY_MADE_QUOTES,
+  type PlanId,
+  type VehicleAgeBucket,
+  type VehicleRecord,
+} from './motorQuoteData';
 
 type VehicleType = 'registered' | 'new' | null;
 
@@ -43,27 +65,71 @@ interface TwoWheelerInsuranceProps {
 }
 
 /**
- * Two-Wheeler / Motor insurance quote flow (ported faithfully from web
- * dashboard/p5). Step 1 is a single scrolling form (vehicle identification →
- * plan details → IDV → suggested plans → add-ons → discount/loader → suggestions
- * → proposer) with a premium side panel; step 3 is the preview.
+ * Motor quote flow (redesign ported from web).
+ *
+ * Web lays every card out in one scroll beside a sticky Premium Breakup rail.
+ * Neither survives a phone, so the cards are dealt across the app's existing
+ * six-step wizard in the order the design lists them, and the breakup gets the
+ * step the rail can't have. Card content, gating and pricing are unchanged —
+ * all of it comes from `motorQuoteData`.
  */
-/** Stepper labels, one per `currentStep`. */
 const STEPS = [
   { label: 'Vehicle' },
   { label: 'Plan' },
-  { label: 'IDV' },
   { label: 'Add-ons' },
+  { label: 'Details' },
   { label: 'Premium' },
   { label: 'Preview' },
 ];
 
-export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClose, onRegisterBack, onConvertToProposal, initialVehicleType, productName, initialStep, initialCustomer, onExit }) => {
+const PREVIEW_STEP = 6;
+
+/**
+ * An unregistered vehicle has no lookup record, so the premium engine is fed a
+ * stand-in built from whatever the agent has typed in.
+ */
+const buildUnregisteredVehicle = (
+  model: string,
+  make: string,
+  subType: string,
+  year: string,
+  location: string,
+  registrationDate: string,
+  idv: number,
+): VehicleRecord => ({
+  type: 'car',
+  model: model || 'New vehicle',
+  make: make || '—',
+  subType: subType || '—',
+  year: year || String(new Date().getFullYear()),
+  location: location || '—',
+  // The age rules read this, so fall back to the manufacturing year when no
+  // registration date has been entered yet. Written in the same "30 Nov 2020"
+  // shape the lookup uses, so `parseShortDate` reads both the same way.
+  regDate: registrationDate
+    ? formatShortDate(new Date(registrationDate))
+    : `01 Jan ${year || new Date().getFullYear()}`,
+  recommendedIdv: idv,
+  ownDamageRate: 0.02,
+  // Nothing has lapsed on a vehicle we hold no policy for.
+  previousPolicyExpiryInDays: 365,
+});
+
+export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({
+  onClose,
+  onRegisterBack,
+  onConvertToProposal,
+  initialVehicleType,
+  productName,
+  initialStep,
+  initialCustomer,
+  onExit,
+}) => {
   // The type is normally picked on the Browse Categories screen before this
   // flow mounts; the sheet only reappears after a Reset.
-  const isNewInit = initialVehicleType === 'new';
   // Task-View mode: opened at Preview from a proposal task's "View".
   const taskView = !!initialCustomer;
+
   const [vehicleType, setVehicleType] = useState<VehicleType>(initialVehicleType ?? null);
   const [showVehicleTypeModal, setShowVehicleTypeModal] = useState(!initialVehicleType);
   const [registrationNumber, setRegistrationNumber] = useState('');
@@ -85,8 +151,8 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
 
   useEffect(() => {
     onRegisterBack?.(() => {
-      // From a task's "View", Back returns where it came from (Tasks) instead of
-      // stepping through the wizard.
+      // From a task's "View", Back returns where it came from (Tasks) instead
+      // of stepping through the wizard.
       if (taskView && onExit) {
         onExit();
         return;
@@ -100,142 +166,179 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
     return () => onRegisterBack?.(null);
   }, [onRegisterBack, onClose, taskView, onExit]);
 
-  const [selectedPlanType, setSelectedPlanType] = useState('');
-  const [selectedCustomerType, setSelectedCustomerType] = useState('');
+  const [selectedPlanType, setSelectedPlanType] = useState<PlanId | ''>('');
   const [policyStartDate, setPolicyStartDate] = useState<Date | null>(null);
   const [policyEndDate, setPolicyEndDate] = useState<Date | null>(null);
-  const [policyTenure, setPolicyTenure] = useState('');
 
   const [proposerName, setProposerName] = useState(initialCustomer ?? '');
   const [proposerPhone, setProposerPhone] = useState('');
   const [proposerEmail, setProposerEmail] = useState('');
 
-  const [vehicleModel, setVehicleModel] = useState(isNewInit ? '' : 'Swift Dzire');
-  const [vehicleMake, setVehicleMake] = useState(isNewInit ? '' : '28914y0912');
-  const [vehicleSubType, setVehicleSubType] = useState(isNewInit ? '' : 'One year');
-  const [vehicleManufacturingYear, setVehicleManufacturingYear] = useState(isNewInit ? '' : '2020');
-  const [registrationLocation, setRegistrationLocation] = useState(isNewInit ? '' : 'Pune');
-  const [registrationDate, setRegistrationDate] = useState(isNewInit ? '' : '30 Nov 2020');
-  const [vehicleIdv, setVehicleIdv] = useState(DEFAULT_IDV);
-  const [currentPolicyNcb, setCurrentPolicyNcb] = useState('0');
-  const [expiringPolicyNcb, setExpiringPolicyNcb] = useState('0');
+  const [vehicleModel, setVehicleModel] = useState('');
+  const [vehicleMake, setVehicleMake] = useState('');
+  const [vehicleSubType, setVehicleSubType] = useState('');
+  const [vehicleManufacturingYear, setVehicleManufacturingYear] = useState('');
+  const [registrationLocation, setRegistrationLocation] = useState('');
+  const [registrationDate, setRegistrationDate] = useState('');
+  const [vehicleIdv, setVehicleIdv] = useState<number>(DEFAULT_IDV);
+
+  /** `null` until the agent answers — the NCB discount stays hidden till then. */
+  const [claimMade, setClaimMade] = useState<boolean | null>(null);
 
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
   const [selectedPlan, setSelectedPlan] = useState('');
-  // `[discount, loader]` — the two ends of the Discount/Loader slider.
-  const [discountLoader, setDiscountLoader] = useState<DiscountLoader>([0, 0]);
+  /** Signed percentage — negative discounts, positive loads. */
+  const [discountLoader, setDiscountLoader] = useState(0);
 
   const [showShareModal, setShowShareModal] = useState(false);
 
-  // Registered flow: the lookup is the source of truth for vehicle details — it
-  // is what the found-vehicle card renders. Mirror it into state so downstream
-  // rules see the real vehicle, notably the manufacturing year that drives the
-  // 15-year add-on cutoff.
+  const lookedUpVehicle = findVehicle(registrationNumber);
+
+  // Registered flow: the lookup is the source of truth for vehicle details.
+  // Mirror them into state so downstream rules see the real vehicle — notably
+  // the manufacturing year, which drives add-on eligibility — and so the policy
+  // period arrives filled in rather than waiting to be retyped.
   useEffect(() => {
-    if (vehicleType !== 'registered') {
-      return;
-    }
-    const vehicle = lookupVehicle(registrationNumber);
-    if (!vehicle) {
-      return;
-    }
-    setVehicleModel(vehicle.model);
-    setVehicleMake(vehicle.make);
-    setVehicleSubType(vehicle.subType);
-    setVehicleManufacturingYear(vehicle.year);
-    setRegistrationLocation(vehicle.location);
-    setRegistrationDate(vehicle.regDate);
-  }, [vehicleType, registrationNumber]);
+    if (vehicleType !== 'registered' || !lookedUpVehicle) return;
 
-  const handleVehicleTypeChange = (type: 'registered' | 'new') => {
-    setVehicleType(type);
-    if (type === 'new') {
-      setRegistrationNumber('');
-      setVehicleModel('');
-      setVehicleMake('');
-      setVehicleSubType('');
-      setVehicleManufacturingYear('');
-      setRegistrationLocation('');
-      setRegistrationDate('');
-      setVehicleIdv(DEFAULT_IDV);
-      setCurrentPolicyNcb('0');
-      setExpiringPolicyNcb('0');
-      setSelectedPlanType('');
-    } else {
-      setVehicleModel('Swift Dzire');
-      setVehicleMake('28914y0912');
-      setVehicleSubType('One year');
-      setVehicleManufacturingYear('2020');
-      setRegistrationLocation('Pune');
-      setRegistrationDate('30 Nov 2020');
-      setVehicleIdv(DEFAULT_IDV);
-      setCurrentPolicyNcb('0');
-      setExpiringPolicyNcb('0');
-      setSelectedPlanType('');
-    }
-  };
+    setVehicleModel(lookedUpVehicle.model);
+    setVehicleMake(lookedUpVehicle.make);
+    setVehicleSubType(lookedUpVehicle.subType);
+    setVehicleManufacturingYear(lookedUpVehicle.year);
+    setRegistrationLocation(lookedUpVehicle.location);
+    setRegistrationDate(lookedUpVehicle.regDate);
+    setVehicleIdv(lookedUpVehicle.recommendedIdv);
 
-  const calculatePolicyEndDate = (startDate: Date | null, tenure: string) => {
-    const totalYears = TENURE_YEAR_MAP[tenure];
-    if (!startDate || !totalYears) {
-      setPolicyEndDate(null);
-      return;
-    }
-    const end = new Date(startDate);
-    end.setFullYear(end.getFullYear() + totalYears);
-    setPolicyEndDate(end);
-  };
+    const period = getPrefetchedPolicyPeriod(lookedUpVehicle);
 
-  // Premium details unlock once the vehicle is known — identified by its
-  // registration (registered) or filled in manually (new) — and a plan type
-  // has been chosen. Proposer details aren't required for this.
-  const showPremiumDetails = useMemo(() => {
-    if (vehicleType === null || selectedPlanType === '') {
-      return false;
-    }
-    if (vehicleType === 'new') {
-      return (
-        vehicleModel.trim() !== '' &&
-        vehicleMake.trim() !== '' &&
-        vehicleSubType.trim() !== '' &&
-        vehicleManufacturingYear.trim() !== '' &&
-        vehicleIdv.trim() !== ''
-      );
-    }
-    return validateRegistration(registrationNumber);
-  }, [
-    vehicleType,
-    selectedPlanType,
-    registrationNumber,
-    vehicleModel,
-    vehicleMake,
-    vehicleSubType,
-    vehicleManufacturingYear,
-    vehicleIdv,
-  ]);
+    setPolicyStartDate(period.start);
+    setPolicyEndDate(period.end);
+  }, [vehicleType, lookedUpVehicle]);
 
-  // Per-step "can proceed" gating for the 5-step wizard.
-  const isNew = vehicleType === 'new';
-  const step1Valid = isNew
-    ? vehicleModel.trim() !== '' && vehicleMake.trim() !== '' && vehicleSubType.trim() !== '' && vehicleManufacturingYear.trim() !== ''
-    : validateRegistration(registrationNumber);
-  // Step 2 now carries the Choose Plan card, so plan validation lives here.
-  const step2Valid =
-    selectedCustomerType !== '' &&
-    (isNew || (selectedPlanType !== '' && policyStartDate !== null && policyEndDate !== null));
-  const step3Valid = vehicleIdv.trim() !== '';
-  const step4Valid = proposerName.trim() !== '' && proposerPhone.trim() !== '' && proposerEmail.trim() !== '';
+  const isNewVehicle = vehicleType === 'new';
+
+  // For the unregistered flow, the plans only appear once the vehicle has been
+  // described well enough to price.
+  const newVehicleDetailsComplete =
+    vehicleModel.trim() !== '' &&
+    vehicleMake.trim() !== '' &&
+    vehicleSubType.trim() !== '' &&
+    vehicleManufacturingYear.trim() !== '';
+
+  const vehicle: VehicleRecord | undefined = isNewVehicle
+    ? buildUnregisteredVehicle(
+        vehicleModel,
+        vehicleMake,
+        vehicleSubType,
+        vehicleManufacturingYear,
+        registrationLocation,
+        registrationDate,
+        vehicleIdv,
+      )
+    : lookedUpVehicle;
+
+  const isVehicleReady = isNewVehicle
+    ? newVehicleDetailsComplete
+    : isVehicleFound(registrationNumber);
+
+  // Same rules either way — the bucket comes off the vehicle's own age, whether
+  // we looked it up or the agent typed it in.
+  const ageBucket: VehicleAgeBucket = vehicle ? getVehicleAgeBucket(vehicle) : 'over5';
+
+  // Only a policy we hold on record can be lapsed.
+  const daysExpired = lookedUpVehicle ? getDaysExpired(lookedUpVehicle) : 0;
+
+  // There is no expiring policy behind an unregistered vehicle, so the question
+  // isn't asked — and no bonus is applied that the agent can't see.
+  const ncbSlab = isNewVehicle
+    ? NO_PRIOR_POLICY_NCB
+    : getNcbSlab(ageBucket, claimMade === true, daysExpired);
+
+  const showNcbCard = isVehicleReady && !isNewVehicle;
+
+  const activePlanId: PlanId = selectedPlanType || 'comprehensive';
+
+  const premium = useMemo(() => {
+    if (!vehicle || !isVehicleReady) return null;
+
+    return calculatePremium({
+      vehicle,
+      planId: activePlanId,
+      idv: vehicleIdv,
+      ncbPercent: ncbSlab.percent,
+      selectedAddOnIds: selectedAddOns,
+      discountLoaderPercent: discountLoader,
+    });
+  }, [vehicle, isVehicleReady, activePlanId, vehicleIdv, ncbSlab.percent, selectedAddOns, discountLoader]);
+
+  /** Headline price for each Choose Plan card, under the current selections. */
+  const planPrices = useMemo(() => {
+    const prices = {} as Record<PlanId, number>;
+
+    PLAN_OPTIONS.forEach((plan) => {
+      prices[plan.id] = vehicle
+        ? calculatePremium({
+            vehicle,
+            planId: plan.id,
+            idv: vehicleIdv,
+            ncbPercent: ncbSlab.percent,
+            selectedAddOnIds: selectedAddOns,
+            discountLoaderPercent: discountLoader,
+          }).total
+        : 0;
+    });
+
+    return prices;
+  }, [vehicle, vehicleIdv, ncbSlab.percent, selectedAddOns, discountLoader]);
+
+  const supportsAddOns = planSupportsAddOns(activePlanId);
+
+  // Third party pays nothing towards the customer's own car, so there is no
+  // insured value to set and no own-damage package to bundle.
+  const showVehicleIdv = isVehicleReady && supportsAddOns;
+  const showAddOns = isVehicleReady && selectedPlanType !== '' && supportsAddOns;
+  const showDiscountLoader = isVehicleReady && planAllowsDiscountLoader(activePlanId);
+
+  const selectedQuoteName =
+    READY_MADE_QUOTES.find((quote) => quote.id === selectedPlan)?.name ?? '';
+
+  const policyTenureLabel = useMemo(() => {
+    if (!policyStartDate || !policyEndDate) return '1 year';
+
+    const years = Math.max(
+      1,
+      Math.round(
+        (policyEndDate.getTime() - policyStartDate.getTime()) /
+          (1000 * 60 * 60 * 24 * 365.25),
+      ),
+    );
+
+    return years === 1 ? '1 year' : `${years} years`;
+  }, [policyStartDate, policyEndDate]);
+
+  // The web build gates the whole of step 1 in one go; the wizard splits the
+  // same conditions across the steps that collect them.
+  const step1Valid = Boolean(
+    vehicleType !== null &&
+      isVehicleReady &&
+      policyStartDate !== null &&
+      policyEndDate !== null &&
+      // The plate is what identifies a registered vehicle, so it has to be well
+      // formed, and there is an expiring policy to ask about. Neither applies
+      // once the agent is entering the vehicle by hand.
+      (isNewVehicle || (validateRegistration(registrationNumber) && claimMade !== null)),
+  );
+  const step2Valid = selectedPlanType !== '';
+  const step4Valid =
+    proposerName.trim() !== '' && proposerPhone.trim() !== '' && proposerEmail.trim() !== '';
 
   const canProceed =
-    currentStep === 1 ? step1Valid :
-    currentStep === 2 ? step2Valid :
-    currentStep === 3 ? step3Valid :
-    currentStep === 4 ? step4Valid :
-    true;
+    currentStep === 1 ? step1Valid
+      : currentStep === 2 ? step2Valid
+        : currentStep === 4 ? step4Valid
+          : true;
 
   const resetForm = () => {
-    setVehicleType(null);
-    setShowVehicleTypeModal(true);
     setRegistrationNumber('');
     setVehicleModel('');
     setVehicleMake('');
@@ -243,45 +346,18 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
     setVehicleManufacturingYear('');
     setRegistrationLocation('');
     setRegistrationDate('');
-    // Sliders render at 0% from the start, so an empty string would silently
-    // fail validation on a form that looks filled.
     setVehicleIdv(DEFAULT_IDV);
-    setCurrentPolicyNcb('0');
-    setExpiringPolicyNcb('0');
+    setClaimMade(null);
     setSelectedPlanType('');
-    setSelectedCustomerType('');
     setPolicyStartDate(null);
     setPolicyEndDate(null);
     setProposerName('');
     setProposerPhone('');
     setProposerEmail('');
     setSelectedAddOns([]);
-    setDiscountLoader([0, 0]);
     setSelectedPlan('');
-  };
-
-  const idvNumber = Number(String(vehicleIdv).replace(/[^\d]/g, '')) || 50000;
-
-  const idProps = {
-    vehicleType,
-    registrationNumber,
-    setRegistrationNumber,
-    vehicleModel,
-    setVehicleModel,
-    vehicleMake,
-    setVehicleMake,
-    vehicleSubType,
-    setVehicleSubType,
-    vehicleManufacturingYear,
-    setVehicleManufacturingYear,
-    registrationLocation,
-    setRegistrationLocation,
-    registrationDate,
-    setRegistrationDate,
-    currentPolicyNcb,
-    setCurrentPolicyNcb,
-    expiringPolicyNcb,
-    setExpiringPolicyNcb,
+    setDiscountLoader(0);
+    setCurrentStep(1);
   };
 
   return (
@@ -289,7 +365,7 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Hidden on the preview step, which is a result rather than a stage —
             same rule the product header below follows. */}
-        {currentStep !== 6 ? (
+        {currentStep !== PREVIEW_STEP ? (
           <WizardStepper
             steps={STEPS}
             current={currentStep - 1}
@@ -301,60 +377,88 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
           />
         ) : null}
 
-        {currentStep !== 6 ? (
+        {currentStep !== PREVIEW_STEP ? (
           <MotorHeader productName={productName} onViewFeatures={() => setShowFeatures(true)} />
         ) : null}
 
         {currentStep === 1 && vehicleType ? (
           <>
-            {/* Header at top, identification card pushed to the bottom. */}
-            <View style={styles.spacer} />
-            <VehicleIdentificationStep mode="identify" {...idProps} />
-          </>
-        ) : currentStep === 2 && vehicleType ? (
-          <>
-            <VehicleIdentificationStep mode="ncb" {...idProps} />
-
-            <PlanDetailsStep
+            <VehicleIdentificationStep
               vehicleType={vehicleType}
-              selectedPlanType={selectedPlanType}
-              setSelectedPlanType={setSelectedPlanType}
-              selectedCustomerType={selectedCustomerType}
-              setSelectedCustomerType={setSelectedCustomerType}
+              registrationNumber={registrationNumber}
+              setRegistrationNumber={setRegistrationNumber}
+              vehicleModel={vehicleModel}
+              setVehicleModel={setVehicleModel}
+              vehicleMake={vehicleMake}
+              setVehicleMake={setVehicleMake}
+              vehicleSubType={vehicleSubType}
+              setVehicleSubType={setVehicleSubType}
+              vehicleManufacturingYear={vehicleManufacturingYear}
+              setVehicleManufacturingYear={setVehicleManufacturingYear}
+              registrationLocation={registrationLocation}
+              setRegistrationLocation={setRegistrationLocation}
+              registrationDate={registrationDate}
+              setRegistrationDate={setRegistrationDate}
               policyStartDate={policyStartDate}
               setPolicyStartDate={setPolicyStartDate}
               policyEndDate={policyEndDate}
               setPolicyEndDate={setPolicyEndDate}
-              policyTenure={policyTenure}
-              setPolicyTenure={setPolicyTenure}
-              calculatePolicyEndDate={calculatePolicyEndDate}
             />
+
+            {showNcbCard ? (
+              <NoClaimBonusCard
+                claimMade={claimMade}
+                setClaimMade={setClaimMade}
+                slab={ncbSlab}
+              />
+            ) : null}
+          </>
+        ) : currentStep === 2 ? (
+          <>
+            {showVehicleIdv ? (
+              <VehicleIdvCard idv={vehicleIdv} setIdv={setVehicleIdv} />
+            ) : null}
+
+            {isVehicleReady ? (
+              <PlanDetailsStep
+                ageBucket={ageBucket}
+                selectedPlanType={selectedPlanType}
+                setSelectedPlanType={setSelectedPlanType}
+                planPrices={planPrices}
+              />
+            ) : null}
           </>
         ) : currentStep === 3 ? (
-          <>
-            <View style={styles.idvCard}>
-              <View style={styles.idvHeader}>
-                <Text style={styles.idvTitle}>Select Vehicle IDV</Text>
-                <Text style={styles.idvValue}>₹ {new Intl.NumberFormat('en-IN').format(idvNumber)}</Text>
-              </View>
-              <Slider
-                min={50000}
-                max={1500000}
-                step={1000}
-                value={idvNumber}
-                onChange={(val) => setVehicleIdv(new Intl.NumberFormat('en-IN').format(typeof val === 'number' ? val : val[0]))}
+          showAddOns && vehicle ? (
+            <>
+              <SuggestedPlans
+                selectedPlan={selectedPlan}
+                setSelectedPlan={setSelectedPlan}
+                vehicle={vehicle}
+                planId={activePlanId}
+                ncbPercent={ncbSlab.percent}
               />
-            </View>
 
-            <SuggestedPlans selectedPlan={selectedPlan} setSelectedPlan={setSelectedPlan} />
-          </>
+              <AddOnsStep
+                selectedAddOns={selectedAddOns}
+                setSelectedAddOns={setSelectedAddOns}
+                vehicleManufacturingYear={vehicleManufacturingYear}
+              />
+            </>
+          ) : (
+            // Third-party rates are IRDAI-notified and fixed, so this step has
+            // nothing to offer. Saying so beats an empty screen or silently
+            // skipping a step the stepper still shows.
+            <MotorCard title="Select Add-ons">
+              <Text style={styles.note}>
+                Third-party cover is notified by IRDAI and fixed, so it carries no
+                insured value, no add-ons and no ready-made packages. Choose
+                Comprehensive or Own Damage to add cover.
+              </Text>
+            </MotorCard>
+          )
         ) : currentStep === 4 ? (
           <>
-            <AddOnsStep
-              selectedAddOns={selectedAddOns}
-              setSelectedAddOns={setSelectedAddOns}
-              vehicleManufacturingYear={vehicleManufacturingYear}
-            />
             <ProposerDetails
               proposerName={proposerName}
               setProposerName={setProposerName}
@@ -363,20 +467,16 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
               proposerEmail={proposerEmail}
               setProposerEmail={setProposerEmail}
             />
-            <DiscountLoaderCard value={discountLoader} setValue={setDiscountLoader} />
+
+            {showDiscountLoader ? (
+              <DiscountLoaderCard value={discountLoader} setValue={setDiscountLoader} />
+            ) : null}
+
+            {isVehicleReady ? <Suggestions /> : null}
           </>
         ) : currentStep === 5 ? (
-          <MotorSideContainer
-            isFormValid={step4Valid}
-            showPremiumDetails={showPremiumDetails}
-            policyTenure={policyTenure}
-            setPolicyTenure={setPolicyTenure}
-            policyStartDate={policyStartDate}
-            selectedPlanType={selectedPlanType}
-            calculatePolicyEndDate={calculatePolicyEndDate}
-            discountLoader={discountLoader}
-          />
-        ) : currentStep === 6 ? (
+          <MotorSideContainer premium={premium} tenureLabel={policyTenureLabel} />
+        ) : currentStep === PREVIEW_STEP ? (
           <>
             {taskView && showPaymentPending ? (
               <Toast
@@ -387,7 +487,29 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
                 onClose={() => setShowPaymentPending(false)}
               />
             ) : null}
-            <PreviewStep proposerName={proposerName || 'Rakesh Kumar'} proposerDOB={new Date('1998-04-12')} productName={productName} />
+
+            {premium ? (
+              <PreviewStep
+                proposerName={proposerName}
+                proposerPhone={proposerPhone}
+                proposerEmail={proposerEmail}
+                vehicle={vehicle}
+                planId={activePlanId}
+                premium={premium}
+                packageName={selectedQuoteName}
+                policyStartDate={policyStartDate}
+                policyEndDate={policyEndDate}
+                policyTenure={policyTenureLabel}
+                selectedAddOnIds={selectedAddOns}
+                wheelerLabel={motorWheelerLabel(productName)}
+              />
+            ) : (
+              <MotorCard title="Preview & Share">
+                <Text style={styles.note}>
+                  Enter the vehicle details to generate a quote.
+                </Text>
+              </MotorCard>
+            )}
           </>
         ) : null}
       </ScrollView>
@@ -395,10 +517,11 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
       <View style={styles.footerWrap}>
         <QuoteFooter
           currentStep={currentStep}
-          previewStep={6}
+          previewStep={PREVIEW_STEP}
           previewQuoteStep={5}
           isProceedDisabled={!canProceed}
-          onProceed={() => setCurrentStep(Math.min(currentStep + 1, 6))}
+          onReset={resetForm}
+          onProceed={() => setCurrentStep(Math.min(currentStep + 1, PREVIEW_STEP))}
           onShareQuote={() => setShowShareModal(true)}
           onConvertToProposal={() => onConvertToProposal(proposerName || 'Rakesh Kumar')}
         />
@@ -413,7 +536,8 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
           }
         }}
         onProceed={(type) => {
-          handleVehicleTypeChange(type);
+          setVehicleType(type);
+          resetForm();
           setShowVehicleTypeModal(false);
         }}
       />
@@ -422,7 +546,11 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
       <ShareQuoteModal
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
-        quoteData={{ id: 'QT - 28686-8728387', customerName: proposerName || 'Rakesh Kumar', policyType: '4 Wheeler policy' }}
+        quoteData={{
+          id: 'QT - 28686-8728387',
+          customerName: proposerName || 'Rakesh Kumar',
+          policyType: motorPolicyTitle(productName),
+        }}
       />
 
       <PolicyFeaturesModal
@@ -435,16 +563,9 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({ onClos
 };
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colors.surfaceSubtle,  },
-  // flexGrow lets the step-1 spacer push the identification card to the bottom.
-  // 16px gap between the last card and the footer.
+  flex: { flex: 1, backgroundColor: colors.surfaceSubtle },
   content: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.lg, flexGrow: 1 },
-  spacer: { flex: 1 },
-  idvCard: { backgroundColor: colors.surface, borderRadius: radius.xl, padding: spacing.lg, gap: spacing.md, ...shadow.lg },
-  // Value sits under the title, not beside it.
-  idvHeader: { gap: spacing.xs },
-  idvTitle: { fontFamily: fontFamilyForWeight('500'), fontSize: 18, fontWeight: '500', color: colors.textHeading },
-  idvValue: { fontFamily: fontFamilyForWeight('500'), fontSize: 18, fontWeight: '600', color: colors.textHeading },
+  note: { fontFamily: typography.fontFamily, fontSize: 14, lineHeight: 20, color: colors.textBody },
   // Full-bleed: the footer bar supplies its own padding.
   footerWrap: {},
 });
