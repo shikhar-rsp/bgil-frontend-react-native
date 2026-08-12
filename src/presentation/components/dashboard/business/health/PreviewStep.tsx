@@ -46,7 +46,7 @@ export const PreviewStep: React.FC<PreviewStepProps> = ({
     </View>
 
     <Section title="Premium Details" accent>
-      <Field label="Base Premium:" value="Health Guard" />
+      <Field label="Base Premium:" value="Rs. 17,952" />
       <Field label="Total add ons:" value="6" />
       <Field label="Discount:" value="15%" />
       <Field label="Total Premium:" value="Rs. 28,383" big />
