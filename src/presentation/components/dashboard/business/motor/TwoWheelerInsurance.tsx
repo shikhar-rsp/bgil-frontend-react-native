@@ -22,7 +22,7 @@ import { PolicyFeaturesModal } from '../PolicyFeaturesModal';
 import { MOTOR_POLICY_FEATURES } from '../policyFeaturesData';
 import {
   calculatePremium,
-  findVehicle,
+  lookupVehicle,
   getDaysExpired,
   getNcbSlab,
   getPrefetchedPolicyPeriod,
@@ -192,7 +192,7 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({
 
   const [showShareModal, setShowShareModal] = useState(false);
 
-  const lookedUpVehicle = findVehicle(registrationNumber);
+  const lookedUpVehicle = lookupVehicle(registrationNumber);
 
   // Registered flow: the lookup is the source of truth for vehicle details.
   // Mirror them into state so downstream rules see the real vehicle — notably

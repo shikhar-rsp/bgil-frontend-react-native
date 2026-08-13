@@ -10,9 +10,12 @@ import {
   getPrefetchedPolicyPeriod,
   getVehicleAgeBucket,
   isAddOnAvailable,
+  isVehicleFound,
+  lookupVehicle,
   needsApproval,
   parseShortDate,
   planAllowsDiscountLoader,
+  validateRegistration,
 } from '../src/presentation/components/dashboard/business/motor/motorQuoteData';
 
 /** Pinned local midnight, so neither the age buckets nor the date maths drift. */
@@ -41,6 +44,32 @@ describe('getVehicleAgeBucket', () => {
 
   it('reports no lapse while the policy is still in force', () => {
     expect(getDaysExpired(OVER_5)).toBe(0);
+  });
+});
+
+describe('lookupVehicle', () => {
+  it('returns the demo record for a scripted plate', () => {
+    expect(lookupVehicle('MH08L9834')).toBe(findVehicle('MH08L9834'));
+  });
+
+  it('falls back so every well-formed plate resolves, and prefetches its dates', () => {
+    const vehicle = lookupVehicle('MH12AB4321')!;
+
+    expect(vehicle).toBeDefined();
+    expect(isVehicleFound('MH12AB4321')).toBe(true);
+    // The whole point: a vehicle means a prefetched policy period.
+    expect(getPrefetchedPolicyPeriod(vehicle, TODAY).start).toBeInstanceOf(Date);
+  });
+
+  it('refuses a malformed plate', () => {
+    expect(lookupVehicle('NOTAPLATE')).toBeUndefined();
+    expect(isVehicleFound('MH08')).toBe(false);
+  });
+
+  /** Phone keyboards readily drop a space into a plate; desktop typing does not. */
+  it('ignores stray whitespace and case', () => {
+    expect(lookupVehicle('mh08 l9834')).toBe(findVehicle('MH08L9834'));
+    expect(validateRegistration(' MH08L9834 ')).toBe(true);
   });
 });
 

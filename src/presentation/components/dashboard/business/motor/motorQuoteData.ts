@@ -178,17 +178,55 @@ export const VEHICLE_LOOKUP = {
   },
 } satisfies Record<string, VehicleRecord>;
 
+/** Normalise typed input — phone keyboards readily add spaces to a plate. */
+const plateKey = (registrationNumber: string): string =>
+  registrationNumber.replace(/\s+/g, '').toUpperCase();
+
+/** Strict demo-table lookup. The four Figma scenarios are all in here. */
 export const findVehicle = (registrationNumber: string) =>
   VEHICLE_LOOKUP[
-    registrationNumber.toUpperCase() as keyof typeof VEHICLE_LOOKUP
+    plateKey(registrationNumber) as keyof typeof VEHICLE_LOOKUP
   ] as VehicleRecord | undefined;
-
-export const isVehicleFound = (registrationNumber: string): boolean =>
-  Boolean(findVehicle(registrationNumber));
 
 /** Registration format XX00X(XX)0000 — MH08L9834, KL07AB1234. */
 export const validateRegistration = (val: string): boolean =>
-  /^[A-Z]{2}\d{2}[A-Z]{1,3}\d{4}$/.test(val.toUpperCase());
+  /^[A-Z]{2}\d{2}[A-Z]{1,3}\d{4}$/.test(plateKey(val));
+
+/**
+ * Stand-in for a well-formed plate that isn't one of the demo scenarios, so the
+ * flow can be walked with any realistic registration instead of only the nine
+ * below. Profiled like the flagship vehicle — an in-force car past five years —
+ * which is the case that offers all three plans and the top NCB slab.
+ */
+export const GENERIC_VEHICLE: VehicleRecord = {
+  type: 'car',
+  model: 'Swift Dzire',
+  make: 'Maruti Suzuki',
+  subType: 'Hatchback',
+  year: '2020',
+  location: 'Pune',
+  regDate: '30 Nov 2020',
+  recommendedIdv: 520000,
+  ownDamageRate: 0.02,
+  previousPolicyExpiryInDays: 110,
+};
+
+/**
+ * Resolve a plate to the vehicle the screens should render.
+ *
+ * Anything in the demo table returns its own record; any other correctly
+ * formatted plate falls back to {@link GENERIC_VEHICLE}, so the vehicle card and
+ * the prefetched policy period appear for every registration number rather than
+ * only the scripted nine. Returns undefined only when the format itself is bad.
+ */
+export const lookupVehicle = (
+  registrationNumber: string,
+): VehicleRecord | undefined =>
+  findVehicle(registrationNumber) ??
+  (validateRegistration(registrationNumber) ? GENERIC_VEHICLE : undefined);
+
+export const isVehicleFound = (registrationNumber: string): boolean =>
+  Boolean(lookupVehicle(registrationNumber));
 
 /* ------------------------------------------------------------------ */
 /* Dates                                                               */

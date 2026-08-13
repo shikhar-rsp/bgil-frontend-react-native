@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import { CheckCircle, XCircle, ShieldCheck, CrownSimple, Shield, type IconProps } from 'phosphor-react-native';
 import { Radio, colors, spacing, radius, typography, fontFamilyForWeight } from '@atlas-ds/react-native';
 import { MotorCard, motorColors } from './motorUi';
@@ -19,43 +20,48 @@ interface QuoteTheme {
   iconColor: string;
   iconBg: string;
   price: string;
-  card: string;
+  /** Foot of the white → tint ramp, painted only once the card is selected. */
+  tint: string;
   border: string;
   selectedBorder: string;
   splitBg: string;
 }
 
-/** Premium is the highlighted middle tier — crown, warm treatment. */
+/**
+ * Every card sits on plain white until it is picked; selection paints a
+ * white → tint ramp in the package's own colour. Same treatment the
+ * "Suggest these to your customers" cards use, so the two read as one system.
+ */
 const THEMES: Record<ReadyMadeQuote['theme'], QuoteTheme> = {
   eco: {
     Icon: ShieldCheck,
-    iconColor: '#2563EB',
-    iconBg: '#EFF6FF',
-    price: '#1D4ED8',
-    card: '#FFFFFF',
+    iconColor: '#4F46E5',
+    iconBg: '#EEF2FF',
+    price: '#4338CA',
+    tint: '#EEF2FF',
     border: '#E2E8F0',
-    selectedBorder: '#3B82F6',
-    splitBg: '#EFF6FF',
+    selectedBorder: '#818CF8',
+    splitBg: '#EEF2FF',
   },
   premium: {
     Icon: CrownSimple,
     iconColor: '#D97706',
     iconBg: '#FFFBEB',
     price: '#D97706',
-    card: '#FFFBF5',
+    tint: '#FFF7ED',
     border: '#FED7AA',
     selectedBorder: '#FB923C',
     splitBg: '#FEF3E7',
   },
   super: {
     Icon: Shield,
-    iconColor: '#0D9488',
-    iconBg: '#F0FDFA',
-    price: '#0D9488',
-    card: '#FFFFFF',
+    iconColor: '#059669',
+    iconBg: '#ECFDF5',
+    price: '#047857',
+    tint: '#ECFDF5',
     border: '#CCFBF1',
-    selectedBorder: '#22C55E',
-    splitBg: '#F0FDFA',
+    selectedBorder: '#34D399',
+    splitBg: '#ECFDF5',
   },
 };
 
@@ -102,13 +108,18 @@ export const SuggestedPlans: React.FC<SuggestedPlansProps> = ({
           accessibilityState={{ selected: isSelected }}
           style={({ pressed }) => [
             styles.card,
-            {
-              backgroundColor: theme.card,
-              borderColor: isSelected ? theme.selectedBorder : theme.border,
-            },
+            { borderColor: isSelected ? theme.selectedBorder : theme.border },
             pressed && styles.pressed,
           ]}
         >
+          {/* Unselected cards stay flat white; the ramp is the selection cue. */}
+          {isSelected ? (
+            <LinearGradient
+              colors={['#FFFFFF', theme.tint]}
+              style={StyleSheet.absoluteFill}
+            />
+          ) : null}
+
           <View style={styles.head}>
             <View style={[styles.iconBox, { backgroundColor: theme.iconBg }]}>
               <theme.Icon size={20} color={theme.iconColor} />
@@ -181,7 +192,15 @@ export const SuggestedPlans: React.FC<SuggestedPlansProps> = ({
 );
 
 const styles = StyleSheet.create({
-  card: { borderWidth: 1, borderRadius: radius.xl, padding: spacing.lg, gap: spacing.lg },
+  // overflow:hidden keeps the selected ramp inside the rounded border.
+  card: {
+    borderWidth: 1,
+    borderRadius: radius.xl,
+    padding: spacing.lg,
+    gap: spacing.lg,
+    backgroundColor: colors.surface,
+    overflow: 'hidden',
+  },
   pressed: { opacity: 0.9 },
   head: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
   iconBox: { width: 32, height: 32, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' },

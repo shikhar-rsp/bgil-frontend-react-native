@@ -19,7 +19,7 @@ import { dashboardImages } from '../../images';
 import { MotorCard, motorColors } from './motorUi';
 import {
   VEHICLE_TYPE_IMAGES,
-  findVehicle,
+  lookupVehicle,
   formatShortDate,
   getDaysExpired,
   getNcbSlab,
@@ -197,7 +197,7 @@ export const VehicleIdentificationStep: React.FC<VehicleIdentificationStepProps>
   const [showToast, setShowToast] = useState(true);
 
   const isNew = vehicleType === 'new';
-  const vehicle = findVehicle(registrationNumber);
+  const vehicle = lookupVehicle(registrationNumber);
 
   const today = useMemo(() => new Date(), []);
 
