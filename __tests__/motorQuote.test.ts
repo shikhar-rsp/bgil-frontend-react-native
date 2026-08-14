@@ -15,6 +15,7 @@ import {
   needsApproval,
   parseShortDate,
   planAllowsDiscountLoader,
+  planSupportsAddOns,
   validateRegistration,
 } from '../src/presentation/components/dashboard/business/motor/motorQuoteData';
 
@@ -154,6 +155,85 @@ describe('getAvailablePlans', () => {
     expect(getAvailablePlans('mid')).toHaveLength(3);
     expect(getAvailablePlans('over5')).toHaveLength(3);
     expect(getAvailablePlans('expired')).toHaveLength(3);
+  });
+
+  it('gives a vehicle being registered for the first time its own two products', () => {
+    expect(getAvailablePlans('over5', true).map((p) => p.id)).toEqual([
+      'bundled',
+      'ltp',
+    ]);
+  });
+
+  /**
+   * Standalone own damage needs a third-party policy already in force, and
+   * multi-year own damage stopped being issuable in 2020 — neither is offerable
+   * on a new vehicle, and they are absent by construction rather than filtered.
+   */
+  it('never offers standalone or multi-year own damage on a new vehicle', () => {
+    const plans = getAvailablePlans('over5', true);
+
+    expect(plans.map((p) => p.id)).not.toContain('od');
+    expect(plans.every((p) => p.ownDamageYears <= 1)).toBe(true);
+  });
+
+  it('leads with the bundled product', () => {
+    const [first, second] = getAvailablePlans('under3', true);
+
+    expect(first.id).toBe('bundled');
+    expect(first.recommended).toBe(true);
+    expect(second.recommended).toBeUndefined();
+  });
+
+  /** The bucket is irrelevant once the vehicle is unregistered. */
+  it('offers the same two products whatever the entered age', () => {
+    (['under3', 'mid', 'over5', 'expired'] as const).forEach((bucket) => {
+      expect(getAvailablePlans(bucket, true).map((p) => p.id)).toEqual([
+        'bundled',
+        'ltp',
+      ]);
+    });
+  });
+});
+
+describe('new-vehicle premiums', () => {
+  const base = {
+    vehicle: OVER_5,
+    idv: OVER_5.recommendedIdv,
+    ncbPercent: 0,
+    selectedAddOnIds: [],
+    discountLoaderPercent: 0,
+  };
+
+  it('charges the long-term third-party leg once for all three years', () => {
+    const premium = calculatePremium({ ...base, planId: 'ltp' });
+
+    expect(premium.idv).toBeNull();
+    expect(premium.ownDamage).toBeNull();
+    expect(premium.thirdParty).toMatchObject({
+      basic: 3416 * 3,
+      paCover: 375 * 3,
+      net: 11373,
+      years: 3,
+    });
+    // (3,416 + 375) × 3 = 11,373, +18% GST.
+    expect(premium.total).toBe(13420);
+  });
+
+  it('runs each half of a bundled policy for its own term', () => {
+    const premium = calculatePremium({ ...base, planId: 'bundled' });
+
+    expect(premium.ownDamage).toMatchObject({ basic: 10400, years: 1 });
+    expect(premium.thirdParty).toMatchObject({ net: 11373, years: 3 });
+    expect(premium.netPremium).toBe(10400 + 11373);
+  });
+
+  it('keeps the third-party-only gates on the long-term product', () => {
+    expect(planSupportsAddOns('ltp')).toBe(false);
+    expect(planAllowsDiscountLoader('ltp')).toBe(false);
+
+    // Bundled sells own damage, so it keeps them.
+    expect(planSupportsAddOns('bundled')).toBe(true);
+    expect(planAllowsDiscountLoader('bundled')).toBe(true);
   });
 });
 

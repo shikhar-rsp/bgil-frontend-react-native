@@ -22,6 +22,10 @@ interface QuoteTheme {
   price: string;
   /** Foot of the white → tint ramp, painted only once the card is selected. */
   tint: string;
+  /**
+   * Borders stay inside the package's own colour family and just deepen on
+   * selection, rather than every card jumping to brand blue when picked.
+   */
   border: string;
   selectedBorder: string;
   splitBg: string;
@@ -39,8 +43,8 @@ const THEMES: Record<ReadyMadeQuote['theme'], QuoteTheme> = {
     iconBg: '#EEF2FF',
     price: '#4338CA',
     tint: '#EEF2FF',
-    border: '#E2E8F0',
-    selectedBorder: '#818CF8',
+    border: '#BFDBFE',
+    selectedBorder: '#60A5FA',
     splitBg: '#EEF2FF',
   },
   premium: {
@@ -59,7 +63,7 @@ const THEMES: Record<ReadyMadeQuote['theme'], QuoteTheme> = {
     iconBg: '#ECFDF5',
     price: '#047857',
     tint: '#ECFDF5',
-    border: '#CCFBF1',
+    border: '#A7F3D0',
     selectedBorder: '#34D399',
     splitBg: '#ECFDF5',
   },

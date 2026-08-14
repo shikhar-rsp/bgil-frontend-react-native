@@ -31,6 +31,14 @@ const Row: React.FC<{
   </View>
 );
 
+/**
+ * Each half carries its own term. A bundled new-vehicle policy is 1 year of own
+ * damage against 3 years of third party, so neither half can borrow a single
+ * policy tenure for the pair.
+ */
+const termLabel = (years: number, fallback: string): string =>
+  years > 1 ? `${years} years` : years === 1 ? '1 year' : fallback;
+
 const SectionHeader: React.FC<{ title: string; note: string }> = ({ title, note }) => (
   <View style={styles.sectionHeader}>
     <Text style={styles.sectionTitle}>{title}</Text>
@@ -86,7 +94,7 @@ export const MotorSideContainer: React.FC<MotorSideContainerProps> = ({
             <View style={styles.section}>
               <SectionHeader
                 title="Own Damage"
-                note={`${tenureLabel} • priced by insurer`}
+                note={`${termLabel(premium.ownDamage.years, tenureLabel)} • priced by insurer`}
               />
 
               <Row
@@ -117,7 +125,10 @@ export const MotorSideContainer: React.FC<MotorSideContainerProps> = ({
 
           {premium.thirdParty ? (
             <View style={styles.section}>
-              <SectionHeader title="Third Party" note="IRDAI notified • fixed" />
+              <SectionHeader
+                title="Third Party"
+                note={`${termLabel(premium.thirdParty.years, tenureLabel)} • IRDAI notified • fixed`}
+              />
 
               <Row
                 label="Basic third-party liability"

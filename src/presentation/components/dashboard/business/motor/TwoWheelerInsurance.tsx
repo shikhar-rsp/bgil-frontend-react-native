@@ -23,6 +23,7 @@ import { MOTOR_POLICY_FEATURES } from '../policyFeaturesData';
 import {
   calculatePremium,
   lookupVehicle,
+  getAvailablePlans,
   getDaysExpired,
   getNcbSlab,
   getPrefetchedPolicyPeriod,
@@ -34,7 +35,6 @@ import {
   formatShortDate,
   DEFAULT_IDV,
   NO_PRIOR_POLICY_NCB,
-  PLAN_OPTIONS,
   READY_MADE_QUOTES,
   type PlanId,
   type VehicleAgeBucket,
@@ -256,7 +256,14 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({
 
   const showNcbCard = isVehicleReady && !isNewVehicle;
 
-  const activePlanId: PlanId = selectedPlanType || 'comprehensive';
+  // A vehicle being registered for the first time is sold its own two products
+  // rather than the three renewal plans.
+  const availablePlans = useMemo(
+    () => getAvailablePlans(ageBucket, isNewVehicle),
+    [ageBucket, isNewVehicle],
+  );
+
+  const activePlanId: PlanId = selectedPlanType || availablePlans[0].id;
 
   const premium = useMemo(() => {
     if (!vehicle || !isVehicleReady) return null;
@@ -273,9 +280,9 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({
 
   /** Headline price for each Choose Plan card, under the current selections. */
   const planPrices = useMemo(() => {
-    const prices = {} as Record<PlanId, number>;
+    const prices: Partial<Record<PlanId, number>> = {};
 
-    PLAN_OPTIONS.forEach((plan) => {
+    availablePlans.forEach((plan) => {
       prices[plan.id] = vehicle
         ? calculatePremium({
             vehicle,
@@ -289,7 +296,7 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({
     });
 
     return prices;
-  }, [vehicle, vehicleIdv, ncbSlab.percent, selectedAddOns, discountLoader]);
+  }, [availablePlans, vehicle, vehicleIdv, ncbSlab.percent, selectedAddOns, discountLoader]);
 
   const supportsAddOns = planSupportsAddOns(activePlanId);
 
@@ -421,7 +428,7 @@ export const TwoWheelerInsurance: React.FC<TwoWheelerInsuranceProps> = ({
 
             {isVehicleReady ? (
               <PlanDetailsStep
-                ageBucket={ageBucket}
+                plans={availablePlans}
                 selectedPlanType={selectedPlanType}
                 setSelectedPlanType={setSelectedPlanType}
                 planPrices={planPrices}

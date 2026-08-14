@@ -1,25 +1,39 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { Radio, colors, spacing, radius, typography, fontFamilyForWeight } from '@atlas-ds/react-native';
+import { Check, X } from 'phosphor-react-native';
+import { Badge, Radio, colors, spacing, radius, typography, fontFamilyForWeight } from '@atlas-ds/react-native';
 import { MotorCard, motorColors } from './motorUi';
-import {
-  formatRupees,
-  getAvailablePlans,
-  type PlanId,
-  type PlanOption,
-  type VehicleAgeBucket,
-} from './motorQuoteData';
+import { formatRupees, type PlanId, type PlanOption } from './motorQuoteData';
 
 interface PlanDetailsStepProps {
-  ageBucket: VehicleAgeBucket;
+  plans: PlanOption[];
 
   selectedPlanType: PlanId | '';
   setSelectedPlanType: (val: PlanId) => void;
 
   /** Total premium per plan, keyed by plan id. */
-  planPrices: Record<PlanId, number>;
+  planPrices: Partial<Record<PlanId, number>>;
 }
+
+/** "Own Damage · 1 yr" — ticked when the plan includes that half. */
+const CoverChip: React.FC<{
+  label: string;
+  years: number;
+  included: boolean;
+}> = ({ label, years, included }) => (
+  <View style={[styles.chip, included ? styles.chipOn : styles.chipOff]}>
+    {included ? (
+      <Check size={12} color="#1D4ED8" weight="bold" />
+    ) : (
+      <X size={12} color={colors.textMuted} weight="bold" />
+    )}
+
+    <Text style={[styles.chipText, included ? styles.chipTextOn : styles.chipTextOff]}>
+      {included ? `${label} · ${years} ${years === 1 ? 'yr' : 'yrs'}` : label}
+    </Text>
+  </View>
+);
 
 /**
  * The name, radio and description sit together on one white-to-blue ramp — the
@@ -36,52 +50,83 @@ const PlanCard: React.FC<{
   price: number;
   isSelected: boolean;
   onSelect: () => void;
-}> = ({ plan, price, isSelected, onSelect }) => (
-  <Pressable
-    onPress={onSelect}
-    accessibilityRole="radio"
-    accessibilityState={{ selected: isSelected }}
-    style={({ pressed }) => [
-      styles.card,
-      isSelected ? styles.cardSelected : styles.cardDefault,
-      pressed && styles.pressed,
-    ]}
-  >
-    <View style={styles.ramp}>
-      <LinearGradient
-        colors={['#FFFFFF', motorColors.gradientBlue]}
-        style={StyleSheet.absoluteFill}
-      />
+}> = ({ plan, price, isSelected, onSelect }) => {
+  // A plan whose legs run different lengths, or run past a year, is paid for
+  // once up front rather than "for 1 year".
+  const isMultiYear = plan.ownDamageYears > 1 || plan.thirdPartyYears > 1;
 
-      <View style={styles.rampHeader}>
-        <View style={styles.nameBlock}>
-          <Text style={styles.name}>{plan.name}</Text>
-          <Text style={styles.tagline}>{plan.tagline}</Text>
+  return (
+    <Pressable
+      onPress={onSelect}
+      accessibilityRole="radio"
+      accessibilityState={{ selected: isSelected }}
+      style={({ pressed }) => [
+        styles.card,
+        isSelected ? styles.cardSelected : styles.cardDefault,
+        pressed && styles.pressed,
+      ]}
+    >
+      {plan.recommended ? (
+        <View style={styles.badge}>
+          <Badge variant="solid" color="emerald" size="sm" label="Recommended" />
+        </View>
+      ) : null}
+
+      <View style={styles.ramp}>
+        <LinearGradient
+          colors={['#FFFFFF', motorColors.gradientBlue]}
+          style={StyleSheet.absoluteFill}
+        />
+
+        <View style={styles.rampTop}>
+          <View style={styles.rampHeader}>
+            <View style={styles.nameBlock}>
+              <Text style={styles.name}>{plan.name}</Text>
+              <Text style={styles.tagline}>{plan.tagline}</Text>
+            </View>
+
+            <Radio selected={isSelected} size="md" />
+          </View>
+
+          <View style={styles.chips}>
+            <CoverChip
+              label="Own Damage"
+              years={plan.ownDamageYears}
+              included={plan.coversOwnDamage}
+            />
+
+            <CoverChip
+              label="Third Party"
+              years={plan.thirdPartyYears}
+              included={plan.coversThirdParty}
+            />
+          </View>
         </View>
 
-        <Radio selected={isSelected} size="md" />
+        <Text style={styles.description}>{plan.description}</Text>
       </View>
 
-      <Text style={styles.description}>{plan.description}</Text>
-    </View>
-
-    <View>
-      <Text style={styles.price}>Rs. {formatRupees(price)}</Text>
-      <Text style={styles.priceNote}>total for 1 year, incl. GST</Text>
-    </View>
-  </Pressable>
-);
+      <View>
+        <Text style={styles.price}>Rs. {formatRupees(price)}</Text>
+        <Text style={styles.priceNote}>
+          {isMultiYear
+            ? 'total at inception, incl. GST'
+            : 'total for 1 year, incl. GST'}
+        </Text>
+      </View>
+    </Pressable>
+  );
+};
 
 export const PlanDetailsStep: React.FC<PlanDetailsStepProps> = ({
-  ageBucket,
+  plans,
   selectedPlanType,
   setSelectedPlanType,
   planPrices,
 }) => {
-  const plans = useMemo(() => getAvailablePlans(ageBucket), [ageBucket]);
-
-  // A vehicle under 3 years leaves own damage as the only offerable plan —
-  // there is nothing to choose, so pick it rather than block on an empty form.
+  // Where there is nothing to choose — an under-3-year vehicle leaves own
+  // damage as the only offerable plan — pick it rather than block on an empty
+  // form.
   useEffect(() => {
     if (plans.length === 1 && selectedPlanType !== plans[0].id) {
       setSelectedPlanType(plans[0].id);
@@ -94,7 +139,7 @@ export const PlanDetailsStep: React.FC<PlanDetailsStepProps> = ({
         <PlanCard
           key={plan.id}
           plan={plan}
-          price={planPrices[plan.id]}
+          price={planPrices[plan.id] ?? 0}
           isSelected={selectedPlanType === plan.id}
           onSelect={() => setSelectedPlanType(plan.id)}
         />
@@ -105,11 +150,15 @@ export const PlanDetailsStep: React.FC<PlanDetailsStepProps> = ({
 
 const styles = StyleSheet.create({
   card: {
+    // `position: relative` so the Recommended badge can straddle the top edge.
+    // No `overflow: hidden` here — that would clip it away.
+    position: 'relative',
     borderWidth: 1,
     borderRadius: radius.xl,
     padding: spacing.lg,
     gap: spacing.lg,
   },
+  badge: { position: 'absolute', top: -10, right: spacing.lg, zIndex: 1 },
   cardDefault: { borderColor: colors.borderSubtle, backgroundColor: colors.surface },
   cardSelected: { borderColor: colors.brand, backgroundColor: motorColors.selectedFill },
   pressed: { opacity: 0.9 },
@@ -121,8 +170,24 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
     overflow: 'hidden',
   },
+  rampTop: { gap: spacing.md },
   rampHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.sm },
   nameBlock: { flex: 1 },
+
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  chipOn: { backgroundColor: motorColors.gradientBlue },
+  chipOff: { backgroundColor: colors.surfaceMuted },
+  chipText: { fontFamily: fontFamilyForWeight('500'), fontSize: 12, lineHeight: 16, fontWeight: '500' },
+  chipTextOn: { color: '#1D4ED8' },
+  chipTextOff: { color: colors.textMuted },
   name: {
     fontFamily: fontFamilyForWeight('500'),
     fontSize: 18,

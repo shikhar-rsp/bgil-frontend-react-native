@@ -356,7 +356,7 @@ export const getPrefetchedPolicyPeriod = (
 /* Plans                                                               */
 /* ------------------------------------------------------------------ */
 
-export type PlanId = 'comprehensive' | 'tp' | 'od';
+export type PlanId = 'comprehensive' | 'tp' | 'od' | 'bundled' | 'ltp';
 
 export interface PlanOption {
   id: PlanId;
@@ -366,6 +366,11 @@ export interface PlanOption {
   /** Which halves of the premium breakup this plan bills for. */
   coversOwnDamage: boolean;
   coversThirdParty: boolean;
+  /** Years each half runs for — 0 when that half isn't included. */
+  ownDamageYears: number;
+  thirdPartyYears: number;
+  /** The option to lead with, badged on the card. */
+  recommended?: boolean;
 }
 
 export const PLAN_OPTIONS: PlanOption[] = [
@@ -377,6 +382,8 @@ export const PLAN_OPTIONS: PlanOption[] = [
       "Covers damage to the customer's own car and legal liability to others.",
     coversOwnDamage: true,
     coversThirdParty: true,
+    ownDamageYears: 1,
+    thirdPartyYears: 1,
   },
   {
     id: 'tp',
@@ -386,6 +393,8 @@ export const PLAN_OPTIONS: PlanOption[] = [
       "Legal minimum under the Motor Vehicles Act. Nothing is paid for the customer's own car.",
     coversOwnDamage: false,
     coversThirdParty: true,
+    ownDamageYears: 0,
+    thirdPartyYears: 1,
   },
   {
     id: 'od',
@@ -395,20 +404,63 @@ export const PLAN_OPTIONS: PlanOption[] = [
       'Only issuable if the customer already holds a valid third-party policy from elsewhere.',
     coversOwnDamage: true,
     coversThirdParty: false,
+    ownDamageYears: 1,
+    thirdPartyYears: 0,
   },
 ];
 
 /**
- * A vehicle under 3 years still carries the bundled long-term third-party
- * cover it was sold with, so own damage is the only plan left to write.
+ * A vehicle being registered for the first time can only be sold one of two
+ * things: the bundled package, or the long-term third-party policy on its own.
+ * Standalone own damage needs a third-party policy already in force, and
+ * multi-year own damage stopped being issuable in 2020 — so neither is here.
  */
-export const getAvailablePlans = (bucket: VehicleAgeBucket): PlanOption[] =>
-  bucket === 'under3'
+export const NEW_VEHICLE_PLAN_OPTIONS: PlanOption[] = [
+  {
+    id: 'bundled',
+    name: 'Bundled cover',
+    tagline: '1 yr Own Damage + 3 yr Third Party',
+    description:
+      'The only comprehensive product available for a new vehicle. Own damage is renewed every year, third party is paid once.',
+    coversOwnDamage: true,
+    coversThirdParty: true,
+    ownDamageYears: 1,
+    thirdPartyYears: 3,
+    recommended: true,
+  },
+  {
+    id: 'ltp',
+    name: 'Long-term Third Party only',
+    tagline: '3 years, statutory minimum',
+    description:
+      "Legal minimum to register the vehicle. Nothing is paid for damage to the customer's own vehicle.",
+    coversOwnDamage: false,
+    coversThirdParty: true,
+    ownDamageYears: 0,
+    thirdPartyYears: 3,
+  },
+];
+
+const ALL_PLANS = [...PLAN_OPTIONS, ...NEW_VEHICLE_PLAN_OPTIONS];
+
+/**
+ * A vehicle under 3 years still carries the bundled long-term third-party
+ * cover it was sold with, so own damage is the only plan left to write. A
+ * vehicle being registered for the first time gets its own two products.
+ */
+export const getAvailablePlans = (
+  bucket: VehicleAgeBucket,
+  isUnregistered: boolean = false,
+): PlanOption[] => {
+  if (isUnregistered) return NEW_VEHICLE_PLAN_OPTIONS;
+
+  return bucket === 'under3'
     ? PLAN_OPTIONS.filter((plan) => plan.id === 'od')
     : PLAN_OPTIONS;
+};
 
 export const getPlan = (id: PlanId): PlanOption =>
-  PLAN_OPTIONS.find((plan) => plan.id === id) ?? PLAN_OPTIONS[0];
+  ALL_PLANS.find((plan) => plan.id === id) ?? PLAN_OPTIONS[0];
 
 /* ------------------------------------------------------------------ */
 /* No Claim Bonus                                                      */
@@ -647,12 +699,15 @@ export interface PremiumBreakup {
     ncbPercent: number;
     ncbAmount: number;
     net: number;
+    /** Years this half runs for — the two can differ on a bundled policy. */
+    years: number;
   } | null;
 
   thirdParty: {
     basic: number;
     paCover: number;
     net: number;
+    years: number;
   } | null;
 
   /** Rupee value of the discount (negative) or loader (positive). */
@@ -691,14 +746,17 @@ export const calculatePremium = ({
       ncbPercent,
       ncbAmount,
       net: basic + addOns - ncbAmount,
+      years: plan.ownDamageYears,
     };
   }
 
+  // A long-term third-party leg is paid once, up front, for all its years.
   const thirdParty: PremiumBreakup['thirdParty'] = plan.coversThirdParty
     ? {
-        basic: THIRD_PARTY_BASIC,
-        paCover: PA_OWNER_DRIVER,
-        net: THIRD_PARTY_BASIC + PA_OWNER_DRIVER,
+        basic: THIRD_PARTY_BASIC * plan.thirdPartyYears,
+        paCover: PA_OWNER_DRIVER * plan.thirdPartyYears,
+        net: (THIRD_PARTY_BASIC + PA_OWNER_DRIVER) * plan.thirdPartyYears,
+        years: plan.thirdPartyYears,
       }
     : null;
 
